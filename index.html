@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Mi Cuaderno de Música</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <script src="script.js"></script>
+</body>
+</html>
+<div class="cyber-player-container">
+  <div class="player-card">
+    <div class="song-info">
+      <h2 class="song-title">NEON DRIFT</h2>
+      <div class="song-artist">Synthwave Mix 2026</div>
+    </div>
+
+    <div class="visualizer-container">
+      <canvas id="visualizerCanvas"></canvas>
+    </div>
+
+    <audio id="audioTrack" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"></audio>
+
+    <div class="controls-panel">
+      <div class="progress-area">
+        <span id="currentTime">0:00</span>
+        <input type="range" id="progressBar" class="progress-bar" value="0" min="0" max="100">
+        <span id="duration">0:00</span>
+      </div>
+
+      <div class="buttons">
+        <button id="playBtn" class="btn btn-play" title="Reproducir">
+          <svg id="playIcon" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="volume-container">
+        <span style="color: #00f2fe; font-size: 0.8rem;">VOL</span>
+        <input type="range" id="volumeSlider" class="volume-slider" value="80" min="0" max="100">
+      </div>
+    </div>
+  </div>
+</div>
