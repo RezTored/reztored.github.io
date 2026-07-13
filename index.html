@@ -2,46 +2,85 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Mi Cuaderno de Música</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RezTored Music</title>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <script src="script.js"></script>
-</body>
-</html>
-<div class="cyber-player-container">
-  <div class="player-card">
-    <div class="song-info">
-      <h2 class="song-title">NEON DRIFT</h2>
-      <div class="song-artist">Synthwave Mix 2026</div>
-    </div>
-
-    <div class="visualizer-container">
-      <canvas id="visualizerCanvas"></canvas>
-    </div>
-
-    <audio id="audioTrack" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"></audio>
-
-    <div class="controls-panel">
-      <div class="progress-area">
-        <span id="currentTime">0:00</span>
-        <input type="range" id="progressBar" class="progress-bar" value="0" min="0" max="100">
-        <span id="duration">0:00</span>
+  <header class="bg-gray-900 w-full absolute top-0 left-0 z-50">
+    <nav aria-label="Global" class="mx-auto flex max-w-7xl items-center justify-between p-6 lg:px-8">
+      
+      <div class="flex lg:flex-1">
+        <a href="/" class="-m-1.5 p-1.5">
+          <span class="sr-only">RezTored</span>
+          <img src="lol.png" alt="Logo" class="h-8 w-auto" />
+        </a>
       </div>
 
-      <div class="buttons">
-        <button id="playBtn" class="btn btn-play" title="Reproducir">
-          <svg id="playIcon" viewBox="0 0 24 24">
-            <path d="M8 5v14l11-7z"/>
+      <div class="flex lg:hidden">
+        <button type="button" class="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-400">
+          <span class="sr-only">Open main menu</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-6">
+            <path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </button>
       </div>
 
-      <div class="volume-container">
-        <span style="color: #00f2fe; font-size: 0.8rem;">VOL</span>
-        <input type="range" id="volumeSlider" class="volume-slider" value="80" min="0" max="100">
+      <div class="hidden lg:flex lg:gap-x-12">
+        <a href="/" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">RezTored</a>
+        <a href="/informacion" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">Información</a>
+        <a href="/opiniones" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">Opiniones</a>
+        <a href="/contact" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">Contacto</a>
       </div>
+
+      <div class="hidden lg:flex lg:flex-1 lg:justify-end">
+        <a href="/login" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">Log in <span aria-hidden="true">→</span></a>
+      </div>
+
+    </nav>
+  </header>
+  
+  <div class="page-container mt-24">
+    
+    <div class="app-window">
+      
+      <div class="window-header">
+        <div class="window-dots">
+          <span class="dot close"></span>
+          <span class="dot minimize"></span>
+          <span class="dot maximize"></span>
+        </div>
+        <div class="window-title">RezTored Player</div>
+        <div class="window-spacer"></div>
+      </div>
+      
+      <div class="window-content">
+        <div class="song-info">
+          <h2 class="song-title">SPOTIFY PLAYER</h2>
+          <div class="song-artist">Muestra • RezTored</div>
+        </div>
+
+        <div class="spotify-embed-container">
+          <iframe 
+            data-testid="embed-iframe" 
+            style="border-radius:12px" 
+            src="https://open.spotify.com/embed/playlist/5SMC9IfOZffvpElJcqlbdb?utm_source=generator&si=eaed85027ba74269" 
+            width="100%" 
+            height="352" 
+            frameBorder="0" 
+            allowfullscreen="" 
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+            loading="lazy">
+          </iframe>
+        </div>
+      </div>
+      
     </div>
+    
   </div>
-</div>
+
+</body>
+</html>
