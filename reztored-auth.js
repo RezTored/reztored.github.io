@@ -147,6 +147,65 @@ export async function eliminarOpinion(opinionId) {
     if (!opinionId) throw new Error("Falta el ID de la opinión.");
     await deleteDoc(doc(db, 'opinions', opinionId));
 }
+
+/**
+ * Se fija si el usuario logueado (auth.currentUser) ya tiene perfil
+ * en Firestore (users/{uid} + su username reservado). Si NO lo tiene
+ * —típicamente porque entró con Google, que no pasa por
+ * registrarUsuario()— le arma uno automáticamente a partir de su
+ * nombre de Google, para que /su-username funcione, se lo pueda
+ * banear, dar admin, etc. igual que a cualquier otro usuario.
+ *
+ * Se puede (y conviene) llamar esto en cada login, no solo en el de
+ * Google: es un "self-heal", si el perfil ya existe no hace nada.
+ */
+export async function asegurarPerfilUsuario(user) {
+    if (!user) return;
+
+    const yaExiste = await getDoc(doc(db, 'users', user.uid));
+    if (yaExiste.exists()) return; // ya tiene perfil, no hay nada que hacer
+
+    // Armamos un username candidato a partir del nombre que ya tenga
+    // (de Google) o del principio del email.
+    const base = (user.displayName || user.email.split('@')[0] || 'usuario')
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // saca tildes
+        .replace(/[^a-z0-9_]/g, '_')
+        .slice(0, 16) || 'usuario';
+    const baseValida = base.length >= 3 ? base : (base + '_usr');
+
+    let candidato = baseValida;
+    let intento = 0;
+    // Probamos el nombre "limpio" y si está ocupado o es reservado,
+    // le vamos pegando un número al final hasta encontrar uno libre.
+    while (true) {
+        const validacion = validarUsername(candidato);
+        const libre = validacion.valido && await usernameDisponible(validacion.username);
+        if (validacion.valido && libre) break;
+        intento++;
+        candidato = (baseValida.slice(0, 12) + intento).slice(0, 20);
+        if (intento > 50) { candidato = 'usuario' + Date.now().toString().slice(-8); break; }
+    }
+
+    const usernameFinal = candidato;
+    const photoURL = user.photoURL || "https://api.dicebear.com/7.x/bottts/svg?seed=" + encodeURIComponent(usernameFinal);
+
+    await setDoc(doc(db, 'usernames', usernameFinal), { uid: user.uid });
+    await setDoc(doc(db, 'users', user.uid), {
+        username: usernameFinal,
+        bio: '',
+        photoURL: photoURL,
+        isAdmin: false,
+        banned: false,
+        createdAt: serverTimestamp()
+    });
+
+    // Mantenemos el displayName de Firebase Auth en sync con el
+    // username (así /su-perfil coincide con lo que ve en el menú).
+    if (user.displayName !== usernameFinal) {
+        await updateProfile(user, { displayName: usernameFinal, photoURL });
+    }
+}
  
 // --- PALABRAS RESERVADAS ---
 // Nombres de usuario que NO se pueden registrar porque chocan con

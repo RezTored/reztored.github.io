@@ -616,7 +616,8 @@
         registrarUsuario,
         obtenerPerfilPorUid,
         esAdmin,
-        eliminarOpinion
+        eliminarOpinion,
+        asegurarPerfilUsuario
     } from '../reztored-auth.js';
 
     // Firestore (solo lo que esta página usa además del módulo compartido)
@@ -808,8 +809,11 @@
     }
 
     // Escuchador de estado de sesión
-    onAuthStateChanged(auth, (user) => {
-        actualizarMenuUsuario(user);
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            try { await asegurarPerfilUsuario(user); } catch (e) { console.error('No se pudo asegurar el perfil:', e); }
+        }
+        actualizarMenuUsuario(auth.currentUser || user);
     });
 
     // Mostrar mensajes de feedback en el modal
