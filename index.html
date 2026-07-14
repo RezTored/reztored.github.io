@@ -30,9 +30,9 @@
       </div>
 
       <div class="hidden lg:flex lg:gap-x-12">
-        <a href="#" id="link-inicio" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">RezTored</a>
-        <a href="/informacion" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">Información</a>
-        <a href="/opiniones" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">Opiniones</a>
+        <a href="/" id="link-inicio" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">RezTored</a>
+        <a href="/info" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">Información</a>
+        <a href="/opinions" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">Opiniones</a>
         <a href="/contact" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">Contacto</a>
       </div>
 
@@ -262,7 +262,7 @@
       const password = document.getElementById('auth-password').value;
       let username = authUsernameInput.value.trim();
 
-      // VALIDACIÓN ESTRICTA: Recortar a 12 caracteres sí o sí en el código
+      // VALIDACIÓN ESTRICTA: Aseguramos recortar a 12 letras en backend/código
       if (username.length > 12) {
         username = username.substring(0, 12);
       }
@@ -324,15 +324,15 @@
         btnLoginMenu.classList.add('hidden');
         userLoggedInDiv.classList.remove('hidden');
         
-        // VALIDACIÓN ESTRICTA: Cortar el nombre de usuario que viene de Google a 12 caracteres
+        // VALIDACIÓN ESTRICTA: Cortar a 12 caracteres el nombre del usuario
         let name = user.displayName || user.email.split('@')[0];
         if (name.length > 12) name = name.substring(0, 12);
 
-        // Actualizamos el hipervínculo para que diga el nombre real limitado a 12 letras
+        // Actualiza el texto del enlace para que diga el nombre y lleve a perfil.html
         userProfileLink.textContent = name;
         userProfileLink.href = `perfil.html?id=${user.uid}`;
 
-        // Foto de perfil
+        // Miniatura del Avatar
         if (user.photoURL) {
           userAvatarMenu.src = user.photoURL;
           userAvatarMenu.classList.remove('hidden');
@@ -362,20 +362,23 @@
     const logoInicio = document.getElementById('logo-inicio');
     const linkInicio = document.getElementById('link-inicio');
 
-    const scrollAlTecho = (evento) => {
-      evento.preventDefault(); // Detiene la navegación tradicional y evita saltos de golpe
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth' // Deslizamiento suave
-      });
-    };
-
+    // Al presionar el LOGO: Deslizar suavemente al techo (sin recargar)
     if (logoInicio) {
-      logoInicio.addEventListener('click', scrollAlTecho);
+      logoInicio.addEventListener('click', (evento) => {
+        evento.preventDefault();
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      });
     }
 
+    // Al presionar REZTORED: Recargar la página limpia y volver al inicio
     if (linkInicio) {
-      linkInicio.addEventListener('click', scrollAlTecho);
+      linkInicio.addEventListener('click', (evento) => {
+        evento.preventDefault();
+        window.location.href = window.location.origin + window.location.pathname; 
+      });
     }
   </script>
 

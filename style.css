@@ -129,3 +129,7 @@ body {
 .spotify-embed-container iframe {
   display: block;
 }
+/* Forzar que el modal se muestre como flex al estar activo */
+#auth-modal.active {
+  display: flex !important;
+}

@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Opiniones</title>
+    
+    <!-- Importación de Fuentes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Paleta de colores basada en tu estilo */
+        :root {
+            --bg-page: #121214;          /* Gris ultra oscuro mate */
+            --bg-card: #1e1e22;          /* Gris oscuro para ventana flotante */
+            --bg-header: #18181c;        /* Gris más oscuro para barra superior */
+            --border-color: #2d2d34;     /* Borde sutil */
+            --text-main: #e1e1e6;        /* Blanco/Gris claro */
+            --text-muted: #8e8e93;       /* Gris intermedio */
+            --text-white: #ffffff;
+            --accent-red: #ff5f56;       /* Color de destaque para "YOU" */
+            --primary: #4f46e5;          /* Botón principal */
+            --primary-hover: #4338ca;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Estilo general del Body */
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg-page); 
+            font-family: 'Rajdhani', sans-serif;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .page-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            padding: 20px;
+        }
+
+        /* Ventana Flotante del Foro (Estilo de tu App) */
+        .app-window {
+            width: 100%;
+            max-width: 500px; 
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), 0 0 15px rgba(255, 255, 255, 0.02);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .app-window:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.75), 0 0 20px rgba(255, 255, 255, 0.04);
+        }
+
+        /* Barra superior de control (Estilo Mac/SO) */
+        .window-header {
+            background: var(--bg-header);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .window-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .dot {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .dot.close { background: #ff5f56; }
+        .dot.minimize { background: #ffbd2e; }
+        .dot.maximize { background: #27c93f; }
+
+        .window-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .window-spacer {
+            width: 49px; 
+        }
+
+        /* Contenedor del interior de la ventana */
+        .window-content {
+            padding: 24px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        /* Cabecera del Foro */
+        .forum-banner {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .forum-banner p.hate-all {
+            font-family: monospace;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        .forum-banner h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.4rem;
+            color: var(--text-white);
+            letter-spacing: 1.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .forum-banner h1 span {
+            color: var(--accent-red);
+            text-shadow: 0 0 8px rgba(255, 95, 86, 0.4);
+        }
+
+        /* Barra de estado del usuario logueado */
+        .auth-status-bar {
+            background: var(--bg-header);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .auth-status-bar .user-info-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .auth-status-bar .user-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+        }
+
+        .auth-status-bar a {
+            color: var(--text-main);
+            text-decoration: none;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .auth-status-bar a:hover {
+            color: var(--text-white);
+            text-decoration: underline;
+        }
+
+        /* Formulario para publicar opiniones */
+        .publish-box {
+            background: var(--bg-header);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .publish-box h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            color: var(--text-white);
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        textarea {
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-main);
+            padding: 10px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.95rem;
+            resize: none;
+            min-height: 80px;
+            outline: none;
+            margin-bottom: 10px;
+            transition: border-color 0.2s ease;
+        }
+
+        textarea:focus {
+            border-color: #5d5d66;
+        }
+
+        button {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            background: #2d2d34;
+            color: var(--text-white);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            background: #3e3e46;
+            border-color: #5d5d66;
+        }
+
+        /* Alerta de requerimiento de login */
+        .login-alert {
+            background: var(--bg-header);
+            border: 1px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .login-alert p {
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+        }
+
+        .login-alert a {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem;
+            display: inline-block;
+            background: #2d2d34;
+            color: var(--text-white);
+            border: 1px solid var(--border-color);
+            padding: 8px 14px;
+            border-radius: 6px;
+            text-decoration: none;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .login-alert a:hover {
+            background: #3e3e46;
+        }
+
+        /* Contenedor del Feed */
+        .opinions-feed {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .opinion-card {
+            background: var(--bg-header);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .opinion-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            padding-bottom: 6px;
+        }
+
+        .author-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .opinion-avatar {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
+        }
+
+        .opinion-author {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--text-white);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            font-size: 0.8rem;
+        }
+
+        .opinion-date {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .opinion-body {
+            font-size: 0.95rem;
+            color: var(--text-main);
+            white-space: pre-line;
+            letter-spacing: 0.5px;
+        }
+
+        .no-opinions {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            border: 1px dashed var(--border-color);
+            border-radius: 8px;
+        }
+
+        .window-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        .window-content::-webkit-scrollbar-track {
+            background: var(--bg-card);
+        }
+        .window-content::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="page-container">
+    <div class="app-window">
+        
+        <!-- Barra de Ventana -->
+        <div class="window-header">
+            <div class="window-dots">
+                <span class="dot close"></span>
+                <span class="dot minimize"></span>
+                <span class="dot maximize"></span>
+            </div>
+            <div class="window-title">Opiniones</div>
+            <div class="window-spacer"></div>
+        </div>
+
+        <!-- Contenido principal -->
+        <div class="window-content">
+            
+            <!-- Cabecera del Foro -->
+            <div class="forum-banner">
+                <p class="hate-all">i hate all lul</p>
+                <h1>all, but <span>YOU</span> no.</h1>
+            </div>
+
+            <!-- Estado de sesión de Firebase -->
+            <div class="auth-status-bar" id="auth-status-bar">
+                <div class="user-info-wrapper">
+                    <img id="user-status-avatar" class="user-avatar" src="" alt="avatar" style="display: none;">
+                    <span id="user-status">Detectando sistema...</span>
+                </div>
+                <div>
+                    <a href="/">INICIO</a>
+                    <span id="auth-links" style="margin-left: 10px;"></span>
+                </div>
+            </div>
+
+            <!-- Formulario para publicar (Solo visible si está logueado en Firebase) -->
+            <div class="publish-box" id="publish-section" style="display: none;">
+                <h2>Tu Opinión</h2>
+                <form id="forum-form">
+                    <textarea id="opinion-text" placeholder="Escribe aquí..." required></textarea>
+                    <button type="submit">Publicar</button>
+                </form>
+            </div>
+
+            <!-- Alerta para redirigir a Login -->
+            <div class="login-alert" id="login-prompt" style="display: none;">
+                <p>Inicia sesión con tu cuenta para comentar.</p>
+                <a href="../">Ir a login</a>
+            </div>
+
+            <!-- Feed de Comentarios -->
+            <div class="opinions-feed" id="opinions-container">
+                <div class="no-opinions">Cargando la base de datos de opiniones...</div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- CARGA DE SCRIPTS COMO MÓDULO PARA FIREBASE -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { 
+        getAuth, 
+        signOut, 
+        onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    // --- CONFIGURACIÓN DE FIREBASE ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyDJG28Tq0xhyJPmBirRGY8-yBRZllQPl0M",
+        authDomain: "reztored-page.firebaseapp.com",
+        projectId: "reztored-page",
+        storageBucket: "reztored-page.firebasestorage.app",
+        messagingSenderId: "744944684653",
+        appId: "1:744944684653:web:0b8cfbf7a6c21dfae13964"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    let currentFirebaseUser = null;
+
+    // --- MANEJO DE AUTENTICACIÓN ---
+    onAuthStateChanged(auth, (user) => {
+        const userStatusSpan = document.getElementById('user-status');
+        const userStatusAvatar = document.getElementById('user-status-avatar');
+        const authLinksSpan = document.getElementById('auth-links');
+        const publishSection = document.getElementById('publish-section');
+        const loginPrompt = document.getElementById('login-prompt');
+
+        if (user) {
+            currentFirebaseUser = user;
+            
+            // Limitar longitud del nombre
+            let displayName = user.displayName || user.email.split('@')[0];
+            if (displayName.length > 12) {
+                displayName = displayName.substring(0, 12);
+            }
+
+            
+            userStatusSpan.innerHTML = `ONLINE: <span style="color: #27c93f; font-weight: bold;">${displayName.toUpperCase()}</span>`;
+            if (user.photoURL) {
+                userStatusAvatar.src = user.photoURL;
+                userStatusAvatar.style.display = 'block';
+            } else {
+                userStatusAvatar.style.display = 'none';
+            }
+
+            authLinksSpan.innerHTML = `| <a href="#" id="logout-btn" style="color: #ff5f56;">LOGOUT</a>`;
+            publishSection.style.display = 'block';
+            loginPrompt.style.display = 'none';
+
+            // Manejar Logout
+            document.getElementById('logout-btn').addEventListener('click', (e) => {
+                e.preventDefault();
+                signOut(auth);
+            });
+        } else {
+            currentFirebaseUser = null;
+            userStatusSpan.innerHTML = `STATUS: <span style="color: #ff5f56; font-weight: bold;">DESCONECTADO</span>`;
+            userStatusAvatar.style.display = 'none';
+            authLinksSpan.innerHTML = `| <a href="../">LOGIN</a>`;
+            publishSection.style.display = 'none';
+            loginPrompt.style.display = 'block';
+        }
+    });
+
+    // --- MANEJO DE PUBLICACIONES (FORO LOCALSTORAGE) ---
+    // Guardamos y listamos las opiniones. Ahora agregamos soporte para guardar avatars
+    let opinions = [];
+
+    function loadOpinions() {
+        const stored = localStorage.getItem('forum_opinions');
+        if (stored) {
+            opinions = JSON.parse(stored);
+        } else {
+            // Comentarios muestra por defecto
+            opinions = [
+                {
+                    author: "MISTERIO",
+                    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Misterio",
+                    date: new Date(Date.now() - 3600000 * 2).toLocaleString(),
+                    text: "i hate all lul... but YOU no. El diseño oscuro con esta font queda épico."
+                },
+                {
+                    author: "ADMIN",
+                    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Admin",
+                    date: new Date(Date.now() - 3600000 * 5).toLocaleString(),
+                    text: "Foro en funcionamiento con Firebase. Deja tu opinión acá abajo."
+                }
+            ];
+            localStorage.setItem('forum_opinions', JSON.stringify(opinions));
+        }
+        renderOpinions();
+    }
+
+    function renderOpinions() {
+        const container = document.getElementById('opinions-container');
+        if (opinions.length === 0) {
+            container.innerHTML = '<div class="no-opinions">No hay opiniones publicadas. Sé el primero.</div>';
+            return;
+        }
+
+        container.innerHTML = opinions.map(op => `
+            <div class="opinion-card">
+                <div class="opinion-card-header">
+                    <div class="author-meta">
+                        ${op.avatar ? `<img class="opinion-avatar" src="${op.avatar}" alt="avatar">` : ''}
+                        <span class="opinion-author">${escapeHTML(op.author.toUpperCase())}</span>
+                    </div>
+                    <span class="opinion-date">${op.date}</span>
+                </div>
+                <div class="opinion-body">${escapeHTML(op.text)}</div>
+            </div>
+        `).join('');
+    }
+
+    // Prevención de inyección HTML (XSS) corregida para evitar errores del linter
+    function escapeHTML(str) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;'
+        };
+        return str.replace(/[&<>'"]/g, tag => map[tag] || tag);
+    }
+
+    // Publicar nueva opinión asociando los datos reales del usuario de Firebase
+    document.getElementById('forum-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const textInput = document.getElementById('opinion-text');
+        const text = textInput.value.trim();
+
+        if (!text) return;
+        if (!currentFirebaseUser) {
+            alert("Acceso denegado. Inicia sesión.");
+            return;
+        }
+
+        let displayName = currentFirebaseUser.displayName || currentFirebaseUser.email.split('@')[0];
+        if (displayName.length > 12) {
+            displayName = displayName.substring(0, 12);
+        }
+
+        const newOpinion = {
+            author: displayName,
+            avatar: currentFirebaseUser.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${displayName}`,
+            date: new Date().toLocaleString(),
+            text: text
+        };
+
+        opinions.unshift(newOpinion);
+        localStorage.setItem('forum_opinions', JSON.stringify(opinions));
+        
+        textInput.value = '';
+        renderOpinions();
+    });
+
+    // Carga inicial
+    document.addEventListener('DOMContentLoaded', () => {
+        loadOpinions();
+    });
+</script>
+
+</body>
+</html>
