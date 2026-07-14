@@ -136,6 +136,64 @@
         }
  
         .perfil-bio.vacia { color: var(--text-muted); font-style: italic; }
+
+        /* Tag "ADMIN" al lado del nombre de usuario */
+        .tag-admin {
+            display: inline-block;
+            background: var(--primary);
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.6rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            padding: 3px 7px;
+            border-radius: 4px;
+            vertical-align: middle;
+            margin-left: 8px;
+        }
+
+        .aviso-baneado {
+            background: #3a1d1d;
+            border: 1px solid #5c2b2b;
+            color: #ff9b93;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .btn-danger { background: #7a1f1f; border-color: #a33; }
+        .btn-danger:hover { background: #931f1f; border-color: #c44; }
+
+        /* Pestañas del panel (Perfil / Administrador) */
+        .tabs-perfil {
+            display: flex;
+            gap: 8px;
+            margin: 18px 0 14px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            border-radius: 0;
+            padding: 8px 4px;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+        .tab-btn.activa { color: var(--text-white); border-bottom-color: var(--primary); }
+        .tab-panel { display: none; }
+        .tab-panel.activa { display: block; }
+
+        .admin-panel-box {
+            background: var(--bg-header);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px;
+        }
+        .admin-panel-box p.ayuda { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; }
+
  
         .no-encontrado {
             text-align: center;
@@ -231,7 +289,11 @@
         auth,
         onAuthStateChanged,
         obtenerPerfilPorUsername,
+        obtenerPerfilPorUid,
         actualizarPerfil,
+        otorgarAdmin,
+        banearUsuario,
+        esAdmin,
         RESERVED_USERNAMES
     } from '/reztored-auth.js';
  
@@ -272,55 +334,161 @@
             return;
         }
  
-        // Esperamos a saber si hay sesión iniciada, para saber si mostramos "Editar perfil"
-        onAuthStateChanged(auth, (user) => {
+        // Esperamos a saber si hay sesión iniciada, para saber si mostramos
+        // "Editar perfil", la tag ADMIN, el botón de banear, etc.
+        onAuthStateChanged(auth, async (user) => {
             const esDueno = user && user.uid === perfil.uid;
-            renderPerfil(perfil, esDueno);
+
+            // Perfil del que está MIRANDO (para saber si es admin).
+            // Si está mirando su propio perfil, ya lo tenemos (perfil).
+            let perfilViewer = null;
+            if (user) {
+                perfilViewer = esDueno ? perfil : await obtenerPerfilPorUid(user.uid);
+            }
+            const viewerEsAdmin = esAdmin(perfilViewer) || esAdmin(user ? user.uid : null);
+
+            renderPerfil(perfil, esDueno, viewerEsAdmin);
         });
     }
  
-    function renderPerfil(perfil, esDueno) {
+    function renderPerfil(perfil, esDueno, viewerEsAdmin) {
         const bioHTML = perfil.bio
             ? `<div class="perfil-bio">${escapeHTML(perfil.bio)}</div>`
             : `<div class="perfil-bio vacia">Este usuario todavía no escribió una bio.</div>`;
- 
+
+        const tagAdminHTML = perfil.isAdmin ? `<span class="tag-admin">ADMIN</span>` : '';
+        const avisoBaneadoHTML = perfil.banned ? `<div class="aviso-baneado">🚫 Este usuario está baneado.</div>` : '';
+
+        // Botón de banear: lo ve un admin mirando el perfil de OTRA persona
+        // (nunca el propio, para no poder auto-banearse por accidente).
+        const accionesAdminHTML = (viewerEsAdmin && !esDueno) ? `
+            <div class="acciones-perfil" style="margin-top:8px;">
+                <button id="btn-banear" class="${perfil.banned ? '' : 'btn-danger'}">
+                    ${perfil.banned ? 'Desbanear usuario' : 'Banear usuario'}
+                </button>
+            </div>
+        ` : '';
+
+        // Pestaña "Administrador": solo la ve el dueño del perfil, si es admin.
+        const mostrarPestanas = esDueno && viewerEsAdmin;
+
         contenedor.innerHTML = `
             <img class="perfil-avatar" src="${perfil.photoURL || ''}" alt="Avatar de ${escapeHTML(perfil.username)}">
-            <div class="perfil-username">${escapeHTML(perfil.username)}</div>
+            <div class="perfil-username">${escapeHTML(perfil.username)}${tagAdminHTML}</div>
             <div class="perfil-fecha">Miembro desde ${formatearFecha(perfil.createdAt)}</div>
-            ${bioHTML}
-            ${esDueno ? `
-                <div class="acciones-perfil">
-                    <button id="btn-editar-perfil">Editar perfil</button>
+            ${avisoBaneadoHTML}
+
+            ${mostrarPestanas ? `
+                <div class="tabs-perfil">
+                    <button class="tab-btn activa" data-tab="tab-perfil">Perfil</button>
+                    <button class="tab-btn" data-tab="tab-admin">Administrador</button>
                 </div>
-                <form class="edit-form" id="form-editar-perfil">
-                    <label for="input-bio">Bio (máx 280 caracteres)</label>
-                    <textarea id="input-bio" maxlength="280">${escapeHTML(perfil.bio || '')}</textarea>
-                    <label for="input-foto">URL de tu foto de perfil</label>
-                    <input type="url" id="input-foto" placeholder="https://..." value="${perfil.photoURL ? escapeAttr(perfil.photoURL) : ''}">
-                    <button type="submit" class="btn-primary">Guardar cambios</button>
-                    <div class="form-msg" id="msg-editar-perfil"></div>
-                </form>
+            ` : ''}
+
+            <div class="tab-panel activa" id="tab-perfil">
+                ${bioHTML}
+                ${esDueno ? `
+                    <div class="acciones-perfil">
+                        <button id="btn-editar-perfil">Editar perfil</button>
+                    </div>
+                    <form class="edit-form" id="form-editar-perfil">
+                        <label for="input-bio">Bio (máx 280 caracteres)</label>
+                        <textarea id="input-bio" maxlength="280">${escapeHTML(perfil.bio || '')}</textarea>
+                        <label for="input-foto">URL de tu foto de perfil</label>
+                        <input type="url" id="input-foto" placeholder="https://..." value="${perfil.photoURL ? escapeAttr(perfil.photoURL) : ''}">
+                        <button type="submit" class="btn-primary">Guardar cambios</button>
+                        <div class="form-msg" id="msg-editar-perfil"></div>
+                    </form>
+                ` : ''}
+                ${accionesAdminHTML}
+            </div>
+
+            ${mostrarPestanas ? `
+                <div class="tab-panel" id="tab-admin">
+                    <div class="admin-panel-box">
+                        <p class="ayuda">Escribí el nombre de usuario (sin @, tal cual aparece en su URL) al que querés darle o sacarle admin.</p>
+                        <form id="form-admin">
+                            <label for="input-username-admin">Nombre de usuario</label>
+                            <input type="text" id="input-username-admin" placeholder="ej: juan_perez">
+                            <div style="display:flex; gap:8px; margin-top:10px;">
+                                <button type="submit" data-valor="true" class="btn-primary" style="flex:1;">Dar admin</button>
+                                <button type="submit" data-valor="false" style="flex:1;">Quitar admin</button>
+                            </div>
+                            <div class="form-msg" id="msg-admin"></div>
+                        </form>
+                    </div>
+                </div>
             ` : ''}
         `;
- 
+
+        if (mostrarPestanas) {
+            const tabBtns = contenedor.querySelectorAll('.tab-btn');
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    tabBtns.forEach(b => b.classList.remove('activa'));
+                    btn.classList.add('activa');
+                    contenedor.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('activa'));
+                    document.getElementById(btn.dataset.tab).classList.add('activa');
+                });
+            });
+
+            const formAdmin = document.getElementById('form-admin');
+            const msgAdmin = document.getElementById('msg-admin');
+            formAdmin.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitter = e.submitter;
+                const valor = submitter ? submitter.dataset.valor === 'true' : true;
+                const username = document.getElementById('input-username-admin').value;
+
+                msgAdmin.textContent = 'Procesando...';
+                msgAdmin.className = 'form-msg';
+                try {
+                    await otorgarAdmin(username, valor);
+                    msgAdmin.textContent = valor ? '¡Listo, ahora es admin!' : 'Listo, ya no es admin.';
+                    msgAdmin.className = 'form-msg text-green-400';
+                } catch (error) {
+                    console.error(error);
+                    msgAdmin.textContent = 'No se pudo: ' + error.message;
+                    msgAdmin.className = 'form-msg text-red-400';
+                }
+            });
+        }
+
+        if (viewerEsAdmin && !esDueno) {
+            const btnBanear = document.getElementById('btn-banear');
+            btnBanear.addEventListener('click', async () => {
+                const nuevoValor = !perfil.banned;
+                const confirmMsg = nuevoValor
+                    ? `¿Banear a ${perfil.username}? No va a poder publicar en el foro.`
+                    : `¿Desbanear a ${perfil.username}?`;
+                if (!confirm(confirmMsg)) return;
+                try {
+                    await banearUsuario(perfil.uid, nuevoValor);
+                    window.location.reload();
+                } catch (error) {
+                    console.error(error);
+                    alert('No se pudo: ' + error.message);
+                }
+            });
+        }
+
         if (esDueno) {
             const btnEditar = document.getElementById('btn-editar-perfil');
             const formEditar = document.getElementById('form-editar-perfil');
             const msg = document.getElementById('msg-editar-perfil');
- 
+
             btnEditar.addEventListener('click', () => {
                 formEditar.classList.toggle('activo');
             });
- 
+
             formEditar.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const bio = document.getElementById('input-bio').value;
                 const photoURL = document.getElementById('input-foto').value;
- 
+
                 msg.textContent = 'Guardando...';
                 msg.className = 'form-msg';
- 
+
                 try {
                     await actualizarPerfil(perfil.uid, { bio, photoURL });
                     msg.textContent = '¡Perfil actualizado! Recargando...';

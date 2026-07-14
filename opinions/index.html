@@ -527,6 +527,7 @@
                     <img id="user-avatar-menu" class="user-avatar hidden" src="" alt="avatar">
                     <span id="user-logged-in" class="hidden">
                         ONLINE: <a href="#" id="user-profile-link" class="status-online">Mi Perfil</a>
+                        <span id="admin-badge-nav" class="hidden" style="background:#4f46e5; color:#fff; font-size:0.65rem; font-weight:700; letter-spacing:1px; padding:2px 6px; border-radius:4px; margin-left:6px; vertical-align:middle;">ADMIN</span>
                     </span>
                     <button id="btn-login-menu" style="background:none; border:none; padding:0; text-decoration:underline;">STATUS: <span class="status-offline">DESCONECTADO (HACÉ CLIC ACÁ)</span></button>
                 </div>
@@ -612,7 +613,10 @@
         signOut,
         onAuthStateChanged,
         signInWithPopup,
-        registrarUsuario
+        registrarUsuario,
+        obtenerPerfilPorUid,
+        esAdmin,
+        eliminarOpinion
     } from '../reztored-auth.js';
 
     // Firestore (solo lo que esta página usa además del módulo compartido)
@@ -650,6 +654,11 @@
 
     const publishSection = document.getElementById('publish-section');
     const loginPrompt = document.getElementById('login-prompt');
+
+    // ✏️ Estado global: ¿el usuario logueado ahora mismo es admin?
+    // Se actualiza en actualizarMenuUsuario() y lo usa el render del
+    // feed para saber si hay que mostrar la X de borrar en cada card.
+    let soyAdminActual = false;
 
     // --- EVENTOS DEL MODAL ---
     const abrirModal = () => {
@@ -747,7 +756,8 @@
     // --- FUNCIONES AUXILIARES ---
 
     // Actualizar la barra de navegación según el estado de la sesión
-    function actualizarMenuUsuario(user) {
+    async function actualizarMenuUsuario(user) {
+        const adminBadgeNav = document.getElementById('admin-badge-nav');
         if (user) {
             btnLoginMenu.classList.add('hidden');
             userLoggedInDiv.classList.remove('hidden');
@@ -769,6 +779,17 @@
             // Mostrar el panel de publicar, ocultar el aviso de login
             publishSection.style.display = 'block';
             loginPrompt.style.display = 'none';
+
+            // ¿Es admin? Lo consultamos en Firestore y guardamos el
+            // resultado en soyAdminActual para usarlo al renderizar
+            // el feed (la X de borrar solo aparece si esto es true).
+            try {
+                const perfilActual = await obtenerPerfilPorUid(user.uid);
+                soyAdminActual = esAdmin(perfilActual) || esAdmin(user.uid);
+            } catch (e) {
+                soyAdminActual = false;
+            }
+            adminBadgeNav.classList.toggle('hidden', !soyAdminActual);
         } else {
             btnLoginMenu.classList.remove('hidden');
             userLoggedInDiv.classList.add('hidden');
@@ -780,6 +801,9 @@
             // Ocultar panel de publicar, mostrar aviso de login
             publishSection.style.display = 'none';
             loginPrompt.style.display = 'block';
+
+            soyAdminActual = false;
+            adminBadgeNav.classList.add('hidden');
         }
     }
 
@@ -832,13 +856,30 @@
                                 ${escapeHTML(author.toUpperCase())}
                             </a>
                         </div>
-                        <span class="opinion-date">${dateStr}</span>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span class="opinion-date">${dateStr}</span>
+                            ${soyAdminActual ? `<button type="button" class="btn-borrar-opinion" data-id="${doc.id}" title="Sacar esta opinión" style="background:#3a1d1d; border-color:#5c2b2b; color:#ff5f56; padding:2px 8px; font-size:0.75rem; line-height:1;">✕</button>` : ''}
+                        </div>
                     </div>
                     <div class="opinion-body">${escapeHTML(text)}</div>
                 </div>
             `;
         });
         container.innerHTML = opinionsHTML;
+
+        // Enganchamos los botones de borrar recién creados (solo
+        // existen si soyAdminActual era true al momento de renderizar).
+        container.querySelectorAll('.btn-borrar-opinion').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (!confirm('¿Sacar esta opinión del foro? No se puede deshacer.')) return;
+                try {
+                    await eliminarOpinion(btn.dataset.id);
+                } catch (error) {
+                    console.error(error);
+                    alert('No se pudo borrar: ' + error.message);
+                }
+            });
+        });
     }, (error) => {
         console.error("Error al leer Firestore: ", error);
         document.getElementById('opinions-container').innerHTML = '<div class="no-opinions" style="color: #ff5f56;">Error al sincronizar con la nube de Firebase. Asegurate de habilitar Firestore Database en modo prueba.</div>';
@@ -875,6 +916,7 @@
         try {
             const docRef = await addDoc(opinionsCollection, {
                 author: displayName,
+                authorUid: currentFirebaseUser.uid,
                 avatar: currentFirebaseUser.photoURL || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + encodeURIComponent(displayName),
                 text: text,
                 timestamp: new Date()
@@ -883,7 +925,7 @@
             textInput.value = '';
         } catch (error) {
             console.error("5. ERROR al escribir en Firestore:", error.code, error.message);
-            alert("No se pudo publicar: " + error.message);
+            alert("No se pudo publicar: " + error.message + " (si estás baneado, no podés publicar)");
         }
     });
 

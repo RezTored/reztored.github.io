@@ -21,6 +21,12 @@ import {
     doc,
     getDoc,
     setDoc,
+    updateDoc,
+    deleteDoc,
+    collection,
+    query,
+    where,
+    getDocs,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
  
@@ -50,8 +56,97 @@ export {
     updateProfile,
     doc,
     getDoc,
-    setDoc
+    setDoc,
+    updateDoc,
+    deleteDoc,
+    collection,
+    query,
+    where,
+    getDocs
 };
+
+// ============================================================
+// --- SISTEMA DE ADMINISTRADORES ---
+// ============================================================
+//
+// ✏️ EDITAR ACÁ: poné tu propio UID de Firebase en esta lista para
+// convertirte en "super admin" de arranque (los admins normales se
+// dan/quitan desde la pestaña de Administrador en tu perfil, pero
+// necesitás AL MENOS un admin inicial para poder entrar a esa pestaña).
+//
+// Cómo conseguir tu UID: iniciá sesión en el sitio, abrí la consola
+// del navegador (F12) y escribí:  auth.currentUser.uid
+// (tenés que estar en una página donde `auth` esté expuesto, o mirar
+// en Firebase Console → Authentication → Users, columna "User UID")
+//
+// IMPORTANTE: esta lista también tiene que copiarse tal cual dentro
+// de las Reglas de Seguridad de Firestore (ver firestore.rules), si
+// no, es solo decorativo y no protege nada de verdad.
+export const SUPER_ADMIN_UIDS = [
+    "iBvT6PulDBNJ48EuquY5wKNestg2",
+];
+
+/** True si el uid es super admin "de fábrica" (lista de arriba). */
+export function esSuperAdmin(uid) {
+    return !!uid && SUPER_ADMIN_UIDS.includes(uid);
+}
+
+/**
+ * True si el usuario es admin: o está en SUPER_ADMIN_UIDS, o tiene
+ * isAdmin: true en su documento de Firestore (users/{uid}).
+ * Recibe el objeto de perfil (el que devuelve obtenerPerfilPorUsername
+ * o obtenerPerfilPorUid) o directamente un uid.
+ */
+export function esAdmin(perfilOUid) {
+    if (!perfilOUid) return false;
+    if (typeof perfilOUid === 'string') return esSuperAdmin(perfilOUid);
+    return esSuperAdmin(perfilOUid.uid) || perfilOUid.isAdmin === true;
+}
+
+/** Trae el perfil público de un usuario a partir de su UID. */
+export async function obtenerPerfilPorUid(uid) {
+    if (!uid) return null;
+    const userRef = doc(db, 'users', uid);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) return null;
+    return { uid, ...userSnap.data() };
+}
+
+/**
+ * Le da (o le saca) admin a un usuario a partir de su username.
+ * Solo funciona si quien está logueado ya es admin: las Reglas de
+ * Seguridad de Firestore son las que realmente lo permiten o lo
+ * rechazan (esto de acá es solo la llamada, no la autorización real).
+ */
+export async function otorgarAdmin(username, valor = true) {
+    const usernameLimpio = (username || '').trim().toLowerCase();
+    const usernameRef = doc(db, 'usernames', usernameLimpio);
+    const usernameSnap = await getDoc(usernameRef);
+    if (!usernameSnap.exists()) {
+        throw new Error("No existe ningún usuario con ese nombre.");
+    }
+    const { uid } = usernameSnap.data();
+    await updateDoc(doc(db, 'users', uid), { isAdmin: valor });
+    return uid;
+}
+
+/**
+ * Banea (o desbanea) a un usuario por su UID. Un usuario baneado
+ * no puede publicar opiniones nuevas (ver reglas de Firestore).
+ */
+export async function banearUsuario(uid, valor = true) {
+    if (!uid) throw new Error("Falta el UID del usuario.");
+    await updateDoc(doc(db, 'users', uid), { banned: valor });
+}
+
+/**
+ * Borra una opinión del foro por su ID de documento. Pensado para
+ * el botón de "quitar" (la X) que ven los admins en /opinions.
+ */
+export async function eliminarOpinion(opinionId) {
+    if (!opinionId) throw new Error("Falta el ID de la opinión.");
+    await deleteDoc(doc(db, 'opinions', opinionId));
+}
  
 // --- PALABRAS RESERVADAS ---
 // Nombres de usuario que NO se pueden registrar porque chocan con
@@ -133,10 +228,14 @@ export async function registrarUsuario({ email, password, username }) {
     });
  
     // Perfil público, editable después por el dueño (bio, foto).
+    // isAdmin y banned SOLO los puede tocar un admin (ver firestore.rules),
+    // por eso se crean acá en false y no se tocan desde actualizarPerfil().
     await setDoc(doc(db, 'users', userCredential.user.uid), {
         username: usernameFinal,
         bio: '',
         photoURL: photoURL,
+        isAdmin: false,
+        banned: false,
         createdAt: serverTimestamp()
     });
  
