@@ -133,3 +133,28 @@ body {
 #auth-modal.active {
   display: flex !important;
 }
+/* --- CORRECCIÓN PARA DISPOSITIVOS MÓVILES --- */
+
+@media (max-width: 480px) {
+    /* 1. Hacemos que la ventana flotante sea flexible */
+    .app-window {
+        width: 95% !important; /* Ocupa el 95% de la pantalla en lugar de 430px fijos */
+        max-width: none !important;
+        margin: 10px;
+    }
+
+    /* 2. Ajustamos los textos para que no se desborden */
+    body {
+        padding: 10px;
+    }
+
+    .song-title {
+        font-size: 1rem !important; /* Un poco más chico en celu */
+    }
+
+    /* 3. Evitamos que las imágenes gigantes rompan el layout */
+    img {
+        max-width: 100%;
+        height: auto;
+    }
+}
