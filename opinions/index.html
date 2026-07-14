@@ -497,6 +497,7 @@
             <div class="forum-banner">
                 <p class="hate-all">i hate all lul</p>
                 <h1>all, but <span>YOU</span> no.</h1>
+                <h2>lol</h2>
             </div>
 
             <div class="auth-status-bar" id="auth-status-bar">
@@ -551,8 +552,9 @@
             <h3 id="modal-title">Iniciar Sesión</h3>
             <form id="auth-form">
                 <div class="input-group hidden" id="username-container">
-                    <label for="auth-username">Nombre de Usuario (Máx 12 car.)</label>
-                    <input type="text" id="auth-username" placeholder="Tu apodo o nick">
+                    <label for="auth-username">Nombre de Usuario (3-20, sin espacios)</label>
+                    <input type="text" id="auth-username" maxlength="20" placeholder="tu_usuario">
+                    <p style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">Va a ser tu URL: reztored.online/tu_usuario</p>
                 </div>
                 <div class="input-group">
                     <label for="auth-email">Correo Electrónico</label>
@@ -580,42 +582,25 @@
 </div>
 
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { 
-        getAuth, 
-        createUserWithEmailAndPassword, 
-        signInWithEmailAndPassword, 
-        signOut, 
+    import {
+        auth,
+        db,
+        googleProvider,
+        signInWithEmailAndPassword,
+        signOut,
         onAuthStateChanged,
-        GoogleAuthProvider,
         signInWithPopup,
-        updateProfile
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    
-    // Importamos Firestore
-    import { 
-        getFirestore, 
-        collection, 
-        addDoc, 
-        query, 
-        orderBy, 
-        onSnapshot 
+        registrarUsuario
+    } from '../reztored-auth.js';
+
+    // Firestore (solo lo que esta página usa además del módulo compartido)
+    import {
+        collection,
+        addDoc,
+        query,
+        orderBy,
+        onSnapshot
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    // --- CONFIGURACIÓN DE FIREBASE ---
-    const firebaseConfig = {
-        apiKey: "AIzaSyDJG28Tq0xhyJPmBirRGY8-yBRZllQPl0M",
-        authDomain: "reztored-page.firebaseapp.com",
-        projectId: "reztored-page",
-        storageBucket: "reztored-page.firebasestorage.app",
-        messagingSenderId: "744944684653",
-        appId: "1:744944684653:web:0b8cfbf7a6c21dfae13964"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app); // Inicializa Firestore
-    const googleProvider = new GoogleAuthProvider();
 
     let modoLogin = true;
 
@@ -685,12 +670,7 @@
         e.preventDefault();
         const email = document.getElementById('auth-email').value;
         const password = document.getElementById('auth-password').value;
-        let username = authUsernameInput.value.trim();
-
-        // Validación estricta a un máximo de 12 caracteres
-        if (username.length > 12) {
-            username = username.substring(0, 12);
-        }
+        const username = authUsernameInput.value.trim();
 
         mostrarMensaje("Procesando...", "text-gray-300");
 
@@ -702,12 +682,7 @@
                     authModal.classList.remove('active');
                 }, 1500);
             } else {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                
-                await updateProfile(userCredential.user, {
-                    displayName: username,
-                    photoURL: "https://api.dicebear.com/7.x/bottts/svg?seed=" + encodeURIComponent(username)
-                });
+                await registrarUsuario({ email, password, username });
 
                 mostrarMensaje("¡Cuenta creada con éxito!", "text-green-400");
                 setTimeout(() => {
@@ -717,7 +692,7 @@
             }
             authForm.reset();
         } catch (error) {
-            let mensajeError = "Ocurrió un error.";
+            let mensajeError = error.message || "Ocurrió un error.";
             if (error.code === 'auth/weak-password') mensajeError = "La contraseña debe tener mínimo 6 caracteres.";
             if (error.code === 'auth/email-already-in-use') mensajeError = "Ese correo ya está registrado.";
             if (error.code === 'auth/invalid-credential') mensajeError = "Correo o contraseña incorrectos.";
@@ -757,10 +732,10 @@
             btnLogout.classList.remove('hidden');
             
             let name = user.displayName || user.email.split('@')[0];
-            if (name.length > 12) name = name.substring(0, 12);
+            if (name.length > 20) name = name.substring(0, 20);
 
             userProfileLink.textContent = name.toUpperCase();
-            userProfileLink.href = `perfil.html?id=${user.uid}`;
+            userProfileLink.href = `/${encodeURIComponent(name)}`;
 
             if (user.photoURL) {
                 userAvatarMenu.src = user.photoURL;

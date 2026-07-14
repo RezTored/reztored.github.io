@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil</title>
+ 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+ 
+    <style>
+        :root {
+            --bg-page: #121214;
+            --bg-card: #1e1e22;
+            --bg-header: #18181c;
+            --border-color: #2d2d34;
+            --text-main: #e1e1e6;
+            --text-muted: #8e8e93;
+            --text-white: #ffffff;
+            --accent-red: #ff5f56;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+        }
+ 
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+        body {
+            background: var(--bg-page);
+            font-family: 'Rajdhani', sans-serif;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+ 
+        .app-window {
+            width: 100%;
+            max-width: 480px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+            overflow: hidden;
+        }
+ 
+        .window-header {
+            background: var(--bg-header);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+        }
+ 
+        .window-dots { display: flex; gap: 8px; }
+        .dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+        .dot.close { background: #ff5f56; }
+        .dot.minimize { background: #ffbd2e; }
+        .dot.maximize { background: #27c93f; }
+ 
+        .window-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+ 
+        .window-spacer { width: 49px; }
+ 
+        .window-content { padding: 28px 24px; }
+ 
+        .perfil-avatar {
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            display: block;
+            margin: 0 auto 16px;
+            object-fit: cover;
+            background: var(--bg-header);
+        }
+ 
+        .perfil-username {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            color: var(--text-white);
+            text-align: center;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+ 
+        .perfil-fecha {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            margin-bottom: 20px;
+        }
+ 
+        .perfil-bio {
+            background: var(--bg-header);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--text-main);
+            white-space: pre-line;
+            margin-bottom: 20px;
+            min-height: 40px;
+        }
+ 
+        .perfil-bio.vacia { color: var(--text-muted); font-style: italic; }
+ 
+        .no-encontrado {
+            text-align: center;
+            padding: 20px 0;
+        }
+ 
+        .no-encontrado p {
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+ 
+        a.btn-link, button {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            background: #2d2d34;
+            color: var(--text-white);
+            border: 1px solid var(--border-color);
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            text-transform: uppercase;
+            transition: background 0.2s, border-color 0.2s;
+        }
+ 
+        a.btn-link:hover, button:hover { background: #3e3e46; border-color: #5d5d66; }
+ 
+        .btn-primary { background: var(--primary); border-color: var(--primary); }
+        .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+ 
+        .acciones-perfil { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
+ 
+        .edit-form { display: none; margin-top: 16px; }
+        .edit-form.activo { display: block; }
+ 
+        .edit-form label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+ 
+        .edit-form textarea, .edit-form input {
+            width: 100%;
+            background: var(--bg-header);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            color: var(--text-white);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.95rem;
+            outline: none;
+            margin-bottom: 14px;
+            resize: none;
+        }
+ 
+        .edit-form textarea { min-height: 70px; }
+ 
+        .form-msg { font-size: 0.85rem; text-align: center; margin-top: 8px; min-height: 1.2em; }
+        .text-green-400 { color: #27c93f; }
+        .text-red-400 { color: #ff5f56; }
+ 
+        .cargando { text-align: center; color: var(--text-muted); padding: 30px 0; }
+    </style>
+</head>
+<body>
+ 
+<div class="app-window">
+    <div class="window-header">
+        <div class="window-dots">
+            <span class="dot close"></span>
+            <span class="dot minimize"></span>
+            <span class="dot maximize"></span>
+        </div>
+        <div class="window-title">Perfil</div>
+        <div class="window-spacer"></div>
+    </div>
+ 
+    <div class="window-content" id="contenido-perfil">
+        <div class="cargando">Cargando perfil...</div>
+    </div>
+</div>
+ 
+<script type="module">
+    import {
+        auth,
+        onAuthStateChanged,
+        obtenerPerfilPorUsername,
+        actualizarPerfil,
+        RESERVED_USERNAMES
+    } from '/reztored-auth.js';
+ 
+    const contenedor = document.getElementById('contenido-perfil');
+ 
+    // Saca el nombre de usuario de la URL, ej: reztored.online/juan -> "juan"
+    function obtenerUsernameDeURL() {
+        const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
+        return path.split('/')[0].toLowerCase();
+    }
+ 
+    function renderNoEncontrado() {
+        contenedor.innerHTML = `
+            <div class="no-encontrado">
+                <p>No encontramos ningún perfil con ese nombre de usuario.</p>
+                <a class="btn-link" href="/">Volver al inicio</a>
+            </div>
+        `;
+    }
+ 
+    function formatearFecha(timestamp) {
+        if (!timestamp || !timestamp.toDate) return 'Fecha desconocida';
+        return timestamp.toDate().toLocaleDateString('es-AR', { year: 'numeric', month: 'long', day: 'numeric' });
+    }
+ 
+    async function iniciar() {
+        const username = obtenerUsernameDeURL();
+ 
+        if (!username || RESERVED_USERNAMES.includes(username)) {
+            renderNoEncontrado();
+            return;
+        }
+ 
+        const perfil = await obtenerPerfilPorUsername(username);
+ 
+        if (!perfil) {
+            renderNoEncontrado();
+            return;
+        }
+ 
+        // Esperamos a saber si hay sesión iniciada, para saber si mostramos "Editar perfil"
+        onAuthStateChanged(auth, (user) => {
+            const esDueno = user && user.uid === perfil.uid;
+            renderPerfil(perfil, esDueno);
+        });
+    }
+ 
+    function renderPerfil(perfil, esDueno) {
+        const bioHTML = perfil.bio
+            ? `<div class="perfil-bio">${escapeHTML(perfil.bio)}</div>`
+            : `<div class="perfil-bio vacia">Este usuario todavía no escribió una bio.</div>`;
+ 
+        contenedor.innerHTML = `
+            <img class="perfil-avatar" src="${perfil.photoURL || ''}" alt="Avatar de ${escapeHTML(perfil.username)}">
+            <div class="perfil-username">${escapeHTML(perfil.username)}</div>
+            <div class="perfil-fecha">Miembro desde ${formatearFecha(perfil.createdAt)}</div>
+            ${bioHTML}
+            ${esDueno ? `
+                <div class="acciones-perfil">
+                    <button id="btn-editar-perfil">Editar perfil</button>
+                </div>
+                <form class="edit-form" id="form-editar-perfil">
+                    <label for="input-bio">Bio (máx 280 caracteres)</label>
+                    <textarea id="input-bio" maxlength="280">${escapeHTML(perfil.bio || '')}</textarea>
+                    <label for="input-foto">URL de tu foto de perfil</label>
+                    <input type="url" id="input-foto" placeholder="https://..." value="${perfil.photoURL ? escapeAttr(perfil.photoURL) : ''}">
+                    <button type="submit" class="btn-primary">Guardar cambios</button>
+                    <div class="form-msg" id="msg-editar-perfil"></div>
+                </form>
+            ` : ''}
+        `;
+ 
+        if (esDueno) {
+            const btnEditar = document.getElementById('btn-editar-perfil');
+            const formEditar = document.getElementById('form-editar-perfil');
+            const msg = document.getElementById('msg-editar-perfil');
+ 
+            btnEditar.addEventListener('click', () => {
+                formEditar.classList.toggle('activo');
+            });
+ 
+            formEditar.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const bio = document.getElementById('input-bio').value;
+                const photoURL = document.getElementById('input-foto').value;
+ 
+                msg.textContent = 'Guardando...';
+                msg.className = 'form-msg';
+ 
+                try {
+                    await actualizarPerfil(perfil.uid, { bio, photoURL });
+                    msg.textContent = '¡Perfil actualizado! Recargando...';
+                    msg.className = 'form-msg text-green-400';
+                    setTimeout(() => window.location.reload(), 1000);
+                } catch (error) {
+                    console.error(error);
+                    msg.textContent = 'No se pudo guardar: ' + error.message;
+                    msg.className = 'form-msg text-red-400';
+                }
+            });
+        }
+    }
+ 
+    function escapeHTML(str) {
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
+        return String(str).replace(/[&<>'"]/g, tag => map[tag] || tag);
+    }
+ 
+    function escapeAttr(str) {
+        return String(str).replace(/"/g, '&quot;');
+    }
+ 
+    iniciar();
+</script>
+ 
+</body>
+</html>

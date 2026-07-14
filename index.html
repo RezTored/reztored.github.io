@@ -1,386 +1,327 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RezTored Music</title>
-  
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RezTored Page</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-gray-950 text-white">
 
-  <header class="bg-gray-900/90 backdrop-blur-md w-full fixed top-0 left-0 z-50 border-b border-gray-800">
-    <nav aria-label="Global" class="mx-auto flex max-w-7xl items-center justify-between p-6 lg:px-8">
-      
-      <div class="flex lg:flex-1">
-        <a href="#" id="logo-inicio" class="-m-1.5 p-1.5">
-          <span class="sr-only">RezTored</span>
-          <img src="lol.png" alt="Logo" class="h-8 w-auto" />
-        </a>
-      </div>
+<header class="bg-gray-900/90 backdrop-blur-md w-full fixed top-0 left-0 z-50 border-b border-gray-800">
+<nav aria-label="Global" class="mx-auto flex max-w-7xl items-center justify-between p-6 lg:px-8">
+<div class="flex lg:flex-1">
+<a href="#" id="logo-inicio" class="-m-1.5 p-1.5">
+<span class="sr-only">RezTored</span>
+<img src="lol.png" alt="Logo" class="h-8 w-auto" />
+</a>
+</div>
+<div class="flex lg:hidden">
+<button type="button" class="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-400">
+<span class="sr-only">Open main menu</span>
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-6">
+<path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
+</button>
+</div>
+<div class="hidden lg:flex lg:gap-x-12">
+<a href="/" id="link-inicio" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">RezTored</a>
+<a href="/info" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">Información</a>
+<a href="/opinions" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">Opiniones</a>
+<a href="/contact" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">Contacto</a>
+</div>
+<div class="hidden lg:flex lg:flex-1 lg:justify-end">
+<button id="btn-login-menu" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition cursor-pointer">
+Log in <span aria-hidden="true">→</span>
+</button>
+<div id="user-logged-in" class="hidden flex items-center gap-3">
+<img id="user-avatar-menu" src="" alt="Avatar" class="h-8 w-8 rounded-full object-cover border border-gray-700 hidden">
+<a id="user-profile-link" href="#" class="text-sm text-indigo-400 font-semibold hover:text-indigo-300 hover:underline transition cursor-pointer">
+Mi Perfil
+</a>
+<span class="text-gray-600">|</span>
+<button id="btn-logout" class="text-sm font-semibold text-red-400 hover:text-red-300 transition cursor-pointer">Salir</button>
+</div>
+</div>
+</nav>
+</header>
 
-      <div class="flex lg:hidden">
-        <button type="button" class="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-400">
-          <span class="sr-only">Open main menu</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-6">
-            <path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-        </button>
-      </div>
+<div class="page-container mt-32 flex flex-col items-center px-6">
+<div class="text-center max-w-3xl mx-auto mb-16">
+<h1 class="text-4xl font-extrabold tracking-tight text-white sm:text-6xl mb-4">
+Rez Page
+</h1>
+<p class="text-lg leading-8 text-gray-400 mb-8 max-w-xl mx-auto">
+Página dedicada a mí, porque soy god.
+</p>
+<div class="mx-auto max-w-lg overflow-hidden rounded-2xl border border-gray-800 bg-gray-900/50 p-2 shadow-2xl">
+<img
+src="mealeje.png"
+alt="Contenido de RezTored"
+class="w-full h-auto rounded-xl object-cover min-h-[200px] bg-gray-800"
+onerror="this.style.display='none'; document.getElementById('placeholder-img').classList.remove('hidden');"
+/>
+<div id="placeholder-img" class="hidden flex flex-col items-center justify-center h-48 bg-gray-800 rounded-xl border border-dashed border-gray-700">
+<svg class="mx-auto h-12 w-12 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.9 2.9m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+</svg>
+<span class="mt-2 block text-sm font-semibold text-gray-400">Espacio para tu imagen (banner.png)</span>
+</div>
+</div>
+</div>
 
-      <div class="hidden lg:flex lg:gap-x-12">
-        <a href="/" id="link-inicio" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">RezTored</a>
-        <a href="/info" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">Información</a>
-        <a href="/opinions" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">Opiniones</a>
-        <a href="/contact" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">Contacto</a>
-      </div>
+<div class="app-window mb-24 w-full max-w-lg">
+<div class="window-header">
+<div class="window-dots">
+<span class="dot close"></span>
+<span class="dot minimize"></span>
+<span class="dot maximize"></span>
+</div>
+<div class="window-title">RezTored Player</div>
+<div class="window-spacer"></div>
+</div>
+<div class="window-content">
+<div class="song-info">
+<h2 class="song-title">SPOTIFY PLAYER</h2>
+<div class="song-artist">Muestra • RezTored</div>
+</div>
+<div class="spotify-embed-container">
+<iframe
+data-testid="embed-iframe"
+style="border-radius:12px"
+src="https://open.spotify.com/embed/playlist/5SMC9IfOZffvpElJcqlbdb?utm_source=generator&si=eaed85027ba74269"
+width="100%"
+height="352"
+frameBorder="0"
+allowfullscreen=""
+allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+loading="lazy">
+</iframe>
+</div>
+</div>
+</div>
+</div>
 
-      <div class="hidden lg:flex lg:flex-1 lg:justify-end">
-        <button id="btn-login-menu" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition cursor-pointer">
-          Log in <span aria-hidden="true">→</span>
-        </button>
-        
-        <div id="user-logged-in" class="hidden flex items-center gap-3">
-          <img id="user-avatar-menu" src="" alt="Avatar" class="h-8 w-8 rounded-full object-cover border border-gray-700 hidden">
-          
-          <a id="user-profile-link" href="#" class="text-sm text-indigo-400 font-semibold hover:text-indigo-300 hover:underline transition cursor-pointer">
-            Mi Perfil
-          </a>
-          
-          <span class="text-gray-600">|</span>
-          <button id="btn-logout" class="text-sm font-semibold text-red-400 hover:text-red-300 transition cursor-pointer">Salir</button>
-        </div>
-      </div>
+<div id="auth-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
+<div class="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full p-8 relative shadow-2xl">
+<button id="close-modal" class="absolute top-4 right-4 text-gray-400 hover:text-white cursor-pointer">
+<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+</svg>
+</button>
+<h2 id="modal-title" class="text-2xl font-bold text-center mb-6">Iniciar Sesión</h2>
+<form id="auth-form" class="space-y-4">
+<div id="username-container" class="hidden">
+<div class="flex justify-between items-center mb-1">
+<label class="block text-sm font-medium text-gray-400">Nombre de Usuario</label>
+<span class="text-xs text-indigo-400 font-semibold">3-20 letras, sin espacios</span>
+</div>
+<input type="text" id="auth-username" maxlength="20" placeholder="tu_usuario" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition">
+<p class="text-xs text-gray-500 mt-1">Va a ser tu URL: reztored.online/tu_usuario</p>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-400 mb-1">Correo Electrónico</label>
+<input type="email" id="auth-email" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition">
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-400 mb-1">Contraseña</label>
+<input type="password" id="auth-password" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition">
+</div>
+<p id="auth-message" class="text-sm text-center hidden"></p>
+<button type="submit" id="btn-submit-auth" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-lg transition cursor-pointer">
+Ingresar
+</button>
+</form>
+<div class="relative my-6">
+<div class="absolute inset-0 flex items-center" aria-hidden="true">
+<div class="w-full border-t border-gray-800"></div>
+</div>
+<div class="relative flex justify-center text-sm">
+<span class="bg-gray-900 px-2 text-gray-500">O continuar con</span>
+</div>
+</div>
+<button id="btn-google" class="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-100 text-gray-900 font-semibold py-2.5 rounded-lg transition cursor-pointer">
+<svg class="h-5 w-5" viewBox="0 0 24 24" width="100%" height="100%">
+<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+<path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+<path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+<path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z" fill="#EA4335"/>
+</svg>
+Iniciar sesión con Google
+</button>
+<p class="text-sm text-center text-gray-400 mt-6">
+<span id="toggle-text">¿No tenés cuenta?</span>
+<button id="btn-toggle-auth" class="text-indigo-400 hover:underline ml-1 font-semibold cursor-pointer">Registrate</button>
+</p>
+</div>
+</div>
 
-    </nav>
-  </header>
-  
-  <div class="page-container mt-32 flex flex-col items-center px-6">
-    
-    <div class="text-center max-w-3xl mx-auto mb-16">
-      <h1 class="text-4xl font-extrabold tracking-tight text-white sm:text-6xl mb-4">
-        Rez Page
-      </h1>
-      
-      <p class="text-lg leading-8 text-gray-400 mb-8 max-w-xl mx-auto">
-        Página dedicada a mí, porque soy god.
-      </p>
+<script type="module">
+import {
+auth,
+signInWithEmailAndPassword,
+signOut,
+onAuthStateChanged,
+signInWithPopup,
+googleProvider,
+registrarUsuario
+} from '/reztored-auth.js';
 
-      <div class="mx-auto max-w-lg overflow-hidden rounded-2xl border border-gray-800 bg-gray-900/50 p-2 shadow-2xl">
-        <img 
-          src="mealeje.png" 
-          alt="Contenido de RezTored" 
-          class="w-full h-auto rounded-xl object-cover min-h-[200px] bg-gray-800"
-          onerror="this.style.display='none'; document.getElementById('placeholder-img').classList.remove('hidden');"
-        />
-        <div id="placeholder-img" class="hidden flex flex-col items-center justify-center h-48 bg-gray-800 rounded-xl border border-dashed border-gray-700">
-          <svg class="mx-auto h-12 w-12 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.9 2.9m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-          </svg>
-          <span class="mt-2 block text-sm font-semibold text-gray-400">Espacio para tu imagen (banner.png)</span>
-        </div>
-      </div>
-    </div>
-    
-    <div class="app-window mb-24 w-full max-w-lg">
-      <div class="window-header">
-        <div class="window-dots">
-          <span class="dot close"></span>
-          <span class="dot minimize"></span>
-          <span class="dot maximize"></span>
-        </div>
-        <div class="window-title">RezTored Player</div>
-        <div class="window-spacer"></div>
-      </div>
-      
-      <div class="window-content">
-        <div class="song-info">
-          <h2 class="song-title">SPOTIFY PLAYER</h2>
-          <div class="song-artist">Muestra • RezTored</div>
-        </div>
+let modoLogin = true;
 
-        <div class="spotify-embed-container">
-          <iframe 
-            data-testid="embed-iframe" 
-            style="border-radius:12px" 
-            src="https://open.spotify.com/embed/playlist/5SMC9IfOZffvpElJcqlbdb?utm_source=generator&si=eaed85027ba74269" 
-            width="100%" 
-            height="352" 
-            frameBorder="0" 
-            allowfullscreen="" 
-            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
-            loading="lazy">
-          </iframe>
-        </div>
-      </div>
-    </div>
-    
-  </div>
+const authModal = document.getElementById('auth-modal');
+const btnLoginMenu = document.getElementById('btn-login-menu');
+const closeModal = document.getElementById('close-modal');
+const authForm = document.getElementById('auth-form');
+const modalTitle = document.getElementById('modal-title');
+const btnSubmitAuth = document.getElementById('btn-submit-auth');
+const btnToggleAuth = document.getElementById('btn-toggle-auth');
+const toggleText = document.getElementById('toggle-text');
+const authMessage = document.getElementById('auth-message');
+const btnGoogle = document.getElementById('btn-google');
 
-  <div id="auth-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
-    <div class="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full p-8 relative shadow-2xl">
-      
-      <button id="close-modal" class="absolute top-4 right-4 text-gray-400 hover:text-white cursor-pointer">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-        </svg>
-      </button>
+const usernameContainer = document.getElementById('username-container');
+const authUsernameInput = document.getElementById('auth-username');
 
-      <h2 id="modal-title" class="text-2xl font-bold text-center mb-6">Iniciar Sesión</h2>
+const userLoggedInDiv = document.getElementById('user-logged-in');
+const userProfileLink = document.getElementById('user-profile-link');
+const userAvatarMenu = document.getElementById('user-avatar-menu');
+const btnLogout = document.getElementById('btn-logout');
 
-      <form id="auth-form" class="space-y-4">
-        <div id="username-container" class="hidden">
-          <div class="flex justify-between items-center mb-1">
-            <label class="block text-sm font-medium text-gray-400">Nombre de Usuario</label>
-            <span class="text-xs text-indigo-400 font-semibold">Máx 12 letras</span>
-          </div>
-          <input type="text" id="auth-username" maxlength="12" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition">
-        </div>
+btnLoginMenu.addEventListener('click', () => {
+authModal.classList.remove('hidden');
+});
 
-        <div>
-          <label class="block text-sm font-medium text-gray-400 mb-1">Correo Electrónico</label>
-          <input type="email" id="auth-email" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-400 mb-1">Contraseña</label>
-          <input type="password" id="auth-password" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition">
-        </div>
-        
-        <p id="auth-message" class="text-sm text-center hidden"></p>
+closeModal.addEventListener('click', () => {
+authModal.classList.add('hidden');
+authMessage.classList.add('hidden');
+authForm.reset();
+});
 
-        <button type="submit" id="btn-submit-auth" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-lg transition cursor-pointer">
-          Ingresar
-        </button>
-      </form>
+btnToggleAuth.addEventListener('click', () => {
+modoLogin = !modoLogin;
+if (modoLogin) {
+modalTitle.textContent = "Iniciar Sesión";
+btnSubmitAuth.textContent = "Ingresar";
+toggleText.textContent = "¿No tenés cuenta?";
+btnToggleAuth.textContent = "Registrate";
+usernameContainer.classList.add('hidden');
+authUsernameInput.removeAttribute('required');
+} else {
+modalTitle.textContent = "Crear Cuenta";
+btnSubmitAuth.textContent = "Registrarse";
+toggleText.textContent = "¿Ya tenés cuenta?";
+btnToggleAuth.textContent = "Inicia Sesión";
+usernameContainer.classList.remove('hidden');
+authUsernameInput.setAttribute('required', 'true');
+}
+});
 
-      <div class="relative my-6">
-        <div class="absolute inset-0 flex items-center" aria-hidden="true">
-          <div class="w-full border-t border-gray-800"></div>
-        </div>
-        <div class="relative flex justify-center text-sm">
-          <span class="bg-gray-900 px-2 text-gray-500">O continuar con</span>
-        </div>
-      </div>
+authForm.addEventListener('submit', async (e) => {
+e.preventDefault();
+const email = document.getElementById('auth-email').value;
+const password = document.getElementById('auth-password').value;
+const username = authUsernameInput.value.trim();
 
-      <button id="btn-google" class="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-100 text-gray-900 font-semibold py-2.5 rounded-lg transition cursor-pointer">
-        <svg class="h-5 w-5" viewBox="0 0 24 24" width="100%" height="100%">
-          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
-          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z" fill="#EA4335"/>
-        </svg>
-        Iniciar sesión con Google
-      </button>
+authMessage.classList.remove('hidden');
+authMessage.className = "text-sm text-center text-gray-300";
+authMessage.textContent = "Procesando...";
 
-      <p class="text-sm text-center text-gray-400 mt-6">
-        <span id="toggle-text">¿No tenés cuenta?</span>
-        <button id="btn-toggle-auth" class="text-indigo-400 hover:underline ml-1 font-semibold cursor-pointer">Registrate</button>
-      </p>
-    </div>
-  </div>
+try {
+if (modoLogin) {
+await signInWithEmailAndPassword(auth, email, password);
+mostrarMensaje("¡Sesión iniciada con éxito!", "text-green-400");
+setTimeout(() => authModal.classList.add('hidden'), 1500);
+} else {
+await registrarUsuario({ email, password, username });
+mostrarMensaje("¡Cuenta creada con éxito!", "text-green-400");
+setTimeout(() => {
+authModal.classList.add('hidden');
+actualizarMenuUsuario(auth.currentUser);
+}, 1500);
+}
+authForm.reset();
+} catch (error) {
+let mensajeError = error.message || "Ocurrió un error.";
+if (error.code === 'auth/weak-password') mensajeError = "La contraseña debe tener mínimo 6 caracteres.";
+if (error.code === 'auth/email-already-in-use') mensajeError = "Ese correo ya está registrado.";
+if (error.code === 'auth/invalid-credential') mensajeError = "Correo o contraseña incorrectos.";
+mostrarMensaje(mensajeError, "text-red-400");
+}
+});
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { 
-      getAuth, 
-      createUserWithEmailAndPassword, 
-      signInWithEmailAndPassword, 
-      signOut, 
-      onAuthStateChanged,
-      GoogleAuthProvider,
-      signInWithPopup,
-      updateProfile
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+btnGoogle.addEventListener('click', async () => {
+authMessage.classList.remove('hidden');
+authMessage.className = "text-sm text-center text-gray-300";
+authMessage.textContent = "Abriendo ventana de Google...";
+try {
+await signInWithPopup(auth, googleProvider);
+mostrarMensaje("¡Sesión iniciada con Google!", "text-green-400");
+setTimeout(() => authModal.classList.add('hidden'), 1500);
+} catch (error) {
+console.error(error);
+mostrarMensaje("No se pudo iniciar sesión con Google.", "text-red-400");
+}
+});
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDJG28Tq0xhyJPmBirRGY8-yBRZllQPl0M",
-      authDomain: "reztored-page.firebaseapp.com",
-      projectId: "reztored-page",
-      storageBucket: "reztored-page.firebasestorage.app",
-      messagingSenderId: "744944684653",
-      appId: "1:744944684653:web:0b8cfbf7a6c21dfae13964"
-    };
+btnLogout.addEventListener('click', () => {
+signOut(auth);
+});
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const googleProvider = new GoogleAuthProvider();
+function actualizarMenuUsuario(user) {
+if (user) {
+btnLoginMenu.classList.add('hidden');
+userLoggedInDiv.classList.remove('hidden');
 
-    let modoLogin = true;
+let name = user.displayName || user.email.split('@')[0];
 
-    const authModal = document.getElementById('auth-modal');
-    const btnLoginMenu = document.getElementById('btn-login-menu');
-    const closeModal = document.getElementById('close-modal');
-    const authForm = document.getElementById('auth-form');
-    const modalTitle = document.getElementById('modal-title');
-    const btnSubmitAuth = document.getElementById('btn-submit-auth');
-    const btnToggleAuth = document.getElementById('btn-toggle-auth');
-    const toggleText = document.getElementById('toggle-text');
-    const authMessage = document.getElementById('auth-message');
-    const btnGoogle = document.getElementById('btn-google');
-    
-    const usernameContainer = document.getElementById('username-container');
-    const authUsernameInput = document.getElementById('auth-username');
+userProfileLink.textContent = name;
+userProfileLink.href = `/${encodeURIComponent(name)}`;
 
-    const userLoggedInDiv = document.getElementById('user-logged-in');
-    const userProfileLink = document.getElementById('user-profile-link');
-    const userAvatarMenu = document.getElementById('user-avatar-menu');
-    const btnLogout = document.getElementById('btn-logout');
+if (user.photoURL) {
+userAvatarMenu.src = user.photoURL;
+userAvatarMenu.classList.remove('hidden');
+} else {
+userAvatarMenu.classList.add('hidden');
+}
+} else {
+btnLoginMenu.classList.remove('hidden');
+userLoggedInDiv.classList.add('hidden');
+userProfileLink.textContent = "Mi Perfil";
+userProfileLink.href = "#";
+userAvatarMenu.classList.add('hidden');
+}
+}
 
-    btnLoginMenu.addEventListener('click', () => {
-      authModal.classList.remove('hidden');
-    });
+onAuthStateChanged(auth, (user) => {
+actualizarMenuUsuario(user);
+});
 
-    closeModal.addEventListener('click', () => {
-      authModal.classList.add('hidden');
-      authMessage.classList.add('hidden');
-      authForm.reset();
-    });
+function mostrarMensaje(texto, claseColor) {
+authMessage.textContent = texto;
+authMessage.className = `text-sm text-center ${claseColor} mt-2`;
+}
+</script>
 
-    btnToggleAuth.addEventListener('click', () => {
-      modoLogin = !modoLogin;
-      if (modoLogin) {
-        modalTitle.textContent = "Iniciar Sesión";
-        btnSubmitAuth.textContent = "Ingresar";
-        toggleText.textContent = "¿No tenés cuenta?";
-        btnToggleAuth.textContent = "Registrate";
-        usernameContainer.classList.add('hidden');
-        authUsernameInput.removeAttribute('required');
-      } else {
-        modalTitle.textContent = "Crear Cuenta";
-        btnSubmitAuth.textContent = "Registrarse";
-        toggleText.textContent = "¿Ya tenés cuenta?";
-        btnToggleAuth.textContent = "Inicia Sesión";
-        usernameContainer.classList.remove('hidden');
-        authUsernameInput.setAttribute('required', 'true');
-      }
-    });
+<script>
+const logoInicio = document.getElementById('logo-inicio');
+const linkInicio = document.getElementById('link-inicio');
 
-    authForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('auth-email').value;
-      const password = document.getElementById('auth-password').value;
-      let username = authUsernameInput.value.trim();
+if (logoInicio) {
+logoInicio.addEventListener('click', (evento) => {
+evento.preventDefault();
+window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+}
 
-      // VALIDACIÓN ESTRICTA: Aseguramos recortar a 12 letras en backend/código
-      if (username.length > 12) {
-        username = username.substring(0, 12);
-      }
-
-      authMessage.classList.remove('hidden');
-      authMessage.className = "text-sm text-center text-gray-300";
-      authMessage.textContent = "Procesando...";
-
-      try {
-        if (modoLogin) {
-          await signInWithEmailAndPassword(auth, email, password);
-          mostrarMensaje("¡Sesión iniciada con éxito!", "text-green-400");
-          setTimeout(() => authModal.classList.add('hidden'), 1500);
-        } else {
-          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          
-          await updateProfile(userCredential.user, {
-            displayName: username,
-            photoURL: "https://api.dicebear.com/7.x/bottts/svg?seed=" + username
-          });
-
-          mostrarMensaje("¡Cuenta creada con éxito!", "text-green-400");
-          setTimeout(() => {
-            authModal.classList.add('hidden');
-            actualizarMenuUsuario(auth.currentUser);
-          }, 1500);
-        }
-        authForm.reset();
-      } catch (error) {
-        let mensajeError = "Ocurrió un error.";
-        if (error.code === 'auth/weak-password') mensajeError = "La contraseña debe tener mínimo 6 caracteres.";
-        if (error.code === 'auth/email-already-in-use') mensajeError = "Ese correo ya está registrado.";
-        if (error.code === 'auth/invalid-credential') mensajeError = "Correo o contraseña incorrectos.";
-        mostrarMensaje(mensajeError, "text-red-400");
-      }
-    });
-
-    btnGoogle.addEventListener('click', async () => {
-      authMessage.classList.remove('hidden');
-      authMessage.className = "text-sm text-center text-gray-300";
-      authMessage.textContent = "Abriendo ventana de Google...";
-
-      try {
-        await signInWithPopup(auth, googleProvider);
-        mostrarMensaje("¡Sesión iniciada con Google!", "text-green-400");
-        setTimeout(() => authModal.classList.add('hidden'), 1500);
-      } catch (error) {
-        console.error(error);
-        mostrarMensaje("No se pudo iniciar sesión con Google.", "text-red-400");
-      }
-    });
-
-    btnLogout.addEventListener('click', () => {
-      signOut(auth);
-    });
-
-    function actualizarMenuUsuario(user) {
-      if (user) {
-        btnLoginMenu.classList.add('hidden');
-        userLoggedInDiv.classList.remove('hidden');
-        
-        // VALIDACIÓN ESTRICTA: Cortar a 12 caracteres el nombre del usuario
-        let name = user.displayName || user.email.split('@')[0];
-        if (name.length > 12) name = name.substring(0, 12);
-
-        // Actualiza el texto del enlace para que diga el nombre y lleve a perfil.html
-        userProfileLink.textContent = name;
-        userProfileLink.href = `perfil.html?id=${user.uid}`;
-
-        // Miniatura del Avatar
-        if (user.photoURL) {
-          userAvatarMenu.src = user.photoURL;
-          userAvatarMenu.classList.remove('hidden');
-        } else {
-          userAvatarMenu.classList.add('hidden');
-        }
-      } else {
-        btnLoginMenu.classList.remove('hidden');
-        userLoggedInDiv.classList.add('hidden');
-        userProfileLink.textContent = "Mi Perfil";
-        userProfileLink.href = "#";
-        userAvatarMenu.classList.add('hidden');
-      }
-    }
-
-    onAuthStateChanged(auth, (user) => {
-      actualizarMenuUsuario(user);
-    });
-
-    function mostrarMensaje(texto, claseColor) {
-      authMessage.textContent = texto;
-      authMessage.className = `text-sm text-center ${claseColor} mt-2`;
-    }
-  </script>
-
-  <script>
-    const logoInicio = document.getElementById('logo-inicio');
-    const linkInicio = document.getElementById('link-inicio');
-
-    // Al presionar el LOGO: Deslizar suavemente al techo (sin recargar)
-    if (logoInicio) {
-      logoInicio.addEventListener('click', (evento) => {
-        evento.preventDefault();
-        window.scrollTo({
-          top: 0,
-          behavior: 'smooth'
-        });
-      });
-    }
-
-    // Al presionar REZTORED: Recargar la página limpia y volver al inicio
-    if (linkInicio) {
-      linkInicio.addEventListener('click', (evento) => {
-        evento.preventDefault();
-        window.location.href = window.location.origin + window.location.pathname; 
-      });
-    }
-  </script>
+if (linkInicio) {
+linkInicio.addEventListener('click', (evento) => {
+evento.preventDefault();
+window.location.href = window.location.origin + window.location.pathname;
+});
+}
+</script>
 
 </body>
 </html>
