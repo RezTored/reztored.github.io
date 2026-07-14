@@ -16,14 +16,18 @@
 <span class="sr-only">RezTored</span>
 <img src="lol.png" alt="Logo" class="h-8 w-auto" />
 </a>
-</div>
-<div class="flex lg:hidden">
-<button type="button" class="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-400">
-<span class="sr-only">Open main menu</span>
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-6">
-<path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" stroke-linecap="round" stroke-linejoin="round" />
-</svg>
+<button id="menu-btn" class="lg:hidden p-2 text-gray-400">
+    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
 </button>
+<div id="mobile-menu" class="hidden absolute top-16 left-0 w-full bg-gray-900 border-b border-gray-800 p-6 flex flex-col gap-4 text-center z-40">
+    <a href="/" class="text-white hover:text-indigo-400">Inicio</a>
+    <a href="/opinions" class="text-white hover:text-indigo-400">Opiniones</a>
+    <a href="/info" class="text-white hover:text-indigo-400">Info</a>
+    <a href="/contact" class="text-white hover:text-indigo-400">Contacto</a>
+    
+    <div class="mt-4 pt-4 border-t border-gray-800">
+        <p class="text-[10px] uppercase tracking-widest text-gray-600">petope is here</p>
+    </div>
 </div>
 <div class="hidden lg:flex lg:gap-x-12">
 <a href="/" id="link-inicio" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">RezTored</a>
@@ -321,6 +325,14 @@ evento.preventDefault();
 window.location.href = window.location.origin + window.location.pathname;
 });
 }
+</script>
+<script>
+    const btn = document.getElementById('menu-btn');
+    const menu = document.getElementById('mobile-menu');
+
+    btn.addEventListener('click', () => {
+        menu.classList.toggle('hidden');
+    });
 </script>
 
 </body>
