@@ -78,7 +78,7 @@
             overflow-y: auto;
         }
 
-        /* --- DISEÑO PIOLA DEL PERFIL --- */
+        /* --- DISEÑO DEL PERFIL --- */
         .profile-header {
             display: flex;
             flex-direction: column;
@@ -210,7 +210,7 @@
         <div class="window-content">
             
             <div class="auth-status-bar">
-                <a href="/opinions/index.html" style="color: var(--text-muted);">< VOLVER AL FORO</a>
+                <a href="/opinions/index.html" style="color: var(--text-muted);">&lt; VOLVER AL FORO</a>
                 <a href="/" id="logo-inicio">INICIO</a>
             </div>
 
@@ -242,9 +242,9 @@
         onSnapshot
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // Extraer el nombre de usuario de la URL (ej: reztored.online/juan)
+    // Extraer el nombre de usuario de la URL de forma segura
     const path = window.location.pathname;
-    const targetUsername = decodeURIComponent(path.split('/')[1] || '').trim();
+    const targetUsername = decodeURIComponent(path.split('/').pop() || '').trim();
 
     const container = document.getElementById('user-opinions-container');
     const profileHeader = document.getElementById('profile-header');
@@ -252,12 +252,15 @@
     const profileAvatar = document.getElementById('profile-avatar');
     const profileStats = document.getElementById('profile-stats');
 
-    if (!targetUsername || targetUsername === "perfil") {
-        container.innerHTML = '<div class="no-opinions" style="color: #ff5f56;">Usuario no encontrado en la URL.</div>';
+    if (!targetUsername || targetUsername === "perfil" || targetUsername === "index.html") {
+        container.innerHTML = '<div class="no-opinions" style="color: #ff5f56;">Usuario no encontrado o URL inválida.</div>';
     } else {
         profileHeader.style.display = 'flex';
         profileUsername.textContent = targetUsername.toUpperCase();
-        profileAvatar.src = 'https://api.dicebear.com/7.x/bottts/svg?seed=' + encodeURIComponent(targetUsername);
+        
+        // Establecemos un bottt-avatar por defecto usando el seed del usuario
+        const defaultAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(targetUsername)}`;
+        profileAvatar.src = defaultAvatar;
 
         // Consultar a Firestore los posts de este usuario
         const opinionsCollection = collection(db, 'opinions');
@@ -276,17 +279,23 @@
 
             profileStats.textContent = `${snapshot.size} POST${snapshot.size !== 1 ? 'S' : ''}`;
             let opinionsHTML = '';
+            let avatarSet = false;
             
             snapshot.forEach((doc) => {
                 const data = doc.data();
                 const text = data.text || '';
-                let dateStr = 'Reciente';
-                if (data.timestamp) {
+                
+                // 1. Evitamos que el toDate() explote si el timestamp aún es null en local cache
+                let dateStr = 'Reciente...';
+                if (data.timestamp && typeof data.timestamp.toDate === 'function') {
                     dateStr = data.timestamp.toDate().toLocaleString();
                 }
 
-                // Usamos el avatar que guardó en su último post
-                if (data.avatar) profileAvatar.src = data.avatar;
+                // 2. Solo usamos el avatar del post más reciente (el primero en el bucle 'desc')
+                if (!avatarSet && data.avatar) {
+                    profileAvatar.src = data.avatar;
+                    avatarSet = true;
+                }
 
                 opinionsHTML += `
                     <div class="opinion-card">
@@ -301,7 +310,7 @@
             container.innerHTML = opinionsHTML;
         }, (error) => {
             console.error("Error consultando el perfil:", error);
-            container.innerHTML = '<div class="no-opinions" style="color: #ff5f56;">Falta crear el índice en Firebase (mirá la consola).</div>';
+            container.innerHTML = '<div class="no-opinions" style="color: #ff5f56;">Error al cargar datos. Asegúrate de tener creado el índice compuesto en Firestore si ordenas y filtras a la vez.</div>';
         });
     }
 
