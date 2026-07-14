@@ -1,12 +1,9 @@
-body{
-            background-color: grey;
-            color:black;
-        }
-
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
+/* --- IMPORTACIONES --- */
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
 
-/* Fondo general de la página - Gris ultra oscuro mate */
+/* --- RESET BÁSICO --- */
+* { box-sizing: border-box; }
+
 body {
   margin: 0;
   padding: 0;
@@ -14,40 +11,39 @@ body {
   font-family: 'Rajdhani', sans-serif;
   color: #e1e1e6;
   min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  /* Eliminado display: flex aquí para no romper el layout del header */
 }
 
+/* Contenedor que centra el contenido principal */
 .page-container {
   display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
   padding: 20px;
+  min-height: calc(100vh - 80px); /* Ajusta según la altura de tu header */
 }
 
-/* La Ventana Flotante del Reproductor */
+/* La Ventana Flotante */
 .app-window {
   width: 100%;
   max-width: 430px;
-  background: #1e1e22; /* Gris oscuro para el cuerpo del reproductor */
-  border: 1px solid #2d2d34; /* Borde sutil */
+  background: #1e1e22;
+  border: 1px solid #2d2d34;
   border-radius: 12px;
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), 0 0 15px rgba(255, 255, 255, 0.02);
   overflow: hidden;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Efecto hover suave para simular elevación */
 .app-window:hover {
   transform: translateY(-2px);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.75), 0 0 20px rgba(255, 255, 255, 0.04);
 }
 
-/* Barra superior de control de la Ventana */
+/* Barra superior */
 .window-header {
-  background: #18181c; /* Gris más oscuro para diferenciar la barra superior */
+  background: #18181c;
   padding: 12px 16px;
   display: flex;
   align-items: center;
@@ -55,24 +51,12 @@ body {
   border-bottom: 1px solid #2d2d34;
 }
 
-/* Botones circulares (Estilo Mac / SO) */
-.window-dots {
-  display: flex;
-  gap: 8px;
-}
-
-.dot {
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
+.window-dots { display: flex; gap: 8px; }
+.dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
 .dot.close { background: #ff5f56; }
 .dot.minimize { background: #ffbd2e; }
 .dot.maximize { background: #27c93f; }
 
-/* Título centrado en la barra */
 .window-title {
   font-family: 'Orbitron', sans-serif;
   font-size: 0.75rem;
@@ -82,21 +66,12 @@ body {
   text-transform: uppercase;
 }
 
-/* Mantiene el título perfectamente centrado */
-.window-spacer {
-  width: 49px; 
-}
+.window-spacer { width: 49px; }
 
-/* Contenido interior de la ventana */
-.window-content {
-  padding: 24px;
-}
+/* Contenido interior */
+.window-content { padding: 24px; }
 
-/* Título de la canción y Artista */
-.song-info {
-  text-align: center;
-  margin-bottom: 18px;
-}
+.song-info { text-align: center; margin-bottom: 18px; }
 
 .song-title {
   font-family: 'Orbitron', sans-serif;
@@ -110,13 +85,12 @@ body {
 
 .song-artist {
   font-size: 0.85rem;
-  color: #a1a1aa; /* Gris intermedio para el artista */
+  color: #a1a1aa;
   text-transform: uppercase;
   letter-spacing: 2px;
   margin-top: 6px;
 }
 
-/* Contenedor del reproductor de Spotify */
 .spotify-embed-container {
   width: 100%;
   border-radius: 12px;
@@ -126,35 +100,16 @@ body {
   box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.8);
 }
 
-.spotify-embed-container iframe {
-  display: block;
-}
-/* Forzar que el modal se muestre como flex al estar activo */
-#auth-modal.active {
-  display: flex !important;
-}
-/* --- CORRECCIÓN PARA DISPOSITIVOS MÓVILES --- */
+.spotify-embed-container iframe { display: block; width: 100%; }
 
+#auth-modal.active { display: flex !important; }
+
+/* --- CORRECCIÓN RESPONSIVA --- */
 @media (max-width: 480px) {
-    /* 1. Hacemos que la ventana flotante sea flexible */
     .app-window {
-        width: 95% !important; /* Ocupa el 95% de la pantalla en lugar de 430px fijos */
-        max-width: none !important;
-        margin: 10px;
+        width: 95% !important;
+        margin: 10px auto;
     }
-
-    /* 2. Ajustamos los textos para que no se desborden */
-    body {
-        padding: 10px;
-    }
-
-    .song-title {
-        font-size: 1rem !important; /* Un poco más chico en celu */
-    }
-
-    /* 3. Evitamos que las imágenes gigantes rompan el layout */
-    img {
-        max-width: 100%;
-        height: auto;
-    }
+    .song-title { font-size: 1rem !important; }
+    img, iframe { max-width: 100%; height: auto; }
 }
