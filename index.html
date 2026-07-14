@@ -1,628 +1,215 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Opiniones</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
-
-    <style>
-        /* Paleta de colores basada en tu estilo */
-        :root {
-            --bg-page: #121214;          /* Gris ultra oscuro mate */
-            --bg-card: #1e1e22;          /* Gris oscuro para ventana flotante */
-            --bg-header: #18181c;        /* Gris más oscuro para barra superior */
-            --border-color: #2d2d34;     /* Borde sutil */
-            --text-main: #e1e1e6;        /* Blanco/Gris claro */
-            --text-muted: #8e8e93;       /* Gris intermedio */
-            --text-white: #ffffff;
-            --accent-red: #ff5f56;       /* Color de destaque para "YOU" */
-            --primary: #4f46e5;          /* Botón principal (Indigo/Violeta) */
-            --primary-hover: #4338ca;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        /* Estilo general del Body */
-        body {
-            margin: 0;
-            padding: 0;
-            background: var(--bg-page); 
-            font-family: 'Rajdhani', sans-serif;
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .page-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            padding: 20px;
-        }
-
-        /* Ventana Flotante del Foro (Estilo de tu App) */
-        .app-window {
-            width: 100%;
-            max-width: 500px; 
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), 0 0 15px rgba(255, 255, 255, 0.02);
-            overflow: hidden;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .app-window:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.75), 0 0 20px rgba(255, 255, 255, 0.04);
-        }
-
-        /* Barra superior de control (Estilo Mac/SO) */
-        .window-header {
-            background: var(--bg-header);
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .window-dots {
-            display: flex;
-            gap: 8px;
-        }
-
-        .dot {
-            width: 11px;
-            height: 11px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-
-        .dot.close { background: #ff5f56; }
-        .dot.minimize { background: #ffbd2e; }
-        .dot.maximize { background: #27c93f; }
-
-        .window-title {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: var(--text-muted);
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-
-        .window-spacer {
-            width: 49px; 
-        }
-
-        /* Contenedor del interior de la ventana */
-        .window-content {
-            padding: 24px;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        /* Cabecera del Foro */
-        .forum-banner {
-            text-align: center;
-            margin-bottom: 24px;
-        }
-
-        .forum-banner p.hate-all {
-            font-family: monospace;
-            color: var(--text-muted);
-            margin-bottom: 4px;
-            font-size: 0.9rem;
-            letter-spacing: 1px;
-        }
-
-        .forum-banner h1 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.4rem;
-            color: var(--text-white);
-            letter-spacing: 1.5px;
-            font-weight: 700;
-            text-transform: uppercase;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-        }
-
-        .forum-banner h1 span {
-            color: var(--accent-red);
-            text-shadow: 0 0 8px rgba(255, 95, 86, 0.4);
-        }
-
-        /* Clases CSS de estado */
-        .status-online {
-            color: #27c93f;
-            font-weight: bold;
-        }
-
-        .status-offline {
-            color: #ff5f56;
-            font-weight: bold;
-        }
-
-        /* Barra de estado de usuario */
-        .auth-status-bar {
-            background: var(--bg-header);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 10px 14px;
-            font-size: 0.85rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .auth-status-bar .user-info-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .auth-status-bar .user-avatar {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            border: 1px solid var(--border-color);
-            background: var(--bg-card);
-        }
-
-        .auth-status-bar a {
-            color: var(--text-main);
-            text-decoration: none;
-            font-weight: bold;
-            letter-spacing: 1px;
-        }
-
-        .auth-status-bar a:hover {
-            color: var(--text-white);
-            text-decoration: underline;
-        }
-
-        /* Formulario para publicar opiniones */
-        .publish-box {
-            background: var(--bg-header);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 20px;
-        }
-
-        .publish-box h2 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.9rem;
-            color: var(--text-white);
-            margin-bottom: 12px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
-        textarea {
-            width: 100%;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            color: var(--text-main);
-            padding: 10px;
-            font-family: 'Rajdhani', sans-serif;
-            font-size: 0.95rem;
-            resize: none;
-            min-height: 80px;
-            outline: none;
-            margin-bottom: 10px;
-            transition: border-color 0.2s ease;
-        }
-
-        textarea:focus {
-            border-color: #5d5d66;
-        }
-
-        button {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.8rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-            background: #2d2d34;
-            color: var(--text-white);
-            border: 1px solid var(--border-color);
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background 0.2s, border-color 0.2s;
-            text-transform: uppercase;
-        }
-
-        button:hover {
-            background: #3e3e46;
-            border-color: #5d5d66;
-        }
-
-        /* Alerta de requerimiento de login */
-        .login-alert {
-            background: var(--bg-header);
-            border: 1px dashed var(--border-color);
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .login-alert p {
-            color: var(--text-muted);
-            margin-bottom: 12px;
-            font-size: 0.9rem;
-        }
-
-        .login-alert button {
-            background: #2d2d34;
-            color: var(--text-white);
-        }
-
-        /* Contenedor del Feed */
-        .opinions-feed {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .opinion-card {
-            background: var(--bg-header);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 16px;
-        }
-
-        .opinion-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-            padding-bottom: 6px;
-        }
-
-        .author-meta {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .opinion-avatar {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            border: 1px solid var(--border-color);
-        }
-
-        .opinion-author {
-            font-family: 'Orbitron', sans-serif;
-            color: var(--text-white);
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            font-size: 0.8rem;
-        }
-
-        .opinion-date {
-            color: var(--text-muted);
-            font-size: 0.8rem;
-        }
-
-        .opinion-body {
-            font-size: 0.95rem;
-            color: var(--text-main);
-            white-space: pre-line;
-            letter-spacing: 0.5px;
-        }
-
-        .no-opinions {
-            text-align: center;
-            padding: 30px;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            border: 1px dashed var(--border-color);
-            border-radius: 8px;
-        }
-
-        /* --- MODAL DE AUTENTICACIÓN --- */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(4px);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .modal.active {
-            display: flex !important;
-        }
-
-        .modal-content {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            width: 100%;
-            max-width: 380px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            overflow: hidden;
-        }
-
-        .modal-body {
-            padding: 24px;
-        }
-
-        .modal-body h3 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.2rem;
-            color: var(--text-white);
-            text-align: center;
-            margin-bottom: 20px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
-        .input-group {
-            margin-bottom: 14px;
-        }
-
-        .input-group label {
-            display: block;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-bottom: 6px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .input-group input {
-            width: 100%;
-            background: var(--bg-header);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 10px;
-            color: var(--text-white);
-            font-family: 'Rajdhani', sans-serif;
-            font-size: 0.95rem;
-            outline: none;
-        }
-
-        .input-group input:focus {
-            border-color: #5d5d66;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        .modal-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .btn-full {
-            width: 100%;
-            padding: 10px;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.85rem;
-        }
-
-        .btn-google {
-            background: #ffffff;
-            color: #000000;
-            border: none;
-        }
-
-        .btn-google:hover {
-            background: #e1e1e6;
-        }
-
-        .modal-footer-text {
-            text-align: center;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin-top: 15px;
-        }
-
-        .modal-footer-text a {
-            color: var(--text-white);
-            text-decoration: none;
-            font-weight: bold;
-        }
-
-        .modal-footer-text a:hover {
-            text-decoration: underline;
-        }
-
-        .text-message {
-            font-size: 0.85rem;
-            text-align: center;
-            margin-top: 10px;
-        }
-
-        /* Colores de estado del feedback del modal */
-        .text-green-400 { color: #27c93f; }
-        .text-red-400 { color: #ff5f56; }
-        .text-gray-300 { color: #e1e1e6; }
-
-        .window-content::-webkit-scrollbar {
-            width: 6px;
-        }
-        .window-content::-webkit-scrollbar-track {
-            background: var(--bg-card);
-        }
-        .window-content::-webkit-scrollbar-thumb {
-            background: var(--border-color);
-            border-radius: 3px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RezTored Music</title>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="bg-gray-950 text-white">
 
-<div class="page-container">
-    <div class="app-window">
+  <header class="bg-gray-900/90 backdrop-blur-md w-full fixed top-0 left-0 z-50 border-b border-gray-800">
+    <nav aria-label="Global" class="mx-auto flex max-w-7xl items-center justify-between p-6 lg:px-8">
+      
+      <div class="flex lg:flex-1">
+        <a href="#" id="logo-inicio" class="-m-1.5 p-1.5">
+          <span class="sr-only">RezTored</span>
+          <img src="lol.png" alt="Logo" class="h-8 w-auto" />
+        </a>
+      </div>
+
+      <div class="flex lg:hidden">
+        <button type="button" class="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-400">
+          <span class="sr-only">Open main menu</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-6">
+            <path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="hidden lg:flex lg:gap-x-12">
+        <a href="/" id="link-inicio" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">RezTored</a>
+        <a href="/info" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">Información</a>
+        <a href="/opinions" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">Opiniones</a>
+        <a href="/contact" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition">Contacto</a>
+      </div>
+
+      <div class="hidden lg:flex lg:flex-1 lg:justify-end">
+        <button id="btn-login-menu" class="text-sm/6 font-semibold text-white hover:text-gray-300 transition cursor-pointer">
+          Log in <span aria-hidden="true">→</span>
+        </button>
         
-        <div class="window-header">
-            <div class="window-dots">
-                <span class="dot close"></span>
-                <span class="dot minimize"></span>
-                <span class="dot maximize"></span>
-            </div>
-            <div class="window-title">Opiniones</div>
-            <div class="window-spacer"></div>
+        <div id="user-logged-in" class="hidden flex items-center gap-3">
+          <img id="user-avatar-menu" src="" alt="Avatar" class="h-8 w-8 rounded-full object-cover border border-gray-700 hidden">
+          
+          <a id="user-profile-link" href="#" class="text-sm text-indigo-400 font-semibold hover:text-indigo-300 hover:underline transition cursor-pointer">
+            Mi Perfil
+          </a>
+          
+          <span class="text-gray-600">|</span>
+          <button id="btn-logout" class="text-sm font-semibold text-red-400 hover:text-red-300 transition cursor-pointer">Salir</button>
         </div>
+      </div>
 
-        <div class="window-content">
-            
-            <div class="forum-banner">
-                <p class="hate-all">i hate all lul</p>
-                <h1>all, but <span>YOU</span> no.</h1>
-            </div>
+    </nav>
+  </header>
+  
+  <div class="page-container mt-32 flex flex-col items-center px-6">
+    
+    <div class="text-center max-w-3xl mx-auto mb-16">
+      <h1 class="text-4xl font-extrabold tracking-tight text-white sm:text-6xl mb-4">
+        Rez Page
+      </h1>
+      
+      <p class="text-lg leading-8 text-gray-400 mb-8 max-w-xl mx-auto">
+        Página dedicada a mí, porque soy god.
+      </p>
 
-            <div class="auth-status-bar" id="auth-status-bar">
-                <div class="user-info-wrapper">
-                    <img id="user-avatar-menu" class="user-avatar hidden" src="" alt="avatar">
-                    <span id="user-logged-in" class="hidden">
-                        ONLINE: <a href="#" id="user-profile-link" class="status-online">Mi Perfil</a>
-                    </span>
-                    <button id="btn-login-menu" style="background:none; border:none; padding:0; text-decoration:underline;">STATUS: <span class="status-offline">DESCONECTADO (HACÉ CLIC ACÁ)</span></button>
-                </div>
-                <div>
-                    <a href="/" id="logo-inicio">INICIO</a>
-                    <span id="auth-links" style="margin-left: 10px;">
-                        <a href="#" id="btn-logout" class="hidden" style="color: #ff5f56;">LOGOUT</a>
-                    </span>
-                </div>
-            </div>
-
-            <div class="publish-box" id="publish-section" style="display: none;">
-                <h2>Tu Opinión</h2>
-                <form id="forum-form">
-                    <textarea id="opinion-text" placeholder="Escribe aquí..." required></textarea>
-                    <button type="submit">Publicar</button>
-                </form>
-            </div>
-
-            <div class="login-alert" id="login-prompt" style="display: none;">
-                <p>Inicia sesión con tu cuenta para comentar.</p>
-                <button id="btn-trigger-login">Iniciar Sesión / Registrarse</button>
-            </div>
-
-            <div class="opinions-feed" id="opinions-container">
-                <div class="no-opinions">Cargando la base de datos de opiniones...</div>
-            </div>
-
+      <div class="mx-auto max-w-lg overflow-hidden rounded-2xl border border-gray-800 bg-gray-900/50 p-2 shadow-2xl">
+        <img 
+          src="mealeje.png" 
+          alt="Contenido de RezTored" 
+          class="w-full h-auto rounded-xl object-cover min-h-[200px] bg-gray-800"
+          onerror="this.style.display='none'; document.getElementById('placeholder-img').classList.remove('hidden');"
+        />
+        <div id="placeholder-img" class="hidden flex flex-col items-center justify-center h-48 bg-gray-800 rounded-xl border border-dashed border-gray-700">
+          <svg class="mx-auto h-12 w-12 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.9 2.9m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+          </svg>
+          <span class="mt-2 block text-sm font-semibold text-gray-400">Espacio para tu imagen (banner.png)</span>
         </div>
+      </div>
     </div>
-</div>
-
-<div class="modal" id="auth-modal">
-    <div class="modal-content">
-        <div class="window-header">
-            <div class="window-dots">
-                <span class="dot close" id="close-modal" style="cursor: pointer;"></span>
-                <span class="dot minimize"></span>
-                <span class="dot maximize"></span>
-            </div>
-            <div class="window-title" id="modal-window-title">Acceso</div>
-            <div class="window-spacer"></div>
+    
+    <div class="app-window mb-24 w-full max-w-lg">
+      <div class="window-header">
+        <div class="window-dots">
+          <span class="dot close"></span>
+          <span class="dot minimize"></span>
+          <span class="dot maximize"></span>
         </div>
-        <div class="modal-body">
-            <h3 id="modal-title">Iniciar Sesión</h3>
-            <form id="auth-form">
-                <div class="input-group hidden" id="username-container">
-                    <label for="auth-username">Nombre de Usuario (Máx 12 car.)</label>
-                    <input type="text" id="auth-username" placeholder="Tu apodo o nick">
-                </div>
-                <div class="input-group">
-                    <label for="auth-email">Correo Electrónico</label>
-                    <input type="email" id="auth-email" required placeholder="correo@ejemplo.com">
-                </div>
-                <div class="input-group">
-                    <label for="auth-password">Contraseña</label>
-                    <input type="password" id="auth-password" required placeholder="••••••••">
-                </div>
-                
-                <div class="modal-actions">
-                    <button type="submit" class="btn-full" id="btn-submit-auth">Ingresar</button>
-                    <button type="button" class="btn-full btn-google" id="btn-google">Ingresar con Google</button>
-                </div>
-            </form>
-
-            <div id="auth-message" class="text-message hidden"></div>
-
-            <p class="modal-footer-text">
-                <span id="toggle-text">¿No tenés cuenta?</span> 
-                <a href="#" id="btn-toggle-auth">Registrate</a>
-            </p>
+        <div class="window-title">RezTored Player</div>
+        <div class="window-spacer"></div>
+      </div>
+      
+      <div class="window-content">
+        <div class="song-info">
+          <h2 class="song-title">SPOTIFY PLAYER</h2>
+          <div class="song-artist">Muestra • RezTored</div>
         </div>
+
+        <div class="spotify-embed-container">
+          <iframe 
+            data-testid="embed-iframe" 
+            style="border-radius:12px" 
+            src="https://open.spotify.com/embed/playlist/5SMC9IfOZffvpElJcqlbdb?utm_source=generator&si=eaed85027ba74269" 
+            width="100%" 
+            height="352" 
+            frameBorder="0" 
+            allowfullscreen="" 
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+            loading="lazy">
+          </iframe>
+        </div>
+      </div>
     </div>
-</div>
+    
+  </div>
 
-<script type="module">
+  <div id="auth-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
+    <div class="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full p-8 relative shadow-2xl">
+      
+      <button id="close-modal" class="absolute top-4 right-4 text-gray-400 hover:text-white cursor-pointer">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+
+      <h2 id="modal-title" class="text-2xl font-bold text-center mb-6">Iniciar Sesión</h2>
+
+      <form id="auth-form" class="space-y-4">
+        <div id="username-container" class="hidden">
+          <div class="flex justify-between items-center mb-1">
+            <label class="block text-sm font-medium text-gray-400">Nombre de Usuario</label>
+            <span class="text-xs text-indigo-400 font-semibold">Máx 12 letras</span>
+          </div>
+          <input type="text" id="auth-username" maxlength="12" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1">Correo Electrónico</label>
+          <input type="email" id="auth-email" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1">Contraseña</label>
+          <input type="password" id="auth-password" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition">
+        </div>
+        
+        <p id="auth-message" class="text-sm text-center hidden"></p>
+
+        <button type="submit" id="btn-submit-auth" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-lg transition cursor-pointer">
+          Ingresar
+        </button>
+      </form>
+
+      <div class="relative my-6">
+        <div class="absolute inset-0 flex items-center" aria-hidden="true">
+          <div class="w-full border-t border-gray-800"></div>
+        </div>
+        <div class="relative flex justify-center text-sm">
+          <span class="bg-gray-900 px-2 text-gray-500">O continuar con</span>
+        </div>
+      </div>
+
+      <button id="btn-google" class="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-100 text-gray-900 font-semibold py-2.5 rounded-lg transition cursor-pointer">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" width="100%" height="100%">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z" fill="#EA4335"/>
+        </svg>
+        Iniciar sesión con Google
+      </button>
+
+      <p class="text-sm text-center text-gray-400 mt-6">
+        <span id="toggle-text">¿No tenés cuenta?</span>
+        <button id="btn-toggle-auth" class="text-indigo-400 hover:underline ml-1 font-semibold cursor-pointer">Registrate</button>
+      </p>
+    </div>
+  </div>
+
+  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { 
-        getAuth, 
-        createUserWithEmailAndPassword, 
-        signInWithEmailAndPassword, 
-        signOut, 
-        onAuthStateChanged,
-        GoogleAuthProvider,
-        signInWithPopup,
-        updateProfile
+      getAuth, 
+      createUserWithEmailAndPassword, 
+      signInWithEmailAndPassword, 
+      signOut, 
+      onAuthStateChanged,
+      GoogleAuthProvider,
+      signInWithPopup,
+      updateProfile
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    
-    // Importamos Firestore
-    import { 
-        getFirestore, 
-        collection, 
-        addDoc, 
-        query, 
-        orderBy, 
-        onSnapshot 
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // --- CONFIGURACIÓN DE FIREBASE ---
     const firebaseConfig = {
-        apiKey: "AIzaSyDJG28Tq0xhyJPmBirRGY8-yBRZllQPl0M",
-        authDomain: "reztored-page.firebaseapp.com",
-        projectId: "reztored-page",
-        storageBucket: "reztored-page.firebasestorage.app",
-        messagingSenderId: "744944684653",
-        appId: "1:744944684653:web:0b8cfbf7a6c21dfae13964"
+      apiKey: "AIzaSyDJG28Tq0xhyJPmBirRGY8-yBRZllQPl0M",
+      authDomain: "reztored-page.firebaseapp.com",
+      projectId: "reztored-page",
+      storageBucket: "reztored-page.firebasestorage.app",
+      messagingSenderId: "744944684653",
+      appId: "1:744944684653:web:0b8cfbf7a6c21dfae13964"
     };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db = getFirestore(app); // Inicializa Firestore
     const googleProvider = new GoogleAuthProvider();
 
     let modoLogin = true;
 
-    // --- REFERENCIAS DEL DOM (MODAL Y AUTH) ---
     const authModal = document.getElementById('auth-modal');
     const btnLoginMenu = document.getElementById('btn-login-menu');
-    const btnTriggerLogin = document.getElementById('btn-trigger-login');
     const closeModal = document.getElementById('close-modal');
     const authForm = document.getElementById('auth-form');
     const modalTitle = document.getElementById('modal-title');
@@ -631,272 +218,169 @@
     const toggleText = document.getElementById('toggle-text');
     const authMessage = document.getElementById('auth-message');
     const btnGoogle = document.getElementById('btn-google');
-
+    
     const usernameContainer = document.getElementById('username-container');
     const authUsernameInput = document.getElementById('auth-username');
 
-    // --- REFERENCIAS DEL DOM (USUARIO LOGUEADO) ---
     const userLoggedInDiv = document.getElementById('user-logged-in');
     const userProfileLink = document.getElementById('user-profile-link');
     const userAvatarMenu = document.getElementById('user-avatar-menu');
     const btnLogout = document.getElementById('btn-logout');
 
-    const publishSection = document.getElementById('publish-section');
-    const loginPrompt = document.getElementById('login-prompt');
-
-    // --- EVENTOS DEL MODAL ---
-    const abrirModal = () => {
-        authModal.classList.add('active');
-    };
-
-    if (btnLoginMenu) btnLoginMenu.addEventListener('click', abrirModal);
-    if (btnTriggerLogin) btnTriggerLogin.addEventListener('click', abrirModal);
+    btnLoginMenu.addEventListener('click', () => {
+      authModal.classList.remove('hidden');
+    });
 
     closeModal.addEventListener('click', () => {
-        authModal.classList.remove('active');
-        authMessage.classList.add('hidden');
-        authForm.reset();
+      authModal.classList.add('hidden');
+      authMessage.classList.add('hidden');
+      authForm.reset();
     });
 
-    // Intercambiar entre iniciar sesión y registrarse
-    btnToggleAuth.addEventListener('click', (e) => {
-        e.preventDefault();
-        modoLogin = !modoLogin;
-        
-        if (modoLogin) {
-            modalTitle.textContent = "Iniciar Sesión";
-            btnSubmitAuth.textContent = "Ingresar";
-            toggleText.textContent = "¿No tenés cuenta?";
-            btnToggleAuth.textContent = "Registrate";
-            usernameContainer.classList.add('hidden');
-            authUsernameInput.removeAttribute('required');
-        } else {
-            modalTitle.textContent = "Crear Cuenta";
-            btnSubmitAuth.textContent = "Registrarse";
-            toggleText.textContent = "¿Ya tenés cuenta?";
-            btnToggleAuth.textContent = "Inicia Sesión";
-            usernameContainer.classList.remove('hidden');
-            authUsernameInput.setAttribute('required', 'true');
-        }
+    btnToggleAuth.addEventListener('click', () => {
+      modoLogin = !modoLogin;
+      if (modoLogin) {
+        modalTitle.textContent = "Iniciar Sesión";
+        btnSubmitAuth.textContent = "Ingresar";
+        toggleText.textContent = "¿No tenés cuenta?";
+        btnToggleAuth.textContent = "Registrate";
+        usernameContainer.classList.add('hidden');
+        authUsernameInput.removeAttribute('required');
+      } else {
+        modalTitle.textContent = "Crear Cuenta";
+        btnSubmitAuth.textContent = "Registrarse";
+        toggleText.textContent = "¿Ya tenés cuenta?";
+        btnToggleAuth.textContent = "Inicia Sesión";
+        usernameContainer.classList.remove('hidden');
+        authUsernameInput.setAttribute('required', 'true');
+      }
     });
 
-    // Formulario de login/registro clásico
     authForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('auth-email').value;
-        const password = document.getElementById('auth-password').value;
-        let username = authUsernameInput.value.trim();
+      e.preventDefault();
+      const email = document.getElementById('auth-email').value;
+      const password = document.getElementById('auth-password').value;
+      let username = authUsernameInput.value.trim();
 
-        // Validación estricta a un máximo de 12 caracteres
-        if (username.length > 12) {
-            username = username.substring(0, 12);
-        }
+      // VALIDACIÓN ESTRICTA: Aseguramos recortar a 12 letras en backend/código
+      if (username.length > 12) {
+        username = username.substring(0, 12);
+      }
 
-        mostrarMensaje("Procesando...", "text-gray-300");
+      authMessage.classList.remove('hidden');
+      authMessage.className = "text-sm text-center text-gray-300";
+      authMessage.textContent = "Procesando...";
 
-        try {
-            if (modoLogin) {
-                await signInWithEmailAndPassword(auth, email, password);
-                mostrarMensaje("¡Sesión iniciada con éxito!", "text-green-400");
-                setTimeout(() => {
-                    authModal.classList.remove('active');
-                }, 1500);
-            } else {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                
-                await updateProfile(userCredential.user, {
-                    displayName: username,
-                    photoURL: "https://api.dicebear.com/7.x/bottts/svg?seed=" + encodeURIComponent(username)
-                });
-
-                mostrarMensaje("¡Cuenta creada con éxito!", "text-green-400");
-                setTimeout(() => {
-                    authModal.classList.remove('active');
-                    actualizarMenuUsuario(auth.currentUser);
-                }, 1500);
-            }
-            authForm.reset();
-        } catch (error) {
-            let mensajeError = "Ocurrió un error.";
-            if (error.code === 'auth/weak-password') mensajeError = "La contraseña debe tener mínimo 6 caracteres.";
-            if (error.code === 'auth/email-already-in-use') mensajeError = "Ese correo ya está registrado.";
-            if (error.code === 'auth/invalid-credential') mensajeError = "Correo o contraseña incorrectos.";
-            mostrarMensaje(mensajeError, "text-red-400");
-        }
-    });
-
-    // Login con Google
-    btnGoogle.addEventListener('click', async () => {
-        mostrarMensaje("Abriendo ventana de Google...", "text-gray-300");
-
-        try {
-            await signInWithPopup(auth, googleProvider);
-            mostrarMensaje("¡Sesión iniciada con Google!", "text-green-400");
-            setTimeout(() => {
-                authModal.classList.remove('active');
-            }, 1500);
-        } catch (error) {
-            console.error(error);
-            mostrarMensaje("No se pudo iniciar sesión con Google.", "text-red-400");
-        }
-    });
-
-    // Cerrar sesión
-    btnLogout.addEventListener('click', (e) => {
-        e.preventDefault();
-        signOut(auth);
-    });
-
-    // --- FUNCIONES AUXILIARES ---
-
-    // Actualizar la barra de navegación según el estado de la sesión
-    function actualizarMenuUsuario(user) {
-        if (user) {
-            btnLoginMenu.classList.add('hidden');
-            userLoggedInDiv.classList.remove('hidden');
-            btnLogout.classList.remove('hidden');
-            
-            let name = user.displayName || user.email.split('@')[0];
-            if (name.length > 12) name = name.substring(0, 12);
-
-            userProfileLink.textContent = name.toUpperCase();
-            userProfileLink.href = `perfil.html?id=${user.uid}`;
-
-            if (user.photoURL) {
-                userAvatarMenu.src = user.photoURL;
-                userAvatarMenu.classList.remove('hidden');
-            } else {
-                userAvatarMenu.classList.add('hidden');
-            }
-
-            // Mostrar el panel de publicar, ocultar el aviso de login
-            publishSection.style.display = 'block';
-            loginPrompt.style.display = 'none';
+      try {
+        if (modoLogin) {
+          await signInWithEmailAndPassword(auth, email, password);
+          mostrarMensaje("¡Sesión iniciada con éxito!", "text-green-400");
+          setTimeout(() => authModal.classList.add('hidden'), 1500);
         } else {
-            btnLoginMenu.classList.remove('hidden');
-            userLoggedInDiv.classList.add('hidden');
-            btnLogout.classList.add('hidden');
-            userProfileLink.textContent = "Mi Perfil";
-            userProfileLink.href = "#";
-            userAvatarMenu.classList.add('hidden');
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          
+          await updateProfile(userCredential.user, {
+            displayName: username,
+            photoURL: "https://api.dicebear.com/7.x/bottts/svg?seed=" + username
+          });
 
-            // Ocultar panel de publicar, mostrar aviso de login
-            publishSection.style.display = 'none';
-            loginPrompt.style.display = 'block';
+          mostrarMensaje("¡Cuenta creada con éxito!", "text-green-400");
+          setTimeout(() => {
+            authModal.classList.add('hidden');
+            actualizarMenuUsuario(auth.currentUser);
+          }, 1500);
         }
-    }
-
-    // Escuchador de estado de sesión
-    onAuthStateChanged(auth, (user) => {
-        actualizarMenuUsuario(user);
+        authForm.reset();
+      } catch (error) {
+        let mensajeError = "Ocurrió un error.";
+        if (error.code === 'auth/weak-password') mensajeError = "La contraseña debe tener mínimo 6 caracteres.";
+        if (error.code === 'auth/email-already-in-use') mensajeError = "Ese correo ya está registrado.";
+        if (error.code === 'auth/invalid-credential') mensajeError = "Correo o contraseña incorrectos.";
+        mostrarMensaje(mensajeError, "text-red-400");
+      }
     });
 
-    // Mostrar mensajes de feedback en el modal
-    function mostrarMensaje(texto, claseColor) {
-        authMessage.textContent = texto;
-        authMessage.className = `text-message ${claseColor}`;
-        authMessage.classList.remove('hidden');
-    }
+    btnGoogle.addEventListener('click', async () => {
+      authMessage.classList.remove('hidden');
+      authMessage.className = "text-sm text-center text-gray-300";
+      authMessage.textContent = "Abriendo ventana de Google...";
 
-    // --- INTEGRACIÓN DE FIRESTORE (BASE DE DATOS REAL EN LA NUBE) ---
-    const opinionsCollection = collection(db, 'opinions');
-    const opinionsQuery = query(opinionsCollection, orderBy('timestamp', 'desc'));
-
-    // Escuchar en tiempo real los comentarios que entren a Firestore
-    onSnapshot(opinionsQuery, (snapshot) => {
-        const container = document.getElementById('opinions-container');
-        if (snapshot.empty) {
-            container.innerHTML = '<div class="no-opinions">No hay opiniones en la nube. ¡Sé el primero!</div>';
-            return;
-        }
-
-        let opinionsHTML = '';
-        snapshot.forEach((doc) => {
-            const data = doc.data();
-            const author = data.author || 'Anon';
-            const avatar = data.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + encodeURIComponent(author);
-            const text = data.text || '';
-            
-            let dateStr = 'Reciente';
-            if (data.timestamp) {
-                dateStr = data.timestamp.toDate().toLocaleString();
-            }
-
-            opinionsHTML += `
-                <div class="opinion-card">
-                    <div class="opinion-card-header">
-                        <div class="author-meta">
-                            <img class="opinion-avatar" src="${avatar}" alt="avatar">
-                            <span class="opinion-author">${escapeHTML(author.toUpperCase())}</span>
-                        </div>
-                        <span class="opinion-date">${dateStr}</span>
-                    </div>
-                    <div class="opinion-body">${escapeHTML(text)}</div>
-                </div>
-            `;
-        });
-        container.innerHTML = opinionsHTML;
-    }, (error) => {
-        console.error("Error al leer Firestore: ", error);
-        document.getElementById('opinions-container').innerHTML = '<div class="no-opinions" style="color: #ff5f56;">Error al sincronizar con la nube de Firebase. Asegurate de habilitar Firestore Database en modo prueba.</div>';
+      try {
+        await signInWithPopup(auth, googleProvider);
+        mostrarMensaje("¡Sesión iniciada con Google!", "text-green-400");
+        setTimeout(() => authModal.classList.add('hidden'), 1500);
+      } catch (error) {
+        console.error(error);
+        mostrarMensaje("No se pudo iniciar sesión con Google.", "text-red-400");
+      }
     });
 
-    // Publicar nueva opinión directamente a Firestore
-    document.getElementById('forum-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const textInput = document.getElementById('opinion-text');
-        const text = textInput.value.trim();
+    btnLogout.addEventListener('click', () => {
+      signOut(auth);
+    });
 
-        if (!text) return;
+    function actualizarMenuUsuario(user) {
+      if (user) {
+        btnLoginMenu.classList.add('hidden');
+        userLoggedInDiv.classList.remove('hidden');
         
-        const currentFirebaseUser = auth.currentUser;
-        if (!currentFirebaseUser) {
-            alert("No has iniciado sesión.");
-            return;
-        }
+        // VALIDACIÓN ESTRICTA: Cortar a 12 caracteres el nombre del usuario
+        let name = user.displayName || user.email.split('@')[0];
+        if (name.length > 12) name = name.substring(0, 12);
 
-        let displayName = currentFirebaseUser.displayName || currentFirebaseUser.email.split('@')[0];
-        if (displayName.length > 12) {
-            displayName = displayName.substring(0, 12);
-        }
+        // Actualiza el texto del enlace para que diga el nombre y lleve a perfil.html
+        userProfileLink.textContent = name;
+        userProfileLink.href = `perfil.html?id=${user.uid}`;
 
-        try {
-            await addDoc(opinionsCollection, {
-                author: displayName,
-                avatar: currentFirebaseUser.photoURL || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + encodeURIComponent(displayName),
-                text: text,
-                timestamp: new Date()
-            });
-            textInput.value = '';
-        } catch (error) {
-            console.error("Error al escribir en Firestore: ", error);
-            alert("No se pudo publicar. Asegúrate de que Firestore está activo en tu consola.");
+        // Miniatura del Avatar
+        if (user.photoURL) {
+          userAvatarMenu.src = user.photoURL;
+          userAvatarMenu.classList.remove('hidden');
+        } else {
+          userAvatarMenu.classList.add('hidden');
         }
-    });
-
-    // --- FUNCIONES AUXILIARES DE ESCAPE ---
-    function escapeHTML(str) {
-        const map = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            "'": '&#39;',
-            '"': '&quot;'
-        };
-        return str.replace(/[&<>'"]/g, tag => map[tag] || tag);
+      } else {
+        btnLoginMenu.classList.remove('hidden');
+        userLoggedInDiv.classList.add('hidden');
+        userProfileLink.textContent = "Mi Perfil";
+        userProfileLink.href = "#";
+        userAvatarMenu.classList.add('hidden');
+      }
     }
 
-    // --- DESPLAZAMIENTO SUAVE HACIA ARRIBA ---
+    onAuthStateChanged(auth, (user) => {
+      actualizarMenuUsuario(user);
+    });
+
+    function mostrarMensaje(texto, claseColor) {
+      authMessage.textContent = texto;
+      authMessage.className = `text-sm text-center ${claseColor} mt-2`;
+    }
+  </script>
+
+  <script>
     const logoInicio = document.getElementById('logo-inicio');
-    const desplazarArriba = (e) => {
-        e.preventDefault();
+    const linkInicio = document.getElementById('link-inicio');
+
+    // Al presionar el LOGO: Deslizar suavemente al techo (sin recargar)
+    if (logoInicio) {
+      logoInicio.addEventListener('click', (evento) => {
+        evento.preventDefault();
         window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
+          top: 0,
+          behavior: 'smooth'
         });
-    };
-    if (logoInicio) logoInicio.addEventListener('click', desplazarArriba);
-</script>
+      });
+    }
+
+    // Al presionar REZTORED: Recargar la página limpia y volver al inicio
+    if (linkInicio) {
+      linkInicio.addEventListener('click', (evento) => {
+        evento.preventDefault();
+        window.location.href = window.location.origin + window.location.pathname; 
+      });
+    }
+  </script>
 
 </body>
 </html>
