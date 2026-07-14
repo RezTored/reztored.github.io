@@ -797,12 +797,18 @@
                 dateStr = data.timestamp.toDate().toLocaleString();
             }
 
+            // Creamos la URL limpia con el formato /usuario
+            const linkPerfil = `/${encodeURIComponent(author.toLowerCase())}`;
+
             opinionsHTML += `
                 <div class="opinion-card">
                     <div class="opinion-card-header">
                         <div class="author-meta">
                             <img class="opinion-avatar" src="${avatar}" alt="avatar">
-                            <span class="opinion-author">${escapeHTML(author.toUpperCase())}</span>
+                            <!-- Enlace limpio al perfil del autor -->
+                            <a href="${linkPerfil}" class="opinion-author hover:underline text-indigo-400" style="text-decoration: none;">
+                                ${escapeHTML(author.toUpperCase())}
+                            </a>
                         </div>
                         <span class="opinion-date">${dateStr}</span>
                     </div>
@@ -815,7 +821,6 @@
         console.error("Error al leer Firestore: ", error);
         document.getElementById('opinions-container').innerHTML = '<div class="no-opinions" style="color: #ff5f56;">Error al sincronizar con la nube de Firebase. Asegurate de habilitar Firestore Database en modo prueba.</div>';
     });
-
     // Publicar nueva opinión directamente a Firestore
     document.getElementById('forum-form').addEventListener('submit', async (e) => {
         e.preventDefault();

@@ -1,0 +1,183 @@
+// ============================================================
+// reztored-auth.js
+// Módulo compartido de autenticación y perfiles para RezTored Page.
+// Lo importan todas las páginas del sitio (index.html, opinions/index.html,
+// 404.html, etc.) para no repetir la misma lógica en cada una.
+// ============================================================
+ 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import {
+    getAuth,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged,
+    GoogleAuthProvider,
+    signInWithPopup,
+    updateProfile
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import {
+    getFirestore,
+    doc,
+    getDoc,
+    setDoc,
+    serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+ 
+// --- CONFIGURACIÓN DE FIREBASE (la misma para todo el sitio) ---
+const firebaseConfig = {
+    apiKey: "AIzaSyDJG28Tq0xhyJPmBirRGY8-yBRZllQPl0M",
+    authDomain: "reztored-page.firebaseapp.com",
+    projectId: "reztored-page",
+    storageBucket: "reztored-page.firebasestorage.app",
+    messagingSenderId: "744944684653",
+    appId: "1:744944684653:web:0b8cfbf7a6c21dfae13964"
+};
+ 
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const googleProvider = new GoogleAuthProvider();
+ 
+// Re-exportamos las funciones de Firebase que cada página necesita,
+// así solo hace falta un import por página.
+export {
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged,
+    signInWithPopup,
+    updateProfile,
+    doc,
+    getDoc,
+    setDoc
+};
+ 
+// --- PALABRAS RESERVADAS ---
+// Nombres de usuario que NO se pueden registrar porque chocan con
+// rutas reales del sitio (carpetas) o son confusas/riesgosas.
+// Agregá acá cualquier carpeta nueva que crees en el repo.
+export const RESERVED_USERNAMES = [
+    'opinions', 'info', 'contact', 'perfil', 'profile', 'admin',
+    'login', 'signup', 'register', 'api', 'assets', 'css', 'js',
+    'images', 'img', 'static', 'www', 'mail', 'null', 'undefined',
+    '404', 'index', 'home', 'about', 'help', 'support', 'terms',
+    'privacy', 'auth', 'settings', 'account', 'root', 'ftp'
+];
+ 
+// Formato permitido: 3 a 20 caracteres, minúsculas, números y guión bajo
+const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/;
+ 
+/**
+ * Valida el formato de un nombre de usuario y si está en la lista de reservados.
+ * NO consulta Firestore (para eso está usernameDisponible).
+ */
+export function validarUsername(rawUsername) {
+    const username = (rawUsername || '').trim().toLowerCase();
+ 
+    if (!USERNAME_REGEX.test(username)) {
+        return {
+            valido: false,
+            mensaje: "El usuario debe tener 3-20 caracteres: solo minúsculas, números y guión bajo (_), sin espacios."
+        };
+    }
+    if (RESERVED_USERNAMES.includes(username)) {
+        return {
+            valido: false,
+            mensaje: "Ese nombre de usuario no está disponible."
+        };
+    }
+    return { valido: true, username };
+}
+ 
+/** Consulta Firestore para saber si un username ya está tomado. */
+export async function usernameDisponible(username) {
+    const ref = doc(db, 'usernames', username);
+    const snap = await getDoc(ref);
+    return !snap.exists();
+}
+ 
+/**
+ * Registra un usuario nuevo:
+ * 1. Valida formato y palabras reservadas.
+ * 2. Verifica que el username esté libre.
+ * 3. Crea la cuenta en Firebase Auth.
+ * 4. Reserva el username en Firestore (colección "usernames").
+ * 5. Crea el perfil público en Firestore (colección "users").
+ */
+export async function registrarUsuario({ email, password, username }) {
+    const validacion = validarUsername(username);
+    if (!validacion.valido) {
+        throw new Error(validacion.mensaje);
+    }
+    const usernameFinal = validacion.username;
+ 
+    const disponible = await usernameDisponible(usernameFinal);
+    if (!disponible) {
+        throw new Error("Ese nombre de usuario ya está en uso.");
+    }
+ 
+    const photoURL = "https://api.dicebear.com/7.x/bottts/svg?seed=" + encodeURIComponent(usernameFinal);
+ 
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+ 
+    await updateProfile(userCredential.user, {
+        displayName: usernameFinal,
+        photoURL: photoURL
+    });
+ 
+    // Reserva el username → apunta al uid del dueño.
+    // (Las reglas de Firestore deben impedir que esto se pueda pisar después)
+    await setDoc(doc(db, 'usernames', usernameFinal), {
+        uid: userCredential.user.uid
+    });
+ 
+    // Perfil público, editable después por el dueño (bio, foto).
+    await setDoc(doc(db, 'users', userCredential.user.uid), {
+        username: usernameFinal,
+        bio: '',
+        photoURL: photoURL,
+        createdAt: serverTimestamp()
+    });
+ 
+    return userCredential.user;
+}
+ 
+/**
+ * Trae el perfil público de un usuario a partir de su nombre de usuario.
+ * Devuelve null si no existe. Se usa en 404.html para armar la página de perfil.
+ */
+export async function obtenerPerfilPorUsername(username) {
+    const usernameLimpio = (username || '').trim().toLowerCase();
+    if (!usernameLimpio) return null;
+ 
+    const usernameRef = doc(db, 'usernames', usernameLimpio);
+    const usernameSnap = await getDoc(usernameRef);
+    if (!usernameSnap.exists()) return null;
+ 
+    const { uid } = usernameSnap.data();
+    const userRef = doc(db, 'users', uid);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) return null;
+ 
+    return { uid, ...userSnap.data() };
+}
+ 
+/**
+ * Actualiza la bio y/o la foto de perfil (URL pegada) del usuario logueado.
+ * Solo el dueño de la cuenta puede llamar esto sobre sí mismo (uid = auth.currentUser.uid).
+ */
+export async function actualizarPerfil(uid, { bio, photoURL }) {
+    const datos = {};
+    if (typeof bio === 'string') datos.bio = bio.slice(0, 280); // límite razonable
+    if (typeof photoURL === 'string' && photoURL.trim()) datos.photoURL = photoURL.trim();
+ 
+    await setDoc(doc(db, 'users', uid), datos, { merge: true });
+ 
+    // Mantenemos sincronizado el photoURL de Firebase Auth también,
+    // así se ve actualizado en los avatares del header/foro sin recargar todo.
+    if (datos.photoURL && auth.currentUser && auth.currentUser.uid === uid) {
+        await updateProfile(auth.currentUser, { photoURL: datos.photoURL });
+    }
+}
+ 
