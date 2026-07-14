@@ -106,6 +106,26 @@
             width: 49px; 
         }
 
+        .window-home-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 49px;
+            height: 22px;
+            text-decoration: none;
+            opacity: 0.75;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        .window-home-btn:hover {
+            opacity: 1;
+            transform: scale(1.08);
+        }
+        .window-home-btn img {
+            height: 20px;
+            width: auto;
+            display: block;
+        }
+
         /* Contenedor del interior de la ventana */
         .window-content {
             padding: 24px;
@@ -489,7 +509,9 @@
                 <span class="dot maximize"></span>
             </div>
             <div class="window-title">Opiniones</div>
-            <div class="window-spacer"></div>
+            <a href="/" class="window-home-btn" aria-label="Volver al inicio" title="Volver al inicio">
+                <img src="/lol.png" alt="Inicio">
+            </a>
         </div>
 
         <div class="window-content">
