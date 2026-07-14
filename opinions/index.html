@@ -798,7 +798,7 @@
             }
 
             // Creamos la URL limpia con el formato /usuario
-            const linkPerfil = `/perfil/?user=${encodeURIComponent(author.toLowerCase())}`;
+            const linkPerfil = `/${encodeURIComponent(author.toLowerCase())}`;
 
             opinionsHTML += `
                 <div class="opinion-card">
