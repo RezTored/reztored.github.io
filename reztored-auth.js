@@ -86,7 +86,7 @@ export const RESERVED_USERNAMES = [
 // se rompe/borra el flag isAdmin). Está vacío porque no tengo tu UID:
 // poné el tuyo acá (lo ves en la consola de Firebase Auth) si querés
 // un admin que no se pueda sacar desde el panel.
-export const SUPER_ADMIN_UIDS = [];
+export const SUPER_ADMIN_UIDS = ['iBvT6PulDBNJ48EuquY5wKNestg2'];
 
 // --- ECONOMÍA DE PETOCOINS ---
 export const COINS_REGISTRO = 1000; // con cuántas coins arranca una cuenta nueva
