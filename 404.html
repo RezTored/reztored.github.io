@@ -311,6 +311,121 @@
         .text-red-400 { color: #ff5f56; }
  
         .cargando { text-align: center; color: var(--text-muted); padding: 30px 0; }
+
+        /* --- COSMÉTICOS DE LA TIENDA --- */
+
+        /* Banner personalizado (banner_personalizado): bleedea hasta
+           los bordes de .window-content usando margen negativo igual
+           a su padding (28px 24px). */
+        .perfil-banner {
+            height: 90px;
+            margin: -28px -24px 18px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .perfil-banner.vacio {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 0 20px;
+            background: repeating-linear-gradient(45deg, #1e1e22, #1e1e22 10px, #232328 10px, #232328 20px);
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Marco de perfil dorado (marco_perfil_dorado) */
+        .avatar-dorado {
+            border-color: #ffd700 !important;
+            box-shadow: 0 0 18px rgba(255, 215, 0, 0.55);
+        }
+
+        /* Membresía VIP (membresia_vip): marco animado, más llamativo
+           que el marco dorado normal. */
+        .avatar-vip {
+            border: 3px solid #ffd700 !important;
+            animation: vip-pulso 2.2s ease-in-out infinite;
+        }
+        @keyframes vip-pulso {
+            0%, 100% { box-shadow: 0 0 16px rgba(255, 215, 0, 0.5), 0 0 28px rgba(255, 215, 0, 0.22); }
+            50% { box-shadow: 0 0 26px rgba(255, 215, 0, 0.85), 0 0 46px rgba(255, 215, 0, 0.45); }
+        }
+
+        /* Insignias junto al nombre de usuario */
+        .tag-vip {
+            display: inline-block;
+            background: linear-gradient(135deg, #ffd700, #ff9f1c);
+            color: #1a1300;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.6rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            padding: 3px 7px;
+            border-radius: 4px;
+            vertical-align: middle;
+            margin-left: 6px;
+        }
+        .tag-titulo {
+            display: inline-block;
+            background: #2d2d34;
+            border: 1px solid #ffd700;
+            color: #ffd700;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.6rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            padding: 3px 7px;
+            border-radius: 4px;
+            vertical-align: middle;
+            margin-left: 6px;
+        }
+
+        .stickers-line {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin: -6px 0 16px;
+        }
+
+        /* Panel "Personalizar mi perfil" (color_personalizado / banner_personalizado) */
+        .personalizar-box {
+            background: var(--bg-header);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px;
+        }
+        .personalizar-box label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .fila-color {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .fila-color input[type="color"] {
+            width: 44px;
+            height: 36px;
+            padding: 2px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-card);
+            cursor: pointer;
+        }
+        .fila-color button { flex: 1; }
+        .bloqueado-nota {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+            line-height: 1.4;
+        }
+        .bloqueado-nota a { color: var(--primary); }
     </style>
 </head>
 <body>
@@ -340,6 +455,8 @@
         obtenerPerfilPorUsername,
         obtenerPerfilPorUid,
         actualizarPerfil,
+        actualizarColorPerfil,
+        actualizarBannerPerfil,
         otorgarAdmin,
         banearUsuario,
         esAdmin,
@@ -349,6 +466,7 @@
     } from '/reztored-auth.js';
  
     const contenedor = document.getElementById('contenido-perfil');
+    const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
  
     // Saca el nombre de usuario de la URL, ej: reztored.online/juan -> "juan"
     function obtenerUsernameDeURL() {
@@ -410,6 +528,45 @@
         const tagAdminHTML = perfil.isAdmin ? `<span class="tag-admin">ADMIN</span>` : '';
         const avisoBaneadoHTML = perfil.banned ? `<div class="aviso-baneado">🚫 Este usuario está baneado.</div>` : '';
 
+        // --- Cosméticos comprados en la tienda (users/{uid}.inventario) ---
+        const inventario = perfil.inventario || {};
+        const tieneMarcoDorado = !!inventario['marco_perfil_dorado'];
+        const tieneTituloVip = !!inventario['titulo_vip'];
+        const tieneVip = !!inventario['membresia_vip'];
+        const tieneColorPerso = !!inventario['color_personalizado'];
+        const tieneBannerPerso = !!inventario['banner_personalizado'];
+        const cantStickers = inventario['sticker_sorpresa'] || 0;
+        const colorElegido = (tieneColorPerso && HEX_COLOR_REGEX.test(perfil.colorPerfil || '')) ? perfil.colorPerfil : null;
+
+        // El marco VIP pisa al marco dorado normal, y este a su vez pisa
+        // al color personalizado (así siempre se ve el cosmético "más caro").
+        let avatarClass = 'perfil-avatar';
+        let avatarStyle = '';
+        if (tieneVip) {
+            avatarClass += ' avatar-vip';
+        } else if (tieneMarcoDorado) {
+            avatarClass += ' avatar-dorado';
+        } else if (colorElegido) {
+            avatarStyle = `border-color:${escapeAttr(colorElegido)}; box-shadow:0 0 15px ${escapeAttr(colorElegido)}66;`;
+        }
+
+        const usernameStyle = (colorElegido && !tieneVip && !tieneMarcoDorado)
+            ? ` style="color:${escapeAttr(colorElegido)};"`
+            : '';
+
+        const tagVipHTML = tieneVip ? `<span class="tag-vip">⭐ VIP</span>` : '';
+        const tagTituloHTML = tieneTituloVip ? `<span class="tag-titulo">👑 Título VIP</span>` : '';
+        const stickersHTML = cantStickers > 0
+            ? `<div class="stickers-line">🎁 Tiene ${cantStickers} sticker${cantStickers !== 1 ? 's' : ''} sorpresa</div>`
+            : '';
+
+        let bannerHTML = '';
+        if (tieneBannerPerso && HEX_COLOR_REGEX.test(perfil.bannerColor1 || '') && HEX_COLOR_REGEX.test(perfil.bannerColor2 || '')) {
+            bannerHTML = `<div class="perfil-banner" style="background:linear-gradient(135deg, ${escapeAttr(perfil.bannerColor1)}, ${escapeAttr(perfil.bannerColor2)});"></div>`;
+        } else if (tieneBannerPerso && esDueno) {
+            bannerHTML = `<div class="perfil-banner vacio">Elegí los colores de tu banner en "🎨 Personalizar" ↓</div>`;
+        }
+
         // Botón de banear: lo ve un admin mirando el perfil de OTRA persona
         // (nunca el propio, para no poder auto-banearse por accidente).
         const accionesAdminHTML = (viewerEsAdmin && !esDueno) ? `
@@ -438,9 +595,11 @@
         const mostrarPestanas = esDueno && viewerEsAdmin;
 
         contenedor.innerHTML = `
-            <img class="perfil-avatar" src="${perfil.photoURL || ''}" alt="Avatar de ${escapeHTML(perfil.username)}">
-            <div class="perfil-username">${escapeHTML(perfil.username)}${tagAdminHTML}</div>
+            ${bannerHTML}
+            <img class="${avatarClass}" style="${avatarStyle}" src="${perfil.photoURL || ''}" alt="Avatar de ${escapeHTML(perfil.username)}">
+            <div class="perfil-username"${usernameStyle}>${escapeHTML(perfil.username)}${tagAdminHTML}${tagVipHTML}${tagTituloHTML}</div>
             <div class="perfil-fecha">Miembro desde ${formatearFecha(perfil.createdAt)}</div>
+            ${stickersHTML}
 
             <div class="perfil-coins">
                 <img src="/petocoin.png" alt="petoCoins">
@@ -462,6 +621,7 @@
                 ${esDueno ? `
                     <div class="acciones-perfil">
                         <button id="btn-editar-perfil">Editar perfil</button>
+                        <button id="btn-personalizar">🎨 Personalizar</button>
                     </div>
                     <form class="edit-form" id="form-editar-perfil">
                         <label for="input-bio">Bio (máx 280 caracteres)</label>
@@ -471,6 +631,30 @@
                         <button type="submit" class="btn-primary">Guardar cambios</button>
                         <div class="form-msg" id="msg-editar-perfil"></div>
                     </form>
+                    <div class="edit-form" id="panel-personalizar">
+                        <div class="personalizar-box">
+                            ${tieneColorPerso ? `
+                                <label for="input-color-perfil">Color personalizado</label>
+                                <div class="fila-color">
+                                    <input type="color" id="input-color-perfil" value="${colorElegido || '#4f46e5'}">
+                                    <button type="button" id="btn-guardar-color" class="btn-primary">Guardar color</button>
+                                </div>
+                            ` : `
+                                <p class="bloqueado-nota">🔒 Comprá <strong>"Color personalizado"</strong> en la <a href="/tienda">tienda</a> para elegir el color de tu perfil.</p>
+                            `}
+                            ${tieneBannerPerso ? `
+                                <label for="input-banner-1">Colores de tu banner (degradé)</label>
+                                <div class="fila-color">
+                                    <input type="color" id="input-banner-1" value="${(perfil.bannerColor1 && HEX_COLOR_REGEX.test(perfil.bannerColor1)) ? perfil.bannerColor1 : '#4f46e5'}">
+                                    <input type="color" id="input-banner-2" value="${(perfil.bannerColor2 && HEX_COLOR_REGEX.test(perfil.bannerColor2)) ? perfil.bannerColor2 : '#ff5f56'}">
+                                    <button type="button" id="btn-guardar-banner" class="btn-primary">Guardar banner</button>
+                                </div>
+                            ` : `
+                                <p class="bloqueado-nota">🔒 Comprá <strong>"Banner personalizado"</strong> en la <a href="/tienda">tienda</a> para personalizar tu banner.</p>
+                            `}
+                            <div class="form-msg" id="msg-personalizar"></div>
+                        </div>
+                    </div>
                 ` : ''}
                 ${accionesAdminHTML}
                 ${donarHTML}
@@ -629,6 +813,54 @@
                     msg.className = 'form-msg text-red-400';
                 }
             });
+
+            // Panel "🎨 Personalizar" (color y banner comprados en la tienda)
+            const btnPersonalizar = document.getElementById('btn-personalizar');
+            const panelPersonalizar = document.getElementById('panel-personalizar');
+            const msgPersonalizar = document.getElementById('msg-personalizar');
+
+            btnPersonalizar.addEventListener('click', () => {
+                panelPersonalizar.classList.toggle('activo');
+            });
+
+            const btnGuardarColor = document.getElementById('btn-guardar-color');
+            if (btnGuardarColor) {
+                btnGuardarColor.addEventListener('click', async () => {
+                    const color = document.getElementById('input-color-perfil').value;
+                    msgPersonalizar.textContent = 'Guardando...';
+                    msgPersonalizar.className = 'form-msg';
+                    try {
+                        await actualizarColorPerfil(perfil.uid, color);
+                        msgPersonalizar.textContent = '¡Listo! Recargando...';
+                        msgPersonalizar.className = 'form-msg text-green-400';
+                        setTimeout(() => window.location.reload(), 800);
+                    } catch (error) {
+                        console.error(error);
+                        msgPersonalizar.textContent = 'No se pudo: ' + error.message;
+                        msgPersonalizar.className = 'form-msg text-red-400';
+                    }
+                });
+            }
+
+            const btnGuardarBanner = document.getElementById('btn-guardar-banner');
+            if (btnGuardarBanner) {
+                btnGuardarBanner.addEventListener('click', async () => {
+                    const c1 = document.getElementById('input-banner-1').value;
+                    const c2 = document.getElementById('input-banner-2').value;
+                    msgPersonalizar.textContent = 'Guardando...';
+                    msgPersonalizar.className = 'form-msg';
+                    try {
+                        await actualizarBannerPerfil(perfil.uid, c1, c2);
+                        msgPersonalizar.textContent = '¡Listo! Recargando...';
+                        msgPersonalizar.className = 'form-msg text-green-400';
+                        setTimeout(() => window.location.reload(), 800);
+                    } catch (error) {
+                        console.error(error);
+                        msgPersonalizar.textContent = 'No se pudo: ' + error.message;
+                        msgPersonalizar.className = 'form-msg text-red-400';
+                    }
+                });
+            }
         }
     }
  

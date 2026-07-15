@@ -384,6 +384,46 @@
 
         .btn-like:disabled { cursor: not-allowed; opacity: 0.55; transform: none; }
 
+        .opinion-footer {
+            gap: 8px;
+        }
+
+        .btn-reaccion {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s, transform 0.1s;
+        }
+
+        .btn-reaccion:hover { border-color: #5d5d66; transform: translateY(-1px); }
+
+        .btn-reaccion:disabled { cursor: not-allowed; opacity: 0.55; transform: none; }
+
+        .btn-reaccion.activo-like {
+            color: var(--text-white);
+            border-color: #27c93f;
+            background: rgba(39, 201, 63, 0.15);
+        }
+
+        .btn-reaccion.activo-dislike {
+            color: var(--text-white);
+            border-color: #ff5f56;
+            background: rgba(255, 95, 86, 0.15);
+        }
+
+        .btn-like.petope-dado {
+            cursor: default;
+        }
+
         /* Badge de saldo de petoCoins en la barra de estado */
         .coins-badge {
             display: inline-flex;
@@ -675,7 +715,9 @@
         eliminarOpinion,
         asegurarPerfilUsuario,
         suscribirCoins,
-        toggleLikeOpinion
+        toggleLikeOpinion,
+        toggleDislikeOpinion,
+        darPetope
     } from '../reztored-auth.js';
 
     // Firestore (solo lo que esta página usa además del módulo compartido)
@@ -941,16 +983,26 @@
             // Creamos la URL limpia con el formato /usuario
             const linkPerfil = `/${encodeURIComponent(author.toLowerCase())}`;
 
-            // --- Likes ---
+            // --- Reacciones (like / dislike, libres, sin coins) ---
             const likedBy = data.likedBy || [];
+            const dislikedBy = data.dislikedBy || [];
             const likesCount = data.likesCount || 0;
+            const dislikesCount = data.dislikesCount || 0;
             const yaLikeado = !!(uidActual && likedBy.includes(uidActual));
+            const yaDisLikeado = !!(uidActual && dislikedBy.includes(uidActual));
+            const reaccionDeshabilitada = !uidActual;
+            const tituloLike = !uidActual ? 'Iniciá sesión para dar like' : (yaLikeado ? 'Sacar like' : 'Dar like');
+            const tituloDislike = !uidActual ? 'Iniciá sesión para dar dislike' : (yaDisLikeado ? 'Sacar dislike' : 'Dar dislike');
+
+            // --- Petope (con petoCoins para el autor, solo se puede dar UNA vez) ---
+            const petopeBy = data.petopeBy || [];
+            const petopeCount = data.petopeCount || 0;
+            const yaLePeteope = !!(uidActual && petopeBy.includes(uidActual));
             const esElAutor = !!(uidActual && data.authorUid === uidActual);
-            // Deshabilitado si no hay usuario logueado o si es su propio post.
-            const likeDeshabilitado = !uidActual || esElAutor;
-            const tituloLike = !uidActual
-                ? 'Iniciá sesión para dar like'
-                : (esElAutor ? 'No podés likear tu propio post' : (yaLikeado ? 'Sacar like' : 'Dar like (+10 petoCoins para el autor)'));
+            const petopeDeshabilitado = !uidActual || esElAutor || yaLePeteope;
+            const tituloPetope = !uidActual
+                ? 'Iniciá sesión para dar Petope'
+                : (esElAutor ? 'No podés darle Petope a tu propio post' : (yaLePeteope ? 'Ya le diste tu Petope' : 'Dar Petope (+10 petoCoins para el autor, no se puede sacar)'));
 
             opinionsHTML += `
                 <div class="opinion-card">
@@ -969,9 +1021,15 @@
                     </div>
                     <div class="opinion-body">${escapeHTML(text)}</div>
                     <div class="opinion-footer">
-                        <button type="button" class="btn-like ${yaLikeado ? 'likeado' : ''}" data-id="${id}" title="${tituloLike}" ${likeDeshabilitado ? 'disabled' : ''}>
-                            <img src="/petocoin.png" alt="like">
-                            <span>${likesCount}</span>
+                        <button type="button" class="btn-reaccion btn-reaccion-like ${yaLikeado ? 'activo-like' : ''}" data-id="${id}" title="${tituloLike}" ${reaccionDeshabilitada ? 'disabled' : ''}>
+                            👍 <span>${likesCount}</span>
+                        </button>
+                        <button type="button" class="btn-reaccion btn-reaccion-dislike ${yaDisLikeado ? 'activo-dislike' : ''}" data-id="${id}" title="${tituloDislike}" ${reaccionDeshabilitada ? 'disabled' : ''}>
+                            👎 <span>${dislikesCount}</span>
+                        </button>
+                        <button type="button" class="btn-like ${yaLePeteope ? 'petope-dado' : ''}" data-id="${id}" title="${tituloPetope}" ${petopeDeshabilitado ? 'disabled' : ''}>
+                            <img src="/petocoin.png" alt="petope">
+                            <span>${petopeCount}</span>
                         </button>
                     </div>
                 </div>
@@ -993,18 +1051,50 @@
             });
         });
 
-        // Enganchamos los botones de like.
-        container.querySelectorAll('.btn-like').forEach(btn => {
+        // Botones de like (togglean libremente, sin coins).
+        container.querySelectorAll('.btn-reaccion-like').forEach(btn => {
             btn.addEventListener('click', async () => {
                 if (!uidActual) return;
                 btn.disabled = true;
                 try {
                     await toggleLikeOpinion(btn.dataset.id, uidActual);
-                    // No hace falta re-renderizar a mano: el onSnapshot de
-                    // "opinions" va a traer el likesCount/likedBy actualizado.
                 } catch (error) {
                     console.error(error);
                     alert('No se pudo procesar el like: ' + error.message);
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+        });
+
+        // Botones de dislike (togglean libremente, sin coins).
+        container.querySelectorAll('.btn-reaccion-dislike').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (!uidActual) return;
+                btn.disabled = true;
+                try {
+                    await toggleDislikeOpinion(btn.dataset.id, uidActual);
+                } catch (error) {
+                    console.error(error);
+                    alert('No se pudo procesar el dislike: ' + error.message);
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+        });
+
+        // Botón de Petope: solo se puede DAR, nunca sacar.
+        container.querySelectorAll('.btn-like').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (!uidActual || btn.classList.contains('petope-dado')) return;
+                btn.disabled = true;
+                try {
+                    await darPetope(btn.dataset.id, uidActual);
+                    // No hace falta re-renderizar a mano: el onSnapshot de
+                    // "opinions" va a traer el petopeCount actualizado.
+                } catch (error) {
+                    console.error(error);
+                    alert('No se pudo procesar el Petope: ' + error.message);
                     btn.disabled = false;
                 }
             });
@@ -1061,7 +1151,11 @@
                 text: text,
                 timestamp: new Date(),
                 likedBy: [],
-                likesCount: 0
+                likesCount: 0,
+                dislikedBy: [],
+                dislikesCount: 0,
+                petopeBy: [],
+                petopeCount: 0
             });
             console.log("5. ¡Éxito! Doc creado con ID:", docRef.id);
             textInput.value = '';

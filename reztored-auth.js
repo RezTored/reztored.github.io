@@ -322,16 +322,10 @@ export function suscribirCoins(uid, callback) {
 }
 
 /**
- * Le pone o le saca el like del usuario "uidQueDaLike" a la opinión
- * "opinionId" (toggle: si ya la tenía likeada, se la saca).
- *
- * - No se puede likear el propio post (evita farmear coins).
- * - Al likear por primera vez, el AUTOR del post gana COINS_POR_LIKE.
- * - Al sacar el like, se resta el like del contador pero NO se le
- *   quitan las coins ya ganadas al autor (para evitar líos de saldo
- *   negativo por el toggle constante).
- * - Todo corre en una transacción de Firestore para que el contador
- *   de likes y las coins del autor queden siempre sincronizados.
+ * Le pone o le saca un "like" simple a una opinión (reacción social,
+ * NO otorga petoCoins). Es un toggle libre: se puede dar y sacar las
+ * veces que quieras. Es excluyente con el dislike (si tenías dislike
+ * puesto, se saca solo al dar like).
  */
 export async function toggleLikeOpinion(opinionId, uidQueDaLike) {
     if (!uidQueDaLike) {
@@ -346,9 +340,9 @@ export async function toggleLikeOpinion(opinionId, uidQueDaLike) {
         }
         const data = opinionSnap.data();
         const likedBy = data.likedBy || [];
+        const dislikedBy = data.dislikedBy || [];
 
         if (likedBy.includes(uidQueDaLike)) {
-            // Ya tenía el like puesto: lo sacamos.
             tx.update(opinionRef, {
                 likedBy: arrayRemove(uidQueDaLike),
                 likesCount: increment(-1)
@@ -356,13 +350,92 @@ export async function toggleLikeOpinion(opinionId, uidQueDaLike) {
             return;
         }
 
-        if (data.authorUid === uidQueDaLike) {
-            throw new Error("No podés darle like a tu propio post.");
+        const updates = {
+            likedBy: arrayUnion(uidQueDaLike),
+            likesCount: increment(1)
+        };
+        if (dislikedBy.includes(uidQueDaLike)) {
+            updates.dislikedBy = arrayRemove(uidQueDaLike);
+            updates.dislikesCount = increment(-1);
+        }
+        tx.update(opinionRef, updates);
+    });
+}
+
+/**
+ * Le pone o le saca un "dislike" simple a una opinión (reacción social,
+ * NO otorga ni quita petoCoins). Toggle libre, excluyente con el like.
+ */
+export async function toggleDislikeOpinion(opinionId, uidQueDaDislike) {
+    if (!uidQueDaDislike) {
+        throw new Error("Necesitás iniciar sesión para dar dislike.");
+    }
+    const opinionRef = doc(db, 'opinions', opinionId);
+
+    await runTransaction(db, async (tx) => {
+        const opinionSnap = await tx.get(opinionRef);
+        if (!opinionSnap.exists()) {
+            throw new Error("Esa opinión ya no existe.");
+        }
+        const data = opinionSnap.data();
+        const likedBy = data.likedBy || [];
+        const dislikedBy = data.dislikedBy || [];
+
+        if (dislikedBy.includes(uidQueDaDislike)) {
+            tx.update(opinionRef, {
+                dislikedBy: arrayRemove(uidQueDaDislike),
+                dislikesCount: increment(-1)
+            });
+            return;
+        }
+
+        const updates = {
+            dislikedBy: arrayUnion(uidQueDaDislike),
+            dislikesCount: increment(1)
+        };
+        if (likedBy.includes(uidQueDaDislike)) {
+            updates.likedBy = arrayRemove(uidQueDaDislike);
+            updates.likesCount = increment(-1);
+        }
+        tx.update(opinionRef, updates);
+    });
+}
+
+/**
+ * Le da un "Petope" a una opinión: es el reconocimiento especial (ícono
+ * de petoCoin) que le regala +COINS_POR_LIKE petoCoins al autor.
+ *
+ * A DIFERENCIA del like/dislike de arriba, el Petope es de UNA SOLA VÍA:
+ * se puede dar, pero nunca sacar. Antes esto era un toggle (como el
+ * like), y como sacar el "like" no le restaba las coins ya ganadas al
+ * autor, cualquiera podía darle y sacarle el Petope a un post en loop
+ * y generar petoCoins infinitas para el autor (o para sí mismo usando
+ * una segunda cuenta). Ahora, una vez dado, queda dado para siempre.
+ */
+export async function darPetope(opinionId, uidQueDaPetope) {
+    if (!uidQueDaPetope) {
+        throw new Error("Necesitás iniciar sesión para dar Petope.");
+    }
+    const opinionRef = doc(db, 'opinions', opinionId);
+
+    await runTransaction(db, async (tx) => {
+        const opinionSnap = await tx.get(opinionRef);
+        if (!opinionSnap.exists()) {
+            throw new Error("Esa opinión ya no existe.");
+        }
+        const data = opinionSnap.data();
+        const petopeBy = data.petopeBy || [];
+
+        if (petopeBy.includes(uidQueDaPetope)) {
+            throw new Error("Ya le diste tu Petope a esta opinión.");
+        }
+        if (data.authorUid === uidQueDaPetope) {
+            throw new Error("No podés darle Petope a tu propio post.");
         }
 
         tx.update(opinionRef, {
-            likedBy: arrayUnion(uidQueDaLike),
-            likesCount: increment(1)
+            petopeBy: arrayUnion(uidQueDaPetope),
+            petopeCount: increment(1)
         });
 
         if (data.authorUid) {
@@ -376,6 +449,108 @@ export async function toggleLikeOpinion(opinionId, uidQueDaLike) {
 // Tope de una donación individual, solo como salvaguarda contra typos
 // (no es una defensa real contra abuso — ver nota de seguridad al final del archivo).
 export const MAX_DONACION = 100000;
+
+/**
+ * Compra un producto de la TIENDA con petoCoins.
+ *
+ * "producto" es uno de los objetos que están en tienda/productos.js
+ * (necesita al menos: id, precio, tipo).
+ *
+ * - tipo 'unico': el usuario solo lo puede comprar UNA vez. Si ya lo
+ *   tiene en su inventario, tira error.
+ * - tipo 'multiple': se puede comprar todas las veces que quiera; el
+ *   inventario guarda cuántas unidades tiene.
+ *
+ * Todo corre en una transacción de Firestore para que el saldo de
+ * petoCoins y el inventario queden siempre sincronizados, y para que
+ * nadie pueda gastar más coins de las que tiene (ni comprar dos veces
+ * algo "unico" haciendo doble clic rápido, etc.).
+ *
+ * El inventario se guarda en users/{uid}.inventario, como un mapa
+ * { idDeProducto: cantidadComprada }.
+ */
+export async function comprarProducto(producto) {
+    const user = auth.currentUser;
+    if (!user) throw new Error("Necesitás iniciar sesión para comprar.");
+    if (!producto || !producto.id || typeof producto.precio !== 'number' || producto.precio <= 0) {
+        throw new Error("Producto inválido.");
+    }
+
+    const userRef = doc(db, 'users', user.uid);
+
+    await runTransaction(db, async (tx) => {
+        const snap = await tx.get(userRef);
+        const data = snap.exists() ? snap.data() : {};
+        const saldo = data.coins || 0;
+        const inventario = { ...(data.inventario || {}) };
+
+        if (producto.tipo === 'unico' && inventario[producto.id]) {
+            throw new Error("Ya tenés ese producto.");
+        }
+        if (saldo < producto.precio) {
+            throw new Error(`No tenés suficientes petoCoins. Te faltan ${producto.precio - saldo}.`);
+        }
+
+        inventario[producto.id] = (inventario[producto.id] || 0) + 1;
+
+        tx.update(userRef, {
+            coins: saldo - producto.precio,
+            inventario
+        });
+    });
+}
+
+// Formato válido para colores: #rrggbb (hex de 6 dígitos).
+const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
+
+/**
+ * Guarda el color personalizado de perfil del usuario logueado.
+ * Solo funciona si el usuario ya compró el producto 'color_personalizado'
+ * en la tienda (si no lo compró, tira error y no guarda nada).
+ */
+export async function actualizarColorPerfil(uid, color) {
+    const user = auth.currentUser;
+    if (!user || user.uid !== uid) {
+        throw new Error("Solo podés personalizar tu propio perfil.");
+    }
+    const colorLimpio = (color || '').trim();
+    if (!HEX_COLOR_REGEX.test(colorLimpio)) {
+        throw new Error("Ese color no es válido.");
+    }
+
+    const snap = await getDoc(doc(db, 'users', uid));
+    const inventario = snap.exists() ? (snap.data().inventario || {}) : {};
+    if (!inventario['color_personalizado']) {
+        throw new Error("Necesitás comprar 'Color personalizado' en la tienda primero.");
+    }
+
+    await setDoc(doc(db, 'users', uid), { colorPerfil: colorLimpio }, { merge: true });
+}
+
+/**
+ * Guarda los dos colores del banner personalizado del usuario logueado
+ * (se usan como degradé). Solo funciona si el usuario ya compró el
+ * producto 'banner_personalizado' en la tienda.
+ */
+export async function actualizarBannerPerfil(uid, color1, color2) {
+    const user = auth.currentUser;
+    if (!user || user.uid !== uid) {
+        throw new Error("Solo podés personalizar tu propio perfil.");
+    }
+    const c1 = (color1 || '').trim();
+    const c2 = (color2 || '').trim();
+    if (!HEX_COLOR_REGEX.test(c1) || !HEX_COLOR_REGEX.test(c2)) {
+        throw new Error("Los colores del banner no son válidos.");
+    }
+
+    const snap = await getDoc(doc(db, 'users', uid));
+    const inventario = snap.exists() ? (snap.data().inventario || {}) : {};
+    if (!inventario['banner_personalizado']) {
+        throw new Error("Necesitás comprar 'Banner personalizado' en la tienda primero.");
+    }
+
+    await setDoc(doc(db, 'users', uid), { bannerColor1: c1, bannerColor2: c2 }, { merge: true });
+}
 
 /**
  * Dona "cantidad" de petoCoins de la cuenta logueada actual a la cuenta
