@@ -39,7 +39,7 @@
     </style>
 </head>
 <body>
-
+    
     <a href="https://reztored.online">
         <img src="lol.png" alt="Inicio" style="width: 80px; margin-bottom: 10px; border-radius: 50%;">
     </a>
@@ -48,7 +48,11 @@
         <a href="/fun" style="color:#9ca3af; font-size:0.85rem; text-decoration:none;">&larr; Volver a FUN</a>
         <a href="/fun/poker" style="color:#8b8bf5; font-size:0.85rem; text-decoration:none;">Ir al Poker →</a>
     </div>
-
+    <div id="contenedor-ajustes" style="margin: 20px; color: white;">
+    <label for="vol-slider">🔊 Volumen Efectos:</label>
+    <input type="range" id="vol-slider" min="0" max="1" step="0.1" value="0.6">
+    <span id="vol-valor">60%</span>
+    </div>
     <div class="ui-text" style="font-size: 1.2rem; margin-bottom: 10px;">
         PetoCoins: <span id="display-saldo">0</span>
     </div>
@@ -106,5 +110,28 @@
             }
         });
     </script>
+    <script type="module">
+    // Importamos la función de ajuste
+    import { ajustarVolumen } from './ruleta.js'; // Ajusta la ruta si es necesario
+
+    const slider = document.getElementById('vol-slider');
+    const display = document.getElementById('vol-valor');
+
+    // 1. Cargar el volumen guardado al abrir la página
+    const volumenGuardado = localStorage.getItem('volumenJuego') || 0.6;
+    slider.value = volumenGuardado;
+    display.textContent = Math.round(volumenGuardado * 100) + "%";
+
+    // 2. Escuchar cambios en el slider
+    slider.addEventListener('input', (e) => {
+        const nuevoVol = e.target.value;
+        
+        // Llamar a la función del archivo ruleta.js
+        ajustarVolumen(nuevoVol);
+        
+        // Actualizar el texto visual
+        display.textContent = Math.round(nuevoVol * 100) + "%";
+    });
+</script>
 </body>
 </html>
