@@ -232,7 +232,7 @@
         }
         .donar-box p.ayuda { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; }
         .donar-box .fila { display: flex; gap: 8px; }
-        .donar-box input[type="number"] {
+        .donar-box input[type="number"], .donar-box select {
             flex: 1;
             background: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -243,6 +243,7 @@
             font-size: 0.95rem;
             outline: none;
         }
+        .donar-box select { min-width: 0; }
 
  
         .no-encontrado {
@@ -567,6 +568,7 @@
         banearUsuario,
         esAdmin,
         donarCoins,
+        regalarProducto,
         fijarMisCoins,
         RESERVED_USERNAMES
     } from '/reztored-auth.js';
@@ -823,7 +825,11 @@
             </div>
         ` : '';
 
-        // Donar petoCoins: lo ve cualquiera logueado mirando el perfil de OTRA persona.
+        // Donar petoCoins / regalar un producto: lo ve cualquiera
+        // logueado mirando el perfil de OTRA persona.
+        const opcionesRegaloHTML = PRODUCTOS.map(p =>
+            `<option value="${p.id}">${p.emoji} ${escapeHTML(p.nombre)} — ${p.precio.toLocaleString('es-AR')} petoCoins</option>`
+        ).join('');
         const donarHTML = (viewerUser && !esDueno) ? `
             <div class="donar-box">
                 <p class="ayuda">Donale petoCoins a ${escapeHTML(perfil.username)}.</p>
@@ -833,6 +839,16 @@
                         <button type="submit" class="btn-primary">Donar</button>
                     </div>
                     <div class="form-msg" id="msg-donar"></div>
+                </form>
+            </div>
+            <div class="donar-box" style="margin-top:10px;">
+                <p class="ayuda">🎁 Regalale un producto de la tienda a ${escapeHTML(perfil.username)} (se paga con tus petoCoins).</p>
+                <form id="form-regalar">
+                    <div class="fila">
+                        <select id="input-producto-regalar">${opcionesRegaloHTML}</select>
+                        <button type="submit" class="btn-primary">Regalar</button>
+                    </div>
+                    <div class="form-msg" id="msg-regalar"></div>
                 </form>
             </div>
         ` : '';
@@ -1056,6 +1072,29 @@
                         console.error(error);
                         msgDonar.textContent = 'No se pudo donar: ' + error.message;
                         msgDonar.className = 'form-msg text-red-400';
+                    }
+                });
+            }
+
+            const formRegalar = document.getElementById('form-regalar');
+            const msgRegalar = document.getElementById('msg-regalar');
+            if (formRegalar) {
+                formRegalar.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const productoId = document.getElementById('input-producto-regalar').value;
+                    const producto = PRODUCTOS.find(p => p.id === productoId);
+                    if (!producto) return;
+
+                    msgRegalar.textContent = 'Procesando...';
+                    msgRegalar.className = 'form-msg';
+                    try {
+                        await regalarProducto(perfil.uid, producto);
+                        msgRegalar.textContent = `¡Le regalaste "${producto.nombre}" a ${perfil.username}!`;
+                        msgRegalar.className = 'form-msg text-green-400';
+                    } catch (error) {
+                        console.error(error);
+                        msgRegalar.textContent = 'No se pudo regalar: ' + error.message;
+                        msgRegalar.className = 'form-msg text-red-400';
                     }
                 });
             }

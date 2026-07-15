@@ -43,6 +43,18 @@ Log in <span aria-hidden="true">→</span>
 Mi Perfil
 </a>
 <span id="admin-badge-nav" class="hidden bg-indigo-600 text-white text-[10px] font-bold tracking-widest px-1.5 py-0.5 rounded">ADMIN</span>
+<div class="relative">
+<button id="btn-notificaciones" class="relative text-lg leading-none text-white hover:text-gray-300 transition cursor-pointer" aria-label="Notificaciones" type="button">
+🔔
+<span id="notif-badge" class="hidden absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full h-4 min-w-4 px-0.5 items-center justify-center">0</span>
+</button>
+<div id="notif-panel" class="hidden absolute right-0 mt-3 w-80 max-h-96 overflow-y-auto bg-gray-900 border border-gray-800 rounded-xl shadow-2xl p-2 z-50">
+<div class="flex items-center justify-between px-2 py-1.5">
+<p class="text-xs font-bold uppercase tracking-widest text-gray-500">Notificaciones</p>
+</div>
+<div id="notif-lista" class="flex flex-col gap-1"></div>
+</div>
+</div>
 <span id="coins-badge" class="hidden items-center gap-1.5 bg-gray-800 border border-gray-700 rounded-full pl-1 pr-2.5 py-0.5">
 <img src="/petocoin.png" alt="petoCoins" class="h-4 w-4">
 <span id="coins-amount" class="text-xs font-bold text-white">0</span>
@@ -63,7 +75,7 @@ Mi Perfil
     <!-- Estado de sesión también en mobile, ya que la columna derecha de arriba está "hidden lg:flex" -->
     <div class="pt-4 border-t border-gray-800 flex flex-col items-center gap-3">
         <button id="btn-login-menu-mobile" class="text-white font-semibold">Log in →</button>
-        <div id="user-logged-in-mobile" class="hidden flex flex-col items-center gap-2">
+        <div id="user-logged-in-mobile" class="hidden flex flex-col items-center gap-2 w-full">
             <div class="flex items-center gap-2">
                 <img id="user-avatar-menu-mobile" src="" alt="Avatar" class="h-8 w-8 rounded-full object-cover border border-gray-700 hidden">
                 <a id="user-profile-link-mobile" href="#" class="text-sm text-indigo-400 font-semibold">Mi Perfil</a>
@@ -73,6 +85,13 @@ Mi Perfil
                 <img src="/petocoin.png" alt="petoCoins" class="h-4 w-4">
                 <span id="coins-amount-mobile" class="text-xs font-bold text-white">0</span>
             </span>
+            <button id="btn-notificaciones-mobile" class="relative text-white font-semibold flex items-center gap-2" type="button">
+                🔔 Notificaciones
+                <span id="notif-badge-mobile" class="hidden bg-red-500 text-white text-[10px] font-bold rounded-full h-4 min-w-4 px-1 items-center justify-center">0</span>
+            </button>
+            <div id="notif-panel-mobile" class="hidden w-full bg-gray-800 border border-gray-700 rounded-lg p-2 max-h-72 overflow-y-auto">
+                <div id="notif-lista-mobile" class="flex flex-col gap-1"></div>
+            </div>
             <button id="btn-logout-mobile" class="text-sm font-semibold text-red-400">Salir</button>
         </div>
     </div>
@@ -284,7 +303,9 @@ registrarUsuario,
 esAdmin,
 obtenerPerfilPorUid,
 asegurarPerfilUsuario,
-suscribirCoins
+suscribirCoins,
+suscribirNotificaciones,
+marcarTodasLasNotificacionesLeidas
 } from '/reztored-auth.js';
 
 let modoLogin = true;
@@ -314,6 +335,16 @@ const userLoggedInDivMobile = document.getElementById('user-logged-in-mobile');
 const userProfileLinkMobile = document.getElementById('user-profile-link-mobile');
 const userAvatarMenuMobile = document.getElementById('user-avatar-menu-mobile');
 const btnLogoutMobile = document.getElementById('btn-logout-mobile');
+
+// Campana de notificaciones (donaciones y regalos recibidos)
+const btnNotificaciones = document.getElementById('btn-notificaciones');
+const notifPanel = document.getElementById('notif-panel');
+const notifBadge = document.getElementById('notif-badge');
+const notifLista = document.getElementById('notif-lista');
+const btnNotificacionesMobile = document.getElementById('btn-notificaciones-mobile');
+const notifPanelMobile = document.getElementById('notif-panel-mobile');
+const notifBadgeMobile = document.getElementById('notif-badge-mobile');
+const notifListaMobile = document.getElementById('notif-lista-mobile');
 const adminBadgeNavMobile = document.getElementById('admin-badge-nav-mobile');
 
 btnLoginMenu.addEventListener('click', () => {
@@ -411,6 +442,57 @@ if (btnLogoutMobile) {
 }
 
 let dejarDeEscucharCoins = null;
+let dejarDeEscucharNotis = null;
+let notisActuales = [];
+
+function formatearFechaNoti(timestamp) {
+    if (!timestamp || typeof timestamp.toDate !== 'function') return 'Recién';
+    return timestamp.toDate().toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+function textoNotificacion(noti) {
+    if (noti.tipo === 'donacion') {
+        return `🪙 <strong>${escapeHTMLNoti(noti.deUsername || 'Alguien')}</strong> te donó <strong>${(noti.monto || 0).toLocaleString('es-AR')}</strong> petoCoins`;
+    }
+    if (noti.tipo === 'regalo') {
+        return `${noti.productoEmoji || '🎁'} <strong>${escapeHTMLNoti(noti.deUsername || 'Alguien')}</strong> te regaló <strong>${escapeHTMLNoti(noti.productoNombre || 'un producto')}</strong>`;
+    }
+    return 'Nueva notificación';
+}
+
+function escapeHTMLNoti(str) {
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
+    return String(str).replace(/[&<>'"]/g, tag => map[tag] || tag);
+}
+
+function renderNotificaciones(notis) {
+    notisActuales = notis;
+    const noLeidas = notis.filter(n => !n.leida).length;
+
+    [notifBadge, notifBadgeMobile].forEach(badge => {
+        if (!badge) return;
+        if (noLeidas > 0) {
+            badge.textContent = noLeidas > 9 ? '9+' : String(noLeidas);
+            badge.classList.remove('hidden');
+            badge.classList.add('flex');
+        } else {
+            badge.classList.add('hidden');
+            badge.classList.remove('flex');
+        }
+    });
+
+    const html = notis.length > 0
+        ? notis.map(n => `
+            <div class="px-2 py-2 rounded-lg ${n.leida ? '' : 'bg-gray-800'} text-sm text-gray-200">
+                <p>${textoNotificacion(n)}</p>
+                <p class="text-[11px] text-gray-500 mt-0.5">${formatearFechaNoti(n.timestamp)}</p>
+            </div>
+        `).join('')
+        : `<p class="text-gray-500 text-sm text-center py-4">No tenés notificaciones.</p>`;
+
+    if (notifLista) notifLista.innerHTML = html;
+    if (notifListaMobile) notifListaMobile.innerHTML = html;
+}
 
 function actualizarMenuUsuario(user) {
 const coinsBadge = document.getElementById('coins-badge');
@@ -421,6 +503,10 @@ const coinsAmountMobile = document.getElementById('coins-amount-mobile');
 if (dejarDeEscucharCoins) {
     dejarDeEscucharCoins();
     dejarDeEscucharCoins = null;
+}
+if (dejarDeEscucharNotis) {
+    dejarDeEscucharNotis();
+    dejarDeEscucharNotis = null;
 }
 
 if (user) {
@@ -435,6 +521,7 @@ dejarDeEscucharCoins = suscribirCoins(user.uid, (coins) => {
     coinsAmount.textContent = coins;
     if (coinsAmountMobile) coinsAmountMobile.textContent = coins;
 });
+dejarDeEscucharNotis = suscribirNotificaciones(user.uid, renderNotificaciones);
 
 let name = user.displayName || user.email.split('@')[0];
 
@@ -477,6 +564,9 @@ userAvatarMenu.classList.add('hidden');
 document.getElementById('admin-badge-nav').classList.add('hidden');
 coinsBadge.style.display = 'none';
 if (coinsBadgeMobile) coinsBadgeMobile.style.display = 'none';
+renderNotificaciones([]);
+if (notifPanel) notifPanel.classList.add('hidden');
+if (notifPanelMobile) notifPanelMobile.classList.add('hidden');
 
 if (btnLoginMenuMobile) btnLoginMenuMobile.classList.remove('hidden');
 if (userLoggedInDivMobile) userLoggedInDivMobile.classList.add('hidden');
@@ -498,6 +588,35 @@ actualizarMenuUsuario(auth.currentUser || user);
 function mostrarMensaje(texto, claseColor) {
 authMessage.textContent = texto;
 authMessage.className = `text-sm text-center ${claseColor} mt-2`;
+}
+
+// --- Campana de notificaciones: abrir/cerrar y marcar como leídas ---
+function marcarComoLeidasSiHace() {
+    const user = auth.currentUser;
+    if (!user) return;
+    marcarTodasLasNotificacionesLeidas(user.uid, notisActuales).catch(err => console.error(err));
+}
+
+if (btnNotificaciones && notifPanel) {
+    btnNotificaciones.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const abriendo = notifPanel.classList.contains('hidden');
+        notifPanel.classList.toggle('hidden');
+        if (abriendo) marcarComoLeidasSiHace();
+    });
+    document.addEventListener('click', (e) => {
+        if (!notifPanel.classList.contains('hidden') && !notifPanel.contains(e.target) && e.target !== btnNotificaciones) {
+            notifPanel.classList.add('hidden');
+        }
+    });
+}
+
+if (btnNotificacionesMobile && notifPanelMobile) {
+    btnNotificacionesMobile.addEventListener('click', () => {
+        const abriendo = notifPanelMobile.classList.contains('hidden');
+        notifPanelMobile.classList.toggle('hidden');
+        if (abriendo) marcarComoLeidasSiHace();
+    });
 }
 </script>
 

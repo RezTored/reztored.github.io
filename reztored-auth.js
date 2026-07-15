@@ -35,7 +35,11 @@ import {
     increment,
     arrayUnion,
     arrayRemove,
-    serverTimestamp
+    serverTimestamp,
+    collection,
+    query,
+    orderBy,
+    limit
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { PRODUCTOS } from "./tienda/productos.js";
 
@@ -630,7 +634,8 @@ export async function actualizarMarcoPerfil(uid, marcoId) {
 /**
  * Dona "cantidad" de petoCoins de la cuenta logueada actual a la cuenta
  * "uidReceptor". Resta y suma en una sola transacción para que quede
- * siempre consistente (o se hacen las dos escrituras, o ninguna).
+ * siempre consistente (o se hacen las dos escrituras, o ninguna), y le
+ * deja al receptor una notificación avisándole quién y cuánto le donó.
  */
 export async function donarCoins(uidReceptor, cantidad) {
     const uidEmisor = auth.currentUser ? auth.currentUser.uid : null;
@@ -648,6 +653,9 @@ export async function donarCoins(uidReceptor, cantidad) {
 
     const emisorRef = doc(db, 'users', uidEmisor);
     const receptorRef = doc(db, 'users', uidReceptor);
+    const emisorSnapPrevio = await getDoc(emisorRef);
+    const deUsername = emisorSnapPrevio.exists() ? (emisorSnapPrevio.data().username || 'alguien') : 'alguien';
+    const notiRef = doc(collection(db, 'users', uidReceptor, 'notificaciones'));
 
     await runTransaction(db, async (tx) => {
         const emisorSnap = await tx.get(emisorRef);
@@ -660,7 +668,107 @@ export async function donarCoins(uidReceptor, cantidad) {
 
         tx.update(emisorRef, { coins: increment(-monto) });
         tx.update(receptorRef, { coins: increment(monto) });
+        tx.set(notiRef, {
+            tipo: 'donacion',
+            deUid: uidEmisor,
+            deUsername,
+            monto,
+            leida: false,
+            timestamp: serverTimestamp()
+        });
     });
+}
+
+/**
+ * Le regala un producto de la TIENDA a "uidReceptor", pagado con las
+ * petoCoins de la cuenta logueada actual. El producto entra al
+ * INVENTARIO DEL RECEPTOR (no al del que regala), y le queda una
+ * notificación avisándole quién se lo regaló.
+ *
+ * Igual que comprarProducto: si es tipo 'unico' y el receptor ya lo
+ * tiene, tira error (no tiene sentido regalarle algo que ya tiene).
+ * Todo corre en una transacción para que el saldo del emisor, el
+ * inventario del receptor y la notificación queden sincronizados.
+ */
+export async function regalarProducto(uidReceptor, producto) {
+    const uidEmisor = auth.currentUser ? auth.currentUser.uid : null;
+    if (!uidEmisor) throw new Error("Necesitás iniciar sesión para regalar.");
+    if (!uidReceptor) throw new Error("Falta el destinatario.");
+    if (uidReceptor === uidEmisor) throw new Error("No podés regalarte algo a vos mismo, comprátelo en la tienda.");
+    if (!producto || !producto.id || typeof producto.precio !== 'number' || producto.precio <= 0) {
+        throw new Error("Producto inválido.");
+    }
+
+    const emisorRef = doc(db, 'users', uidEmisor);
+    const receptorRef = doc(db, 'users', uidReceptor);
+    const emisorSnapPrevio = await getDoc(emisorRef);
+    const deUsername = emisorSnapPrevio.exists() ? (emisorSnapPrevio.data().username || 'alguien') : 'alguien';
+    const notiRef = doc(collection(db, 'users', uidReceptor, 'notificaciones'));
+
+    await runTransaction(db, async (tx) => {
+        const emisorSnap = await tx.get(emisorRef);
+        const receptorSnap = await tx.get(receptorRef);
+        if (!emisorSnap.exists()) throw new Error("No se encontró tu perfil.");
+        if (!receptorSnap.exists()) throw new Error("No se encontró el perfil de esa persona.");
+
+        const saldoEmisor = emisorSnap.data().coins || 0;
+        if (saldoEmisor < producto.precio) {
+            throw new Error(`No tenés suficientes petoCoins. Te faltan ${producto.precio - saldoEmisor}.`);
+        }
+
+        const inventarioReceptor = { ...(receptorSnap.data().inventario || {}) };
+        if (producto.tipo === 'unico' && inventarioReceptor[producto.id]) {
+            throw new Error("Esa persona ya tiene ese producto.");
+        }
+        inventarioReceptor[producto.id] = (inventarioReceptor[producto.id] || 0) + 1;
+
+        tx.update(emisorRef, { coins: increment(-producto.precio) });
+        tx.update(receptorRef, { inventario: inventarioReceptor });
+        tx.set(notiRef, {
+            tipo: 'regalo',
+            deUid: uidEmisor,
+            deUsername,
+            productoId: producto.id,
+            productoNombre: producto.nombre,
+            productoEmoji: producto.emoji,
+            leida: false,
+            timestamp: serverTimestamp()
+        });
+    });
+}
+
+/**
+ * Escucha en tiempo real las últimas notificaciones (donaciones y
+ * regalos recibidos) del usuario logueado. callback(notificaciones) se
+ * llama cada vez que hay una nueva o cambia el estado de "leída".
+ * Devuelve una función para dejar de escuchar.
+ */
+export function suscribirNotificaciones(uid, callback) {
+    if (!uid) {
+        callback([]);
+        return () => {};
+    }
+    const q = query(
+        collection(db, 'users', uid, 'notificaciones'),
+        orderBy('timestamp', 'desc'),
+        limit(30)
+    );
+    return onSnapshot(q, (snap) => {
+        callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+}
+
+/** Marca una notificación puntual como leída. */
+export async function marcarNotificacionLeida(uid, notificacionId) {
+    if (!uid || !notificacionId) return;
+    await setDoc(doc(db, 'users', uid, 'notificaciones', notificacionId), { leida: true }, { merge: true });
+}
+
+/** Marca como leídas todas las notificaciones que todavía no lo estaban. */
+export async function marcarTodasLasNotificacionesLeidas(uid, notificaciones) {
+    if (!uid) return;
+    const pendientes = (notificaciones || []).filter(n => !n.leida);
+    await Promise.all(pendientes.map(n => marcarNotificacionLeida(uid, n.id)));
 }
 
 /**
@@ -685,14 +793,21 @@ export async function fijarMisCoins(cantidad) {
 // ============================================================
 // ⚠️ IMPORTANTE — REGLAS DE SEGURIDAD DE FIRESTORE
 // ------------------------------------------------------------
-// Todo lo de acá arriba (likes, donaciones, banear, dar admin,
-// borrar opiniones) hace escrituras DIRECTAS desde el navegador a
-// documentos que no son "los tuyos" (el post de otro, el perfil de
-// otro). Firestore bloquea eso por defecto con
+// Todo lo de acá arriba (likes, donaciones, regalos, banear, dar
+// admin, borrar opiniones) hace escrituras DIRECTAS desde el
+// navegador a documentos que no son "los tuyos" (el post de otro, el
+// perfil de otro, la subcolección de notificaciones de otro).
+// Firestore bloquea eso por defecto con
 // "Missing or insufficient permissions" a menos que las Reglas de
 // Seguridad del proyecto lo permitan explícitamente.
 // Te paso el archivo de reglas recomendado aparte — sin pegarlo en
 // Firebase Console (Firestore Database → Reglas), ni los likes, ni
-// donar, ni banear/dar-admin ni borrar opiniones van a funcionar,
-// aunque el código de acá esté perfecto.
+// donar/regalar, ni banear/dar-admin ni borrar opiniones van a
+// funcionar, aunque el código de acá esté perfecto. Para las
+// notificaciones específicamente, la subcolección
+// users/{uid}/notificaciones necesita permitir: que CUALQUIER usuario
+// logueado pueda CREAR una notificación dentro de la subcolección de
+// OTRO usuario (para poder avisarle que le donaron/regalaron algo),
+// pero que solo el DUEÑO de esa subcolección la pueda LEER o marcar
+// como leída.
 // ============================================================
