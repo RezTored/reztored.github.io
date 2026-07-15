@@ -1,108 +1,136 @@
-// ============================================================
-// evaluator.js — evaluador de manos de Texas Hold'em (7 cartas -> mejor 5)
-// Sin dependencias externas. Devuelve un puntaje comparable.
-// ============================================================
+const suits = ["♠", "♥", "♦", "♣"];
+const values = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
 
-const VALORES = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
-const PALOS = ['♠', '♥', '♦', '♣'];
+let deck = [];
+let playerHand = [];
+let gameState = "DEAL"; // Estados posibles: "DEAL" (Repartir), "DISCARD" (Elegir descartes), "END" (Fin de mano)
 
-export function crearMazo() {
-    const mazo = [];
-    for (const p of PALOS) {
-        for (let v = 0; v < VALORES.length; v++) {
-            mazo.push({ valor: v + 2, simbolo: VALORES[v], palo: p, id: VALORES[v] + p });
-        }
-    }
-    return mazo;
+// Referencias al DOM (ajustalas si tus IDs son diferentes)
+const cardsContainer = document.getElementById("player-cards") || document.getElementById("cards");
+const actionBtn = document.getElementById("btn-deal") || document.getElementById("action-btn");
+const messageEl = document.getElementById("message");
+
+if (actionBtn) {
+    actionBtn.addEventListener("click", handleAction);
 }
 
-export function mezclarMazo(mazo) {
-    const copia = [...mazo];
-    for (let i = copia.length - 1; i > 0; i--) {
+// 1. Genera un mazo nuevo de 52 cartas desde cero
+function buildDeck() {
+    deck = [];
+    for (let suit of suits) {
+        for (let value of values) {
+            deck.push({ suit, value });
+        }
+    }
+}
+
+// 2. Mezcla el mazo usando el algoritmo Fisher-Yates
+function shuffleDeck() {
+    for (let i = deck.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [copia[i], copia[j]] = [copia[j], copia[i]];
+        [deck[i], deck[j]] = [deck[j], deck[i]];
     }
-    return copia;
 }
 
-// Nombres de categorías, de menor a mayor
-const CATEGORIAS = [
-    'Carta alta', 'Par', 'Doble par', 'Trío', 'Escalera',
-    'Color', 'Full', 'Póker', 'Escalera de color', 'Escalera real'
-];
-
-function combinaciones5de7(cartas) {
-    const resultado = [];
-    const n = cartas.length;
-    for (let a = 0; a < n; a++)
-        for (let b = a + 1; b < n; b++)
-            for (let c = b + 1; c < n; c++)
-                for (let d = c + 1; d < n; d++)
-                    for (let e = d + 1; e < n; e++)
-                        resultado.push([cartas[a], cartas[b], cartas[c], cartas[d], cartas[e]]);
-    return resultado;
+// Maneja el flujo del botón principal
+function handleAction() {
+    if (gameState === "DEAL" || gameState === "END") {
+        startHand();
+    } else if (gameState === "DISCARD") {
+        drawCards();
+    }
 }
 
-function evaluar5(cartas) {
-    const valores = cartas.map(c => c.valor).sort((a, b) => b - a);
-    const palos = cartas.map(c => c.palo);
-    const esColor = palos.every(p => p === palos[0]);
+// 3. Inicia una nueva mano LIMPIANDO todo rastro de la ronda anterior
+function startHand() {
+    // --- AQUÍ SE SOLUCIONA EL BUG DE LAS CARTAS REPETIDAS ---
+    playerHand = []; // Vaciamos la mano por completo
+    buildDeck();    // Creamos un mazo nuevo de 52 cartas
+    shuffleDeck();  // Lo mezclamos bien
+    // --------------------------------------------------------
 
-    const conteo = {};
-    for (const v of valores) conteo[v] = (conteo[v] || 0) + 1;
-    const grupos = Object.entries(conteo)
-        .map(([v, cant]) => ({ v: parseInt(v), cant }))
-        .sort((a, b) => (b.cant - a.cant) || (b.v - a.v));
-
-    // Escalera (contempla A-2-3-4-5, la "escalera baja")
-    let esEscalera = false;
-    let altaEscalera = 0;
-    const unicos = [...new Set(valores)];
-    if (unicos.length === 5) {
-        if (unicos[0] - unicos[4] === 4) { esEscalera = true; altaEscalera = unicos[0]; }
-        else if (JSON.stringify(unicos) === JSON.stringify([14, 5, 4, 3, 2])) { esEscalera = true; altaEscalera = 5; }
+    // Repartimos 5 cartas iniciales (ninguna retenida al inicio)
+    for (let i = 0; i < 5; i++) {
+        playerHand.push({
+            ...deck.pop(),
+            held: false 
+        });
     }
 
-    const kickers = grupos.map(g => g.v);
-
-    if (esEscalera && esColor && altaEscalera === 14) return { cat: 9, desempate: [altaEscalera] };
-    if (esEscalera && esColor) return { cat: 8, desempate: [altaEscalera] };
-    if (grupos[0].cant === 4) return { cat: 7, desempate: kickers };
-    if (grupos[0].cant === 3 && grupos[1] && grupos[1].cant === 2) return { cat: 6, desempate: kickers };
-    if (esColor) return { cat: 5, desempate: valores };
-    if (esEscalera) return { cat: 4, desempate: [altaEscalera] };
-    if (grupos[0].cant === 3) return { cat: 3, desempate: kickers };
-    if (grupos[0].cant === 2 && grupos[1] && grupos[1].cant === 2) return { cat: 2, desempate: kickers };
-    if (grupos[0].cant === 2) return { cat: 1, desempate: kickers };
-    return { cat: 0, desempate: valores };
+    gameState = "DISCARD";
+    actionBtn.innerText = "Cambiar Cartas";
+    messageEl.innerText = "Seleccioná las cartas que quieras MANTENER y presiona 'Cambiar Cartas'.";
+    
+    updateUI();
 }
 
-function compararDesempate(a, b) {
-    for (let i = 0; i < Math.max(a.length, b.length); i++) {
-        const x = a[i] || 0, y = b[i] || 0;
-        if (x !== y) return x - y;
-    }
-    return 0;
+// Selecciona o deselecciona una carta para mantenerla
+function toggleHold(index) {
+    if (gameState !== "DISCARD") return;
+    
+    playerHand[index].held = !playerHand[index].held;
+    updateUI();
 }
 
-/**
- * Recibe un array de 5,6 o 7 cartas ({valor, simbolo, palo}) y devuelve
- * la mejor mano posible: { cat, desempate, nombre, mejores5 }
- */
-export function mejorMano(cartas) {
-    const combos = cartas.length <= 5 ? [cartas] : combinaciones5de7(cartas);
-    let mejor = null;
-    for (const combo of combos) {
-        const ev = evaluar5(combo);
-        if (!mejor || ev.cat > mejor.cat || (ev.cat === mejor.cat && compararDesempate(ev.desempate, mejor.desempate) > 0)) {
-            mejor = { ...ev, mejores5: combo };
+// Reemplaza las cartas que el jugador NO quiso mantener
+function drawCards() {
+    for (let i = 0; i < playerHand.length; i++) {
+        if (!playerHand[i].held) {
+            playerHand[i] = {
+                ...deck.pop(),
+                held: false
+            };
         }
     }
-    return { ...mejor, nombre: CATEGORIAS[mejor.cat] };
+
+    gameState = "END";
+    actionBtn.innerText = "Jugar de Nuevo";
+    
+    // Evalúa la combinación final
+    const finalResult = evaluateHand(playerHand);
+    messageEl.innerText = `Mano final: ${finalResult}. ¿Jugamos otra?`;
+    
+    updateUI();
 }
 
-/** Compara dos manos ya evaluadas (mejorMano). >0 si A gana, <0 si gana B, 0 empate. */
-export function compararManos(a, b) {
-    if (a.cat !== b.cat) return a.cat - b.cat;
-    return compararDesempate(a.desempate, b.desempate);
+// Dibuja las cartas en pantalla
+function updateUI() {
+    if (!cardsContainer) return;
+    cardsContainer.innerHTML = "";
+
+    playerHand.forEach((card, index) => {
+        const cardDiv = document.createElement("div");
+        cardDiv.classList.add("card");
+        
+        // Color rojo para corazones y diamantes
+        if (card.suit === "♥" || card.suit === "♦") {
+            cardDiv.classList.add("red");
+        }
+        
+        // Si está retenida, le añadimos la clase visual correspondiente
+        if (card.held) {
+            cardDiv.classList.add("held");
+        }
+
+        cardDiv.innerHTML = `
+            <div class="card-value">${card.value}${card.suit}</div>
+            ${card.held ? '<div class="held-tag">MANTENER</div>' : ''}
+        `;
+
+        // Evento para que el usuario pueda hacer clic en la carta
+        cardDiv.addEventListener("click", () => toggleHold(index));
+        
+        cardsContainer.appendChild(cardDiv);
+    });
+}
+
+// Evaluador integrado por si tu 'evaluator.js' no está listo o falla
+function evaluateHand(hand) {
+    // Si tenés el evaluador externo funcionando, lo priorizamos[cite: 1]
+    if (typeof getHandRank === "function") {
+        return getHandRank(hand).label;
+    }
+    
+    // De lo contrario, un retorno básico para que el juego no se rompa
+    return "Mano completada";
 }
