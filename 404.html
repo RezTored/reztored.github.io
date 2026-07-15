@@ -343,22 +343,118 @@
         .banner-tab-panel { display: none; }
         .banner-tab-panel.activa { display: block; }
 
-        /* Marco de perfil dorado (marco_perfil_dorado) */
+        /* --- MARCOS DE PERFIL (comprables en la tienda, categoria:'marco') ---
+           Cada producto categoria:'marco' tiene un campo "clase" que
+           arma la clase CSS de acá abajo como "avatar-<clase>". Si se
+           agrega un marco nuevo en tienda/productos.js, hay que
+           agregarle también su CSS acá. */
         .avatar-dorado {
             border-color: #ffd700 !important;
             box-shadow: 0 0 18px rgba(255, 215, 0, 0.55);
         }
+        .avatar-plata {
+            border-color: #c9ccd6 !important;
+            box-shadow: 0 0 16px rgba(201, 204, 214, 0.55);
+        }
+        .avatar-fuego {
+            border: 3px solid #ff7a1a !important;
+            animation: marco-fuego 1.6s ease-in-out infinite;
+        }
+        @keyframes marco-fuego {
+            0%, 100% { box-shadow: 0 0 14px rgba(255, 122, 26, 0.55), 0 0 26px rgba(255, 42, 0, 0.25); }
+            50% { box-shadow: 0 0 26px rgba(255, 160, 60, 0.9), 0 0 42px rgba(255, 42, 0, 0.5); }
+        }
+        .avatar-hielo {
+            border: 3px solid #7dd3fc !important;
+            animation: marco-hielo 2.4s ease-in-out infinite;
+        }
+        @keyframes marco-hielo {
+            0%, 100% { box-shadow: 0 0 14px rgba(125, 211, 252, 0.55), 0 0 26px rgba(56, 189, 248, 0.25); }
+            50% { box-shadow: 0 0 26px rgba(186, 230, 253, 0.9), 0 0 42px rgba(56, 189, 248, 0.5); }
+        }
+        .avatar-neon {
+            border: 3px solid #d946ef !important;
+            animation: marco-neon 2.4s linear infinite;
+        }
+        @keyframes marco-neon {
+            0%   { box-shadow: 0 0 16px #d946ef, 0 0 28px #6366f1; }
+            33%  { box-shadow: 0 0 16px #6366f1, 0 0 28px #22d3ee; }
+            66%  { box-shadow: 0 0 16px #22d3ee, 0 0 28px #d946ef; }
+            100% { box-shadow: 0 0 16px #d946ef, 0 0 28px #6366f1; }
+        }
 
-        /* Membresía VIP (membresia_vip): marco animado, más llamativo
-           que el marco dorado normal. */
-        .avatar-vip {
-            border: 3px solid #ffd700 !important;
-            animation: vip-pulso 2.2s ease-in-out infinite;
+        /* Selector de marco dentro de "🎨 Personalizar" */
+        .marcos-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            justify-content: center;
+            margin-bottom: 10px;
         }
-        @keyframes vip-pulso {
-            0%, 100% { box-shadow: 0 0 16px rgba(255, 215, 0, 0.5), 0 0 28px rgba(255, 215, 0, 0.22); }
-            50% { box-shadow: 0 0 26px rgba(255, 215, 0, 0.85), 0 0 46px rgba(255, 215, 0, 0.45); }
+        .marco-opcion {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            background: none;
+            border: none;
+            padding: 4px;
         }
+        .marco-opcion img, .marco-opcion .marco-vacio {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            object-fit: cover;
+            background: var(--bg-card);
+            display: block;
+        }
+        .marco-opcion .marco-vacio {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            color: var(--text-muted);
+        }
+        .marco-opcion span {
+            font-size: 0.62rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            max-width: 64px;
+            text-align: center;
+        }
+        .marco-opcion.seleccionado img, .marco-opcion.seleccionado .marco-vacio {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+        .marco-opcion.seleccionado span { color: var(--text-white); font-weight: 700; }
+
+        /* --- 🎒 MOCHILA (inventario de items comprados) --- */
+        .panel-colapsable { display: none; margin-top: 16px; }
+        .panel-colapsable.activo { display: block; }
+        .mochila-box {
+            background: var(--bg-header);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px;
+        }
+        .mochila-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+            gap: 10px;
+        }
+        .mochila-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 6px;
+            text-align: center;
+        }
+        .mochila-item .mochila-emoji { font-size: 1.6rem; margin-bottom: 4px; }
+        .mochila-item .mochila-nombre { font-size: 0.68rem; color: var(--text-main); line-height: 1.2; }
+        .mochila-item .mochila-cant { font-size: 0.62rem; color: var(--text-muted); margin-top: 2px; }
+        .mochila-vacia { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 10px 0; }
 
         /* Insignias junto al nombre de usuario */
         .tag-vip {
@@ -466,6 +562,7 @@
         actualizarColorPerfil,
         actualizarBannerColorPerfil,
         actualizarBannerImagenPerfil,
+        actualizarMarcoPerfil,
         otorgarAdmin,
         banearUsuario,
         esAdmin,
@@ -473,6 +570,7 @@
         fijarMisCoins,
         RESERVED_USERNAMES
     } from '/reztored-auth.js';
+    import { PRODUCTOS } from '/tienda/productos.js';
  
     const contenedor = document.getElementById('contenido-perfil');
     const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
@@ -615,7 +713,6 @@
 
         // --- Cosméticos comprados en la tienda (users/{uid}.inventario) ---
         const inventario = perfil.inventario || {};
-        const tieneMarcoDorado = !!inventario['marco_perfil_dorado'];
         const tieneTituloVip = !!inventario['titulo_vip'];
         const tieneVip = !!inventario['membresia_vip'];
         const tieneColorPerso = !!inventario['color_personalizado'];
@@ -623,27 +720,81 @@
         const cantStickers = inventario['sticker_sorpresa'] || 0;
         const colorElegido = (tieneColorPerso && HEX_COLOR_REGEX.test(perfil.colorPerfil || '')) ? perfil.colorPerfil : null;
 
-        // El marco VIP pisa al marco dorado normal, y este a su vez pisa
-        // al color personalizado (así siempre se ve el cosmético "más caro").
+        // --- Marco de perfil (categoria:'marco' en tienda/productos.js) ---
+        // La persona puede tener comprados varios marcos, pero solo uno
+        // puesto a la vez (perfil.marcoActivo). Si nunca eligió ninguno
+        // pero ya tenía comprado el marco dorado de antes de que
+        // existiera este selector, se lo dejamos puesto por defecto.
+        const marcosCatalogo = PRODUCTOS.filter(p => p.categoria === 'marco');
+        const marcosPoseidos = marcosCatalogo.filter(p => !!inventario[p.id]);
+
+        let marcoActivoId = null;
+        if (perfil.marcoActivo && perfil.marcoActivo !== 'ninguno' && inventario[perfil.marcoActivo]) {
+            marcoActivoId = perfil.marcoActivo;
+        } else if (perfil.marcoActivo === undefined && inventario['marco_perfil_dorado']) {
+            marcoActivoId = 'marco_perfil_dorado';
+        }
+        const marcoActivoProducto = marcoActivoId ? marcosCatalogo.find(p => p.id === marcoActivoId) : null;
+
+        // El marco puesto pisa al color personalizado (así siempre se ve
+        // el cosmético "más caro" en la foto de perfil).
         let avatarClass = 'perfil-avatar';
         let avatarStyle = '';
-        if (tieneVip) {
-            avatarClass += ' avatar-vip';
-        } else if (tieneMarcoDorado) {
-            avatarClass += ' avatar-dorado';
+        if (marcoActivoProducto) {
+            avatarClass += ` avatar-${marcoActivoProducto.clase}`;
         } else if (colorElegido) {
             avatarStyle = `border-color:${escapeAttr(colorElegido)}; box-shadow:0 0 15px ${escapeAttr(colorElegido)}66;`;
         }
 
-        const usernameStyle = (colorElegido && !tieneVip && !tieneMarcoDorado)
+        const usernameStyle = (colorElegido && !marcoActivoProducto)
             ? ` style="color:${escapeAttr(colorElegido)};"`
             : '';
 
-        const tagVipHTML = tieneVip ? `<span class="tag-vip">⭐ VIP</span>` : '';
+        // La insignia VIP es solo una etiqueta dorada al lado del
+        // nombre, no pone marco en la foto (el marco se elige aparte).
+        const tagVipHTML = tieneVip ? `<span class="tag-vip">VIP</span>` : '';
         const tagTituloHTML = tieneTituloVip ? `<span class="tag-titulo">👑 Título VIP</span>` : '';
         const stickersHTML = cantStickers > 0
             ? `<div class="stickers-line">🎁 Tiene ${cantStickers} sticker${cantStickers !== 1 ? 's' : ''} sorpresa</div>`
             : '';
+
+        // --- 🎒 Mochila: todos los items comprados (visible para cualquiera) ---
+        const itemsMochila = PRODUCTOS.filter(p => !!inventario[p.id]);
+        const mochilaGridHTML = itemsMochila.length > 0
+            ? `<div class="mochila-grid">${itemsMochila.map(p => `
+                <div class="mochila-item">
+                    <div class="mochila-emoji">${p.emoji}</div>
+                    <div class="mochila-nombre">${escapeHTML(p.nombre)}</div>
+                    ${p.tipo === 'multiple' ? `<div class="mochila-cant">x${inventario[p.id]}</div>` : ''}
+                </div>
+            `).join('')}</div>`
+            : `<p class="mochila-vacia">${esDueno ? 'Todavía no compraste nada. Visitá la <a href="/tienda" style="color:var(--primary);">tienda</a>.' : 'Este usuario todavía no tiene ningún item.'}</p>`;
+        const mochilaPanelHTML = `
+            <div class="panel-colapsable" id="panel-mochila">
+                <div class="mochila-box">
+                    ${mochilaGridHTML}
+                </div>
+            </div>
+        `;
+
+        // --- Selector de marco (solo se arma si es el dueño mirando su perfil) ---
+        function opcionMarcoHTML(id, emoji, nombre, seleccionada) {
+            const preview = marcosCatalogo.find(p => p.id === id);
+            const claseAvatar = preview ? `avatar-${preview.clase}` : '';
+            return `
+                <button type="button" class="marco-opcion ${seleccionada ? 'seleccionado' : ''}" data-marco-id="${id}">
+                    <img class="${claseAvatar}" src="${perfil.photoURL || ''}" alt="${escapeAttr(nombre)}">
+                    <span>${nombre}</span>
+                </button>
+            `;
+        }
+        const marcosOpcionesHTML = [
+            `<button type="button" class="marco-opcion ${!marcoActivoProducto ? 'seleccionado' : ''}" data-marco-id="ninguno">
+                <span class="marco-vacio">✕</span>
+                <span>Ninguno</span>
+            </button>`,
+            ...marcosPoseidos.map(p => opcionMarcoHTML(p.id, p.emoji, p.nombre, marcoActivoId === p.id))
+        ].join('');
 
         // Tiñe toda la página con el color que eligió el DUEÑO del
         // perfil, lo vea quien lo vea (como el perfil de Discord).
@@ -702,6 +853,11 @@
                 <span class="etiqueta">petoCoins</span>
             </div>
 
+            <div class="acciones-perfil" style="margin-top:0;">
+                <button id="btn-mochila">🎒 Mochila</button>
+            </div>
+            ${mochilaPanelHTML}
+
             ${avisoBaneadoHTML}
 
             ${mostrarPestanas ? `
@@ -736,6 +892,15 @@
                                 </div>
                             ` : `
                                 <p class="bloqueado-nota">🔒 Comprá <strong>"Color personalizado"</strong> en la <a href="/tienda">tienda</a> para elegir el color de tu perfil.</p>
+                            `}
+                            <label>Marco de perfil</label>
+                            <div class="marcos-grid">
+                                ${marcosOpcionesHTML}
+                            </div>
+                            ${marcosPoseidos.length === 0 ? `
+                                <p class="bloqueado-nota">🔒 Todavía no tenés ningún marco. Comprá marcos en la <a href="/tienda">tienda</a> para ponerle un borde a tu foto.</p>
+                            ` : `
+                                <p class="bloqueado-nota">Tocá un marco para ponértelo. Podés comprar más en la <a href="/tienda">tienda</a>.</p>
                             `}
                             ${tieneBannerPerso ? `
                                 <label>Banner (colores o imagen/GIF por link)</label>
@@ -794,6 +959,12 @@
                 </div>
             ` : ''}
         `;
+
+        const btnMochila = document.getElementById('btn-mochila');
+        const panelMochila = document.getElementById('panel-mochila');
+        btnMochila.addEventListener('click', () => {
+            panelMochila.classList.toggle('activo');
+        });
 
         if (mostrarPestanas) {
             const tabBtns = contenedor.querySelectorAll('.tab-btn');
@@ -946,6 +1117,25 @@
                     }
                 });
             }
+
+            const marcoOpciones = document.querySelectorAll('.marco-opcion');
+            marcoOpciones.forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const marcoId = btn.dataset.marcoId;
+                    msgPersonalizar.textContent = 'Guardando...';
+                    msgPersonalizar.className = 'form-msg';
+                    try {
+                        await actualizarMarcoPerfil(perfil.uid, marcoId);
+                        msgPersonalizar.textContent = '¡Listo! Recargando...';
+                        msgPersonalizar.className = 'form-msg text-green-400';
+                        setTimeout(() => window.location.reload(), 500);
+                    } catch (error) {
+                        console.error(error);
+                        msgPersonalizar.textContent = 'No se pudo: ' + error.message;
+                        msgPersonalizar.className = 'form-msg text-red-400';
+                    }
+                });
+            });
 
             const btnGuardarBannerColor = document.getElementById('btn-guardar-banner-color');
             if (btnGuardarBannerColor) {

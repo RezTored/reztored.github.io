@@ -21,6 +21,15 @@
 //                  'multiple' = la persona lo puede comprar las
 //                                veces que quiera (por ejemplo algo
 //                                consumible).
+//   categoria   -> agrupa el producto para la "🎒 Mochila" del perfil.
+//                  Usá: 'insignia', 'marco', 'color', 'banner',
+//                  'coleccionable' o 'consumible'.
+//   clase       -> SOLO para categoria:'marco'. Es el sufijo de la
+//                  clase CSS que dibuja el marco en 404.html
+//                  (ej: clase 'plata' -> se le pinta la clase
+//                  "avatar-plata" a la foto de perfil). Si agregás un
+//                  marco nuevo, sumale también su CSS en 404.html
+//                  (buscá "MARCOS DE PERFIL" en los estilos).
 //
 // -----------------------------------------------------------------
 // CÓMO AGREGAR UN PRODUCTO NUEVO:
@@ -40,8 +49,22 @@
 //   Los siguientes ids están conectados a efectos visuales reales en
 //   la página de perfil (404.html), no son solo decorativos:
 //     - 'titulo_vip'            -> muestra la insignia "👑 Título VIP"
-//     - 'marco_perfil_dorado'   -> le pone un marco dorado a la foto
-//     - 'membresia_vip'         -> insignia "⭐ VIP" + marco animado
+//     - 'membresia_vip'         -> insignia dorada "VIP" al lado del
+//                                  nombre de usuario. Es SOLO una
+//                                  etiqueta, no pone marco en la foto
+//                                  (para el marco, la persona elige
+//                                  uno de los productos categoria:'marco'
+//                                  que tenga comprados, desde el panel
+//                                  "🎨 Personalizar" de su perfil).
+//     - categoria:'marco'       -> cualquier producto con esta
+//                                  categoria (marco_perfil_dorado,
+//                                  marco_plata, marco_fuego,
+//                                  marco_hielo, marco_neon, ...)
+//                                  aparece como opción elegible en la
+//                                  sección "Marco de perfil" del panel
+//                                  de personalización. La persona
+//                                  puede tener varios marcos comprados
+//                                  a la vez pero solo uno activo.
 //     - 'color_personalizado'   -> desbloquea elegir un color propio
 //                                  para el perfil (se elige en la
 //                                  página de perfil, no acá)
@@ -64,15 +87,17 @@ export const PRODUCTOS = [
         descripcion: 'Un título especial para destacarte en el foro. Se muestra como insignia en tu perfil.',
         precio: 10000,
         emoji: '👑',
-        tipo: 'unico'
+        tipo: 'unico',
+        categoria: 'insignia'
     },
     {
-        id: 'marco_perfil_dorado',
-        nombre: 'Marco de perfil dorado',
-        descripcion: 'Un marquito dorado con brillo para tu foto de perfil.',
-        precio: 15000,
-        emoji: '🖼️',
-        tipo: 'unico'
+        id: 'membresia_vip',
+        nombre: 'VIP',
+        descripcion: 'Una insignia dorada "VIP" bien visible al lado de tu nombre de usuario.',
+        precio: 30000,
+        emoji: '⭐',
+        tipo: 'unico',
+        categoria: 'insignia'
     },
     {
         id: 'color_personalizado',
@@ -80,7 +105,8 @@ export const PRODUCTOS = [
         descripcion: 'Elegí el color que más te guste para tu perfil (marco de foto y tu nombre de usuario).',
         precio: 6000,
         emoji: '🎨',
-        tipo: 'unico'
+        tipo: 'unico',
+        categoria: 'color'
     },
     {
         id: 'banner_personalizado',
@@ -88,23 +114,74 @@ export const PRODUCTOS = [
         descripcion: 'Elegí colores propios para tu banner o poné el link de una imagen/GIF (por defecto todos tienen un banner de colores al azar).',
         precio: 9000,
         emoji: '🖼️✨',
-        tipo: 'unico'
+        tipo: 'unico',
+        categoria: 'banner'
+    },
+
+    // --- MARCOS DE PERFIL ---
+    // Todos los productos con categoria:'marco' se pueden elegir (uno
+    // a la vez) desde el panel "🎨 Personalizar" del perfil, en la
+    // sección "Marco de perfil". El campo "clase" tiene que tener su
+    // CSS correspondiente en 404.html (clase "avatar-<clase>").
+    {
+        id: 'marco_perfil_dorado',
+        nombre: 'Marco dorado',
+        descripcion: 'Un marquito dorado con brillo fijo para tu foto de perfil.',
+        precio: 15000,
+        emoji: '🖼️',
+        tipo: 'unico',
+        categoria: 'marco',
+        clase: 'dorado'
     },
     {
-        id: 'membresia_vip',
-        nombre: 'Membresía VIP',
-        descripcion: 'La insignia más top: marco dorado animado y etiqueta "⭐ VIP" bien visible en tu perfil.',
-        precio: 30000,
-        emoji: '⭐',
-        tipo: 'unico'
+        id: 'marco_plata',
+        nombre: 'Marco plateado',
+        descripcion: 'Un marco plateado con brillo suave para tu foto de perfil.',
+        precio: 8000,
+        emoji: '🥈',
+        tipo: 'unico',
+        categoria: 'marco',
+        clase: 'plata'
     },
+    {
+        id: 'marco_fuego',
+        nombre: 'Marco de fuego',
+        descripcion: 'Un marco animado con brillo naranja/rojo pulsante, como si tu foto ardiera.',
+        precio: 18000,
+        emoji: '🔥',
+        tipo: 'unico',
+        categoria: 'marco',
+        clase: 'fuego'
+    },
+    {
+        id: 'marco_hielo',
+        nombre: 'Marco de hielo',
+        descripcion: 'Un marco animado con brillo celeste pulsante, bien fresco.',
+        precio: 18000,
+        emoji: '❄️',
+        tipo: 'unico',
+        categoria: 'marco',
+        clase: 'hielo'
+    },
+    {
+        id: 'marco_neon',
+        nombre: 'Marco neón',
+        descripcion: 'Un marco animado que cicla entre colores neón. El más llamativo de todos.',
+        precio: 22000,
+        emoji: '💜',
+        tipo: 'unico',
+        categoria: 'marco',
+        clase: 'neon'
+    },
+
     {
         id: 'sticker_sorpresa',
         nombre: 'Sticker sorpresa',
         descripcion: 'Un stickerpack digital al azar. Se van sumando y se muestran en tu perfil.',
         precio: 2500,
         emoji: '🎁',
-        tipo: 'multiple'
+        tipo: 'multiple',
+        categoria: 'coleccionable'
     },
     {
         id: 'boost_suerte',
@@ -112,6 +189,7 @@ export const PRODUCTOS = [
         descripcion: 'Un empujoncito de buena onda para tu próxima jugada (es cosmético, no cambia las probabilidades reales).',
         precio: 20,
         emoji: '🍀',
-        tipo: 'multiple'
+        tipo: 'multiple',
+        categoria: 'consumible'
     }
 ];

@@ -37,6 +37,7 @@ import {
     arrayRemove,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { PRODUCTOS } from "./tienda/productos.js";
 
 // --- CONFIGURACIÓN DE FIREBASE (la misma para todo el sitio) ---
 const firebaseConfig = {
@@ -590,6 +591,40 @@ export async function actualizarBannerImagenPerfil(uid, url) {
         bannerType: 'imagen',
         bannerImageURL: urlLimpia
     }, { merge: true });
+}
+
+/**
+ * Guarda cuál es el marco de perfil ACTIVO del usuario logueado
+ * (el borde de la foto). "marcoId" tiene que ser el id de un
+ * producto categoria:'marco' que el usuario ya haya comprado en la
+ * tienda (está en su inventario), o el texto 'ninguno' para sacarse
+ * cualquier marco puesto.
+ *
+ * El usuario puede tener comprados varios marcos a la vez (quedan
+ * guardados en su inventario para siempre), pero solo uno puede estar
+ * activo/puesto en su perfil.
+ */
+export async function actualizarMarcoPerfil(uid, marcoId) {
+    const user = auth.currentUser;
+    if (!user || user.uid !== uid) {
+        throw new Error("Solo podés personalizar tu propio perfil.");
+    }
+    const idLimpio = (marcoId || 'ninguno').trim();
+
+    if (idLimpio !== 'ninguno') {
+        const producto = PRODUCTOS.find(p => p.id === idLimpio && p.categoria === 'marco');
+        if (!producto) {
+            throw new Error("Ese marco no existe.");
+        }
+
+        const snap = await getDoc(doc(db, 'users', uid));
+        const inventario = snap.exists() ? (snap.data().inventario || {}) : {};
+        if (!inventario[idLimpio]) {
+            throw new Error("Necesitás comprar ese marco en la tienda primero.");
+        }
+    }
+
+    await setDoc(doc(db, 'users', uid), { marcoActivo: idLimpio }, { merge: true });
 }
 
 /**
