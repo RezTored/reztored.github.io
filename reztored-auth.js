@@ -372,3 +372,77 @@ export async function toggleLikeOpinion(opinionId, uidQueDaLike) {
         }
     });
 }
+
+// Tope de una donación individual, solo como salvaguarda contra typos
+// (no es una defensa real contra abuso — ver nota de seguridad al final del archivo).
+export const MAX_DONACION = 100000;
+
+/**
+ * Dona "cantidad" de petoCoins de la cuenta logueada actual a la cuenta
+ * "uidReceptor". Resta y suma en una sola transacción para que quede
+ * siempre consistente (o se hacen las dos escrituras, o ninguna).
+ */
+export async function donarCoins(uidReceptor, cantidad) {
+    const uidEmisor = auth.currentUser ? auth.currentUser.uid : null;
+    if (!uidEmisor) throw new Error("Necesitás iniciar sesión para donar.");
+    if (!uidReceptor) throw new Error("Falta el destinatario.");
+    if (uidReceptor === uidEmisor) throw new Error("No podés donarte petoCoins a vos mismo.");
+
+    const monto = Math.floor(Number(cantidad));
+    if (!Number.isFinite(monto) || monto <= 0) {
+        throw new Error("El monto tiene que ser un número entero positivo.");
+    }
+    if (monto > MAX_DONACION) {
+        throw new Error(`No podés donar más de ${MAX_DONACION} petoCoins de una.`);
+    }
+
+    const emisorRef = doc(db, 'users', uidEmisor);
+    const receptorRef = doc(db, 'users', uidReceptor);
+
+    await runTransaction(db, async (tx) => {
+        const emisorSnap = await tx.get(emisorRef);
+        if (!emisorSnap.exists()) throw new Error("No se encontró tu perfil.");
+
+        const saldoActual = emisorSnap.data().coins || 0;
+        if (saldoActual < monto) {
+            throw new Error("No tenés suficientes petoCoins para donar eso.");
+        }
+
+        tx.update(emisorRef, { coins: increment(-monto) });
+        tx.update(receptorRef, { coins: increment(monto) });
+    });
+}
+
+/**
+ * SOLO ADMINS: fija (pisa, no suma) el saldo de petoCoins de la cuenta
+ * logueada actual. No se puede usar para tocar el saldo de otra cuenta.
+ * La aplicación real de "solo admin" la tiene que hacer también la regla
+ * de Firestore (ver reglas de seguridad recomendadas), esto de acá es
+ * nada más para que el botón no aparezca si no sos admin.
+ */
+export async function fijarMisCoins(cantidad) {
+    const user = auth.currentUser;
+    if (!user) throw new Error("Necesitás iniciar sesión.");
+
+    const monto = Math.floor(Number(cantidad));
+    if (!Number.isFinite(monto) || monto < 0) {
+        throw new Error("El monto tiene que ser un número entero, 0 o positivo.");
+    }
+
+    await setDoc(doc(db, 'users', user.uid), { coins: monto }, { merge: true });
+}
+
+// ============================================================
+// ⚠️ IMPORTANTE — REGLAS DE SEGURIDAD DE FIRESTORE
+// ------------------------------------------------------------
+// Todo lo de acá arriba (likes, donaciones, banear, dar admin,
+// borrar opiniones) hace escrituras DIRECTAS desde el navegador a
+// documentos que no son "los tuyos" (el post de otro, el perfil de
+// otro). Firestore bloquea eso por defecto con
+// "Missing or insufficient permissions" a menos que las Reglas de
+// Seguridad del proyecto lo permitan explícitamente.
+// Te paso el archivo de reglas recomendado aparte — sin pegarlo en
+// Firebase Console (Firestore Database → Reglas), ni los likes, ni
+// donar, ni banear/dar-admin ni borrar opiniones van a funcionar,
+// aunque el código de acá esté perfecto.
+// ============================================================

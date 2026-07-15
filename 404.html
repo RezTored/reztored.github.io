@@ -222,6 +222,27 @@
         }
         .admin-panel-box p.ayuda { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; }
 
+        .donar-box {
+            background: var(--bg-header);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px;
+            margin-top: 8px;
+        }
+        .donar-box p.ayuda { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; }
+        .donar-box .fila { display: flex; gap: 8px; }
+        .donar-box input[type="number"] {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            color: var(--text-white);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
  
         .no-encontrado {
             text-align: center;
@@ -322,6 +343,8 @@
         otorgarAdmin,
         banearUsuario,
         esAdmin,
+        donarCoins,
+        fijarMisCoins,
         RESERVED_USERNAMES
     } from '/reztored-auth.js';
  
@@ -375,11 +398,11 @@
             }
             const viewerEsAdmin = esAdmin(perfilViewer) || esAdmin(user ? user.uid : null);
 
-            renderPerfil(perfil, esDueno, viewerEsAdmin);
+            renderPerfil(perfil, esDueno, viewerEsAdmin, user);
         });
     }
  
-    function renderPerfil(perfil, esDueno, viewerEsAdmin) {
+    function renderPerfil(perfil, esDueno, viewerEsAdmin, viewerUser) {
         const bioHTML = perfil.bio
             ? `<div class="perfil-bio">${escapeHTML(perfil.bio)}</div>`
             : `<div class="perfil-bio vacia">Este usuario todavía no escribió una bio.</div>`;
@@ -394,6 +417,20 @@
                 <button id="btn-banear" class="${perfil.banned ? '' : 'btn-danger'}">
                     ${perfil.banned ? 'Desbanear usuario' : 'Banear usuario'}
                 </button>
+            </div>
+        ` : '';
+
+        // Donar petoCoins: lo ve cualquiera logueado mirando el perfil de OTRA persona.
+        const donarHTML = (viewerUser && !esDueno) ? `
+            <div class="donar-box">
+                <p class="ayuda">Donale petoCoins a ${escapeHTML(perfil.username)}.</p>
+                <form id="form-donar">
+                    <div class="fila">
+                        <input type="number" id="input-monto-donar" min="1" step="1" placeholder="Cantidad" required>
+                        <button type="submit" class="btn-primary">Donar</button>
+                    </div>
+                    <div class="form-msg" id="msg-donar"></div>
+                </form>
             </div>
         ` : '';
 
@@ -436,6 +473,7 @@
                     </form>
                 ` : ''}
                 ${accionesAdminHTML}
+                ${donarHTML}
             </div>
 
             ${mostrarPestanas ? `
@@ -450,6 +488,18 @@
                                 <button type="submit" data-valor="false" style="flex:1;">Quitar admin</button>
                             </div>
                             <div class="form-msg" id="msg-admin"></div>
+                        </form>
+                    </div>
+
+                    <div class="admin-panel-box" style="margin-top:12px;">
+                        <p class="ayuda">Fijá tu propio saldo de petoCoins (solo vos, solo admin). Esto PISA el saldo actual, no lo suma.</p>
+                        <form id="form-fijar-coins">
+                            <label for="input-monto-fijar">Nuevo saldo</label>
+                            <div style="display:flex; gap:8px;">
+                                <input type="number" id="input-monto-fijar" min="0" step="1" placeholder="ej: 5000" value="${perfil.coins ?? 0}" style="flex:1; background:var(--bg-card); border:1px solid var(--border-color); border-radius:6px; padding:10px; color:var(--text-white); font-family:'Rajdhani', sans-serif; font-size:0.95rem;">
+                                <button type="submit" class="btn-primary">Fijar</button>
+                            </div>
+                            <div class="form-msg" id="msg-fijar-coins"></div>
                         </form>
                     </div>
                 </div>
@@ -487,6 +537,26 @@
                     msgAdmin.className = 'form-msg text-red-400';
                 }
             });
+
+            const formFijarCoins = document.getElementById('form-fijar-coins');
+            const msgFijarCoins = document.getElementById('msg-fijar-coins');
+            formFijarCoins.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const monto = document.getElementById('input-monto-fijar').value;
+
+                msgFijarCoins.textContent = 'Guardando...';
+                msgFijarCoins.className = 'form-msg';
+                try {
+                    await fijarMisCoins(monto);
+                    msgFijarCoins.textContent = '¡Listo! Recargando...';
+                    msgFijarCoins.className = 'form-msg text-green-400';
+                    setTimeout(() => window.location.reload(), 1000);
+                } catch (error) {
+                    console.error(error);
+                    msgFijarCoins.textContent = 'No se pudo: ' + error.message;
+                    msgFijarCoins.className = 'form-msg text-red-400';
+                }
+            });
         }
 
         if (viewerEsAdmin && !esDueno) {
@@ -505,6 +575,30 @@
                     alert('No se pudo: ' + error.message);
                 }
             });
+        }
+
+        if (viewerUser && !esDueno) {
+            const formDonar = document.getElementById('form-donar');
+            const msgDonar = document.getElementById('msg-donar');
+            if (formDonar) {
+                formDonar.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const monto = document.getElementById('input-monto-donar').value;
+
+                    msgDonar.textContent = 'Procesando...';
+                    msgDonar.className = 'form-msg';
+                    try {
+                        await donarCoins(perfil.uid, monto);
+                        msgDonar.textContent = `¡Le donaste ${monto} petoCoins a ${perfil.username}!`;
+                        msgDonar.className = 'form-msg text-green-400';
+                        formDonar.reset();
+                    } catch (error) {
+                        console.error(error);
+                        msgDonar.textContent = 'No se pudo donar: ' + error.message;
+                        msgDonar.className = 'form-msg text-red-400';
+                    }
+                });
+            }
         }
 
         if (esDueno) {
