@@ -1,105 +1,77 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Casino RezTored</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
-    <style>
-        body { 
-            background: #121214; 
-            color: white; 
-            font-family: 'Orbitron', sans-serif; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            min-height: 100vh; 
-            flex-direction: column; 
-            margin: 0;
-        }
-        
-        .casino-grid { 
-            display: grid; 
-            grid-template-columns: repeat(3, 70px); 
-            grid-template-rows: repeat(3, 70px); 
-            gap: 15px; 
-            justify-content: center; 
-            margin: 20px 0;
-        }
-        
-        .slot { 
-            width: 70px; height: 70px; background: #1e1e22; 
-            border: 2px solid #4f46e5; border-radius: 12px; 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 2.2rem;
-        }
-        
-        .ui-text { font-family: 'Rajdhani', sans-serif; font-weight: 700; }
-        
-        #display-saldo { color: #27c93f; font-weight: 900; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FUN — RezTored Page</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Rajdhani', sans-serif; }
+  .titulo { font-family: 'Orbitron', sans-serif; }
+  .card-juego {
+    transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+  }
+  .card-juego:hover {
+    transform: translateY(-6px);
+    border-color: #6366f1;
+    box-shadow: 0 10px 30px -10px rgba(99,102,241,.5);
+  }
+</style>
 </head>
-<body>
+<body class="bg-gray-950 text-white min-h-screen flex flex-col items-center justify-center px-6 py-16">
 
-    <a href="https://reztored.online">
-        <img src="lol.png" alt="Inicio" style="width: 80px; margin-bottom: 20px; border-radius: 50%;">
+  <a href="https://reztored.online" class="mb-6">
+    <img src="lol.png" alt="Inicio" class="w-16 h-16 rounded-full border border-gray-700">
+  </a>
+
+  <div class="text-center mb-3">
+    <span class="hidden items-center gap-1.5 bg-gray-900 border border-gray-800 rounded-full pl-1 pr-3 py-1" id="coins-badge">
+      <img src="/petocoin.png" alt="petoCoins" class="h-5 w-5">
+      <span class="text-sm font-bold" id="coins-amount">0</span>
+    </span>
+  </div>
+
+  <h1 class="titulo text-3xl md:text-4xl font-black mb-2 text-center">FUN</h1>
+  <p class="text-gray-400 mb-12 text-center max-w-md">Jugate tus petoCoins. Elegí un juego.</p>
+
+  <div class="grid sm:grid-cols-2 gap-6 w-full max-w-3xl">
+
+    <a href="/fun/roulette" class="card-juego bg-gray-900 border border-gray-800 rounded-2xl p-8 flex flex-col items-center text-center">
+      <div class="text-6xl mb-4">🎰</div>
+      <h2 class="titulo text-xl font-bold mb-2">Tragamonedas</h2>
+      <p class="text-gray-400 text-sm">Girá la grilla 3x3, formá combinaciones y multiplicá tu apuesta.</p>
     </a>
 
-    <div class="ui-text" style="font-size: 1.2rem; margin-bottom: 10px;">
-        PetoCoins: <span id="display-saldo">0</span>
-    </div>
+    <a href="/fun/poker" class="card-juego bg-gray-900 border border-gray-800 rounded-2xl p-8 flex flex-col items-center text-center">
+      <div class="text-6xl mb-4">🃏</div>
+      <h2 class="titulo text-xl font-bold mb-2">Poker Online</h2>
+      <p class="text-gray-400 text-sm">Texas Hold'em multijugador. Creá una sala o unite con un código y jugate tus coins contra otros usuarios.</p>
+    </a>
 
-    <div class="casino-grid">
-        <div class="slot" id="s1">🎰</div><div class="slot" id="s2">🎰</div><div class="slot" id="s3">🎰</div>
-        <div class="slot" id="s4">🎰</div><div class="slot" id="s5">🎰</div><div class="slot" id="s6">🎰</div>
-        <div class="slot" id="s7">🎰</div><div class="slot" id="s8">🎰</div><div class="slot" id="s9">🎰</div>
-    </div>
+  </div>
 
-    <div class="controls" style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 15px; flex-direction: row-reverse;">
-        
-        <button id="btn-girar" style="background: #ff5f56; color: white; border: none; padding: 20px 40px; border-radius: 8px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 1.3rem;">
-            ¡GIRAR!
-        </button>
+  <a href="https://reztored.online" class="mt-12 text-sm text-gray-500 hover:text-gray-300 transition">&larr; Volver al inicio</a>
 
-        <input type="number" id="monto" value="10" style="background: #18181c; border: 1px solid #2d2d34; padding: 15px; color: white; border-radius: 6px; width: 90px; text-align: center; font-family: 'Rajdhani', sans-serif; font-size: 1.2rem;">
+  <script type="module">
+    import { auth, db } from '../reztored-auth.js';
+    import { onSnapshot, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    </div>
+    const badge = document.getElementById('coins-badge');
+    const amount = document.getElementById('coins-amount');
 
-    <div id="resultado" class="ui-text" style="margin-top: 15px; text-align: center; min-height: 30px;"></div>
-
-    <script type="module">
-        import { girarRuleta } from './ruleta.js';
-        import { db, auth } from '../reztored-auth.js';
-        import { onSnapshot, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                onSnapshot(doc(db, 'users', user.uid), (snap) => {
-                    document.getElementById('display-saldo').textContent = snap.data().coins || 0;
-                });
-            }
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        badge.classList.remove('hidden');
+        badge.classList.add('flex');
+        onSnapshot(doc(db, 'users', user.uid), (snap) => {
+          amount.textContent = snap.exists() ? (snap.data().coins || 0) : 0;
         });
+      } else {
+        badge.classList.add('hidden');
+      }
+    });
+  </script>
 
-        const btn = document.getElementById('btn-girar');
-        const resDiv = document.getElementById('resultado');
-
-        btn.addEventListener('click', async () => {
-            const apuesta = document.getElementById('monto').value;
-            btn.disabled = true;
-            resDiv.textContent = "Girando...";
-            
-            try {
-                const data = await girarRuleta(apuesta);
-                data.resultado.forEach((sim, i) => document.getElementById(`s${i+1}`).textContent = sim);
-                
-                resDiv.innerHTML = data.multiplicador > 0 
-                    ? `<span style="color:#27c93f">🎉 GANASTE x${data.multiplicador}!</span>` 
-                    : `<span style="color:#ff5f56">❌ Perdiste...</span>`;
-            } catch (e) {
-                resDiv.textContent = "Error: " + e.message;
-            } finally {
-                btn.disabled = false;
-            }
-        });
-    </script>
 </body>
 </html>
