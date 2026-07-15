@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Ruleta PetoCoins</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { background: #121214; color: white; font-family: 'Orbitron', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; }
+        .slot-machine { display: flex; gap: 15px; margin-bottom: 20px; }
+        .slot { width: 80px; height: 80px; background: #1e1e22; border: 2px solid #4f46e5; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 3rem; }
+        input { background: #18181c; border: 1px solid #2d2d34; padding: 10px; color: white; border-radius: 6px; width: 100px; text-align: center; }
+        button { background: #4f46e5; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 700; }
+        #resultado { margin-top: 20px; font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+
+    <div class="slot-machine">
+        <div class="slot" id="s1">🎰</div>
+        <div class="slot" id="s2">🎰</div>
+        <div class="slot" id="s3">🎰</div>
+    </div>
+
+    <input type="number" id="monto" value="10" min="10" max="100">
+    <button id="btn-girar">¡GIRAR! 🎰</button>
+    <div id="resultado"></div>
+
+    <script type="module">
+        import { girarRuleta } from './ruleta.js';
+
+        const btn = document.getElementById('btn-girar');
+        const slots = [document.getElementById('s1'), document.getElementById('s2'), document.getElementById('s3')];
+        const resDiv = document.getElementById('resultado');
+
+        btn.addEventListener('click', async () => {
+            const apuesta = parseInt(document.getElementById('monto').value);
+            resDiv.textContent = "Girando...";
+            
+            try {
+                const data = await girarRuleta(apuesta);
+                
+                // Animación simple de muestra
+                slots[0].textContent = data.resultado[0];
+                slots[1].textContent = data.resultado[1];
+                slots[2].textContent = data.resultado[2];
+                
+                resDiv.innerHTML = data.gano ? 
+                    `<span style="color:#27c93f">🎉 ¡TRIPLE 7! Ganaste ${data.ganancia} coins</span>` : 
+                    `<span style="color:#ff5f56">❌ Perdiste... intentá de nuevo</span>`;
+            } catch (e) {
+                resDiv.textContent = "Error: " + e;
+            }
+        });
+    </script>
+</body>
+</html>

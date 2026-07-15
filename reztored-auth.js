@@ -74,7 +74,7 @@ export {
 // rutas reales del sitio (carpetas) o son confusas/riesgosas.
 // Agregá acá cualquier carpeta nueva que crees en el repo.
 export const RESERVED_USERNAMES = [
-    'opinions', 'info', 'contact', 'perfil', 'profile', 'admin',
+    'opinions', 'info', 'fun', 'perfil', 'profile', 'admin',
     'login', 'signup', 'register', 'api', 'assets', 'css', 'js',
     'images', 'img', 'static', 'www', 'mail', 'null', 'undefined',
     '404', 'index', 'home', 'about', 'help', 'support', 'terms',
