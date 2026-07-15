@@ -7,7 +7,7 @@
 // sus propias cartas de mano.
 // ============================================================
 
-import { db, auth } from '../reztored-auth.js';
+import { db, auth } from '../../reztored-auth.js';
 import {
     doc, collection, setDoc, getDoc, getDocs, deleteDoc,
     onSnapshot, runTransaction, serverTimestamp, increment
