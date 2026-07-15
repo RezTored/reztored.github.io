@@ -113,13 +113,12 @@ body {
     .song-title { font-size: 1rem !important; }
     img, iframe { max-width: 100%; height: auto; }
 }
-.slot-machine {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    margin: 20px 0;
+.slot-machine { 
+    display: flex; 
+    gap: 15px; 
+    justify-content: center; 
+    margin-bottom: 15px; /* Espacio entre filas */
 }
-
 .slot {
     width: 60px;
     height: 60px;

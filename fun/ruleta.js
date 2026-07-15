@@ -1,7 +1,6 @@
 import { db, auth } from '../reztored-auth.js';
 import { doc, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// Lista de símbolos de la suerte
 const SIMBOLOS = ['🍒', '🍋', '💎', '🔔', '⭐', '🍀', '7️⃣'];
 
 export async function girarRuleta(apuesta) {
@@ -10,16 +9,20 @@ export async function girarRuleta(apuesta) {
 
     const userRef = doc(db, 'users', user.uid);
     
-    // Elegimos 3 al azar
-    const resultado = [
-        SIMBOLOS[Math.floor(Math.random() * SIMBOLOS.length)],
-        SIMBOLOS[Math.floor(Math.random() * SIMBOLOS.length)],
-        SIMBOLOS[Math.floor(Math.random() * SIMBOLOS.length)]
-    ];
+    // Generar 6 resultados al azar
+    const resultado = Array.from({length: 6}, () => SIMBOLOS[Math.floor(Math.random() * SIMBOLOS.length)]);
     
-    // El premio es si los 3 son el '7️⃣'
-    const esPremio = (resultado[0] === '7️⃣' && resultado[1] === '7️⃣' && resultado[2] === '7️⃣');
-    const ganancia = esPremio ? (apuesta * 2) : 0;
+    // Contar cuántas veces aparece cada símbolo
+    const counts = {};
+    resultado.forEach(s => counts[s] = (counts[s] || 0) + 1);
+    
+    // Calcular multiplicador (mínimo 3 iguales para ganar)
+    let multiplicador = 0;
+    Object.values(counts).forEach(c => {
+        if (c >= 3) multiplicador = (c - 2); // 3=x1, 4=x2, 5=x3, 6=x4
+    });
+
+    const ganancia = apuesta * multiplicador;
 
     try {
         await runTransaction(db, async (tx) => {
@@ -28,7 +31,7 @@ export async function girarRuleta(apuesta) {
             if (saldo < apuesta) throw "No tenés suficientes PetoCoins.";
             tx.update(userRef, { coins: saldo - apuesta + ganancia });
         });
-        return { resultado, ganancia, gano: esPremio };
+        return { resultado, ganancia, multiplicador };
     } catch (e) {
         throw e;
     }
