@@ -44,6 +44,7 @@
             border-radius: 12px;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
             overflow: hidden;
+            transition: box-shadow 0.4s ease, border-color 0.4s ease;
         }
  
         .window-header {
@@ -321,19 +322,26 @@
             height: 90px;
             margin: -28px -24px 18px;
             border-bottom: 1px solid var(--border-color);
+            background-color: var(--bg-header);
         }
-        .perfil-banner.vacio {
+
+        /* Tabs "🎨 Colores" / "🖼️ Imagen o GIF" dentro de "Personalizar" */
+        .banner-tabs {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 0 20px;
-            background: repeating-linear-gradient(45deg, #1e1e22, #1e1e22 10px, #232328 10px, #232328 20px);
-            color: var(--text-muted);
-            font-size: 0.72rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            gap: 6px;
+            margin-bottom: 10px;
         }
+        .banner-tab-btn {
+            flex: 1;
+            font-size: 0.72rem;
+            padding: 8px 6px;
+        }
+        .banner-tab-btn.activa {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        .banner-tab-panel { display: none; }
+        .banner-tab-panel.activa { display: block; }
 
         /* Marco de perfil dorado (marco_perfil_dorado) */
         .avatar-dorado {
@@ -456,7 +464,8 @@
         obtenerPerfilPorUid,
         actualizarPerfil,
         actualizarColorPerfil,
-        actualizarBannerPerfil,
+        actualizarBannerColorPerfil,
+        actualizarBannerImagenPerfil,
         otorgarAdmin,
         banearUsuario,
         esAdmin,
@@ -467,6 +476,82 @@
  
     const contenedor = document.getElementById('contenido-perfil');
     const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
+
+    // --- Banner de colores "al azar" por defecto (gratis, sin comprar nada) ---
+    // No es random de verdad en cada carga (se vería feo/inconsistente):
+    // se genera siempre el mismo par de colores a partir del uid, así
+    // cada usuario tiene "su" degradé aleatorio pero estable.
+    function hashDeString(str) {
+        let h = 0;
+        for (let i = 0; i < str.length; i++) {
+            h = (h << 5) - h + str.charCodeAt(i);
+            h |= 0;
+        }
+        return Math.abs(h);
+    }
+
+    function hslAHex(h, s, l) {
+        s /= 100; l /= 100;
+        const k = n => (n + h / 30) % 12;
+        const a = s * Math.min(l, 1 - l);
+        const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+        const aHex = x => Math.round(255 * x).toString(16).padStart(2, '0');
+        return `#${aHex(f(0))}${aHex(f(8))}${aHex(f(4))}`;
+    }
+
+    function colorAleatorioDeUid(uid) {
+        const h = hashDeString(uid || 'reztored');
+        const hue1 = h % 360;
+        const hue2 = (hue1 + 55) % 360;
+        return [hslAHex(hue1, 65, 45), hslAHex(hue2, 65, 45)];
+    }
+
+    function esUrlDeImagenValida(url) {
+        if (typeof url !== 'string' || !url.trim()) return false;
+        try {
+            const u = new URL(url.trim());
+            return u.protocol === 'https:' || u.protocol === 'http:';
+        } catch {
+            return false;
+        }
+    }
+
+    // --- "Theming" de toda la página con el color elegido del dueño ---
+    // (como en Discord: el perfil de alguien tiñe la vista con SU color,
+    // lo vea quien lo vea).
+    function oscurecerColor(hex, factor) {
+        const num = parseInt(hex.slice(1), 16);
+        const r = Math.round(((num >> 16) & 255) * factor);
+        const g = Math.round(((num >> 8) & 255) * factor);
+        const b = Math.round((num & 255) * factor);
+        return `#${[r, g, b].map(x => x.toString(16).padStart(2, '0')).join('')}`;
+    }
+
+    function hexConAlpha(hex, alpha) {
+        const num = parseInt(hex.slice(1), 16);
+        const r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255;
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    function aplicarTemaDePagina(colorHex) {
+        const raiz = document.documentElement;
+        const appWindow = document.querySelector('.app-window');
+        if (!colorHex) {
+            raiz.style.removeProperty('--primary');
+            raiz.style.removeProperty('--primary-hover');
+            if (appWindow) {
+                appWindow.style.boxShadow = '';
+                appWindow.style.borderColor = '';
+            }
+            return;
+        }
+        raiz.style.setProperty('--primary', colorHex);
+        raiz.style.setProperty('--primary-hover', oscurecerColor(colorHex, 0.82));
+        if (appWindow) {
+            appWindow.style.boxShadow = `0 0 55px ${hexConAlpha(colorHex, 0.28)}, 0 15px 35px rgba(0, 0, 0, 0.6)`;
+            appWindow.style.borderColor = hexConAlpha(colorHex, 0.45);
+        }
+    }
  
     // Saca el nombre de usuario de la URL, ej: reztored.online/juan -> "juan"
     function obtenerUsernameDeURL() {
@@ -560,12 +645,22 @@
             ? `<div class="stickers-line">🎁 Tiene ${cantStickers} sticker${cantStickers !== 1 ? 's' : ''} sorpresa</div>`
             : '';
 
-        let bannerHTML = '';
-        if (tieneBannerPerso && HEX_COLOR_REGEX.test(perfil.bannerColor1 || '') && HEX_COLOR_REGEX.test(perfil.bannerColor2 || '')) {
-            bannerHTML = `<div class="perfil-banner" style="background:linear-gradient(135deg, ${escapeAttr(perfil.bannerColor1)}, ${escapeAttr(perfil.bannerColor2)});"></div>`;
-        } else if (tieneBannerPerso && esDueno) {
-            bannerHTML = `<div class="perfil-banner vacio">Elegí los colores de tu banner en "🎨 Personalizar" ↓</div>`;
+        // Tiñe toda la página con el color que eligió el DUEÑO del
+        // perfil, lo vea quien lo vea (como el perfil de Discord).
+        aplicarTemaDePagina(colorElegido);
+
+        // --- Banner: imagen/GIF > colores elegidos > colores al azar por defecto ---
+        const [randomC1, randomC2] = colorAleatorioDeUid(perfil.uid);
+        const bannerTypeActual = (tieneBannerPerso && perfil.bannerType === 'imagen') ? 'imagen' : 'color';
+        let bannerStyle;
+        if (tieneBannerPerso && perfil.bannerType === 'imagen' && esUrlDeImagenValida(perfil.bannerImageURL)) {
+            bannerStyle = `background-image:url('${escapeAttr(perfil.bannerImageURL.trim())}'); background-size:cover; background-position:center;`;
+        } else if (tieneBannerPerso && perfil.bannerType === 'color' && HEX_COLOR_REGEX.test(perfil.bannerColor1 || '') && HEX_COLOR_REGEX.test(perfil.bannerColor2 || '')) {
+            bannerStyle = `background:linear-gradient(135deg, ${perfil.bannerColor1}, ${perfil.bannerColor2});`;
+        } else {
+            bannerStyle = `background:linear-gradient(135deg, ${randomC1}, ${randomC2});`;
         }
+        const bannerHTML = `<div class="perfil-banner" style="${bannerStyle}"></div>`;
 
         // Botón de banear: lo ve un admin mirando el perfil de OTRA persona
         // (nunca el propio, para no poder auto-banearse por accidente).
@@ -643,14 +738,24 @@
                                 <p class="bloqueado-nota">🔒 Comprá <strong>"Color personalizado"</strong> en la <a href="/tienda">tienda</a> para elegir el color de tu perfil.</p>
                             `}
                             ${tieneBannerPerso ? `
-                                <label for="input-banner-1">Colores de tu banner (degradé)</label>
-                                <div class="fila-color">
-                                    <input type="color" id="input-banner-1" value="${(perfil.bannerColor1 && HEX_COLOR_REGEX.test(perfil.bannerColor1)) ? perfil.bannerColor1 : '#4f46e5'}">
-                                    <input type="color" id="input-banner-2" value="${(perfil.bannerColor2 && HEX_COLOR_REGEX.test(perfil.bannerColor2)) ? perfil.bannerColor2 : '#ff5f56'}">
-                                    <button type="button" id="btn-guardar-banner" class="btn-primary">Guardar banner</button>
+                                <label>Banner (colores o imagen/GIF por link)</label>
+                                <div class="banner-tabs">
+                                    <button type="button" class="banner-tab-btn ${bannerTypeActual !== 'imagen' ? 'activa' : ''}" data-tipo-banner="color">🎨 Colores</button>
+                                    <button type="button" class="banner-tab-btn ${bannerTypeActual === 'imagen' ? 'activa' : ''}" data-tipo-banner="imagen">🖼️ Imagen / GIF</button>
+                                </div>
+                                <div class="banner-tab-panel ${bannerTypeActual !== 'imagen' ? 'activa' : ''}" id="banner-panel-color">
+                                    <div class="fila-color">
+                                        <input type="color" id="input-banner-1" value="${(perfil.bannerColor1 && HEX_COLOR_REGEX.test(perfil.bannerColor1)) ? perfil.bannerColor1 : randomC1}">
+                                        <input type="color" id="input-banner-2" value="${(perfil.bannerColor2 && HEX_COLOR_REGEX.test(perfil.bannerColor2)) ? perfil.bannerColor2 : randomC2}">
+                                        <button type="button" id="btn-guardar-banner-color" class="btn-primary">Guardar</button>
+                                    </div>
+                                </div>
+                                <div class="banner-tab-panel ${bannerTypeActual === 'imagen' ? 'activa' : ''}" id="banner-panel-imagen">
+                                    <input type="url" id="input-banner-imagen" placeholder="https://ejemplo.com/imagen.gif" value="${(perfil.bannerImageURL && esUrlDeImagenValida(perfil.bannerImageURL)) ? escapeAttr(perfil.bannerImageURL) : ''}">
+                                    <button type="button" id="btn-guardar-banner-imagen" class="btn-primary" style="width:100%;">Guardar imagen/GIF</button>
                                 </div>
                             ` : `
-                                <p class="bloqueado-nota">🔒 Comprá <strong>"Banner personalizado"</strong> en la <a href="/tienda">tienda</a> para personalizar tu banner.</p>
+                                <p class="bloqueado-nota">🔒 Comprá <strong>"Banner personalizado"</strong> en la <a href="/tienda">tienda</a> para poner tus propios colores o una imagen/GIF en tu banner (por ahora tenés uno de colores al azar).</p>
                             `}
                             <div class="form-msg" id="msg-personalizar"></div>
                         </div>
@@ -842,15 +947,15 @@
                 });
             }
 
-            const btnGuardarBanner = document.getElementById('btn-guardar-banner');
-            if (btnGuardarBanner) {
-                btnGuardarBanner.addEventListener('click', async () => {
+            const btnGuardarBannerColor = document.getElementById('btn-guardar-banner-color');
+            if (btnGuardarBannerColor) {
+                btnGuardarBannerColor.addEventListener('click', async () => {
                     const c1 = document.getElementById('input-banner-1').value;
                     const c2 = document.getElementById('input-banner-2').value;
                     msgPersonalizar.textContent = 'Guardando...';
                     msgPersonalizar.className = 'form-msg';
                     try {
-                        await actualizarBannerPerfil(perfil.uid, c1, c2);
+                        await actualizarBannerColorPerfil(perfil.uid, c1, c2);
                         msgPersonalizar.textContent = '¡Listo! Recargando...';
                         msgPersonalizar.className = 'form-msg text-green-400';
                         setTimeout(() => window.location.reload(), 800);
@@ -861,6 +966,44 @@
                     }
                 });
             }
+
+            const btnGuardarBannerImagen = document.getElementById('btn-guardar-banner-imagen');
+            if (btnGuardarBannerImagen) {
+                btnGuardarBannerImagen.addEventListener('click', async () => {
+                    const url = document.getElementById('input-banner-imagen').value;
+                    msgPersonalizar.textContent = 'Guardando...';
+                    msgPersonalizar.className = 'form-msg';
+                    try {
+                        await actualizarBannerImagenPerfil(perfil.uid, url);
+                        msgPersonalizar.textContent = '¡Listo! Recargando...';
+                        msgPersonalizar.className = 'form-msg text-green-400';
+                        setTimeout(() => window.location.reload(), 800);
+                    } catch (error) {
+                        console.error(error);
+                        msgPersonalizar.textContent = 'No se pudo: ' + error.message;
+                        msgPersonalizar.className = 'form-msg text-red-400';
+                    }
+                });
+            }
+
+            // Tabs "🎨 Colores" / "🖼️ Imagen o GIF" (solo cambian qué se ve,
+            // no guardan nada hasta que se aprieta el botón correspondiente)
+            const bannerTabBtns = document.querySelectorAll('.banner-tab-btn');
+            bannerTabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    bannerTabBtns.forEach(b => b.classList.remove('activa'));
+                    btn.classList.add('activa');
+                    const panelColor = document.getElementById('banner-panel-color');
+                    const panelImagen = document.getElementById('banner-panel-imagen');
+                    if (btn.dataset.tipoBanner === 'imagen') {
+                        panelColor.classList.remove('activa');
+                        panelImagen.classList.add('activa');
+                    } else {
+                        panelImagen.classList.remove('activa');
+                        panelColor.classList.add('activa');
+                    }
+                });
+            });
         }
     }
  

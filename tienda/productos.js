@@ -45,9 +45,12 @@
 //     - 'color_personalizado'   -> desbloquea elegir un color propio
 //                                  para el perfil (se elige en la
 //                                  página de perfil, no acá)
-//     - 'banner_personalizado'  -> desbloquea un banner propio arriba
-//                                  del perfil (se elige en la página
-//                                  de perfil, no acá)
+//     - 'banner_personalizado'  -> desbloquea elegir colores propios O
+//                                  poner una imagen/GIF (por link) para
+//                                  el banner (se elige en la página de
+//                                  perfil, no acá). Sin este producto,
+//                                  el banner igual se ve, pero con un
+//                                  degradé de colores al azar fijo.
 //     - 'sticker_sorpresa'      -> se muestra un contador en el perfil
 //   Podés cambiarles nombre/descripcion/precio/emoji libremente, pero
 //   si les cambiás el "id" hay que actualizar también 404.html para
@@ -82,7 +85,7 @@ export const PRODUCTOS = [
     {
         id: 'banner_personalizado',
         nombre: 'Banner personalizado',
-        descripcion: 'Desbloqueá un banner con degradé de dos colores a elección, arriba de tu perfil.',
+        descripcion: 'Elegí colores propios para tu banner o poné el link de una imagen/GIF (por defecto todos tienen un banner de colores al azar).',
         precio: 9000,
         emoji: '🖼️✨',
         tipo: 'unico'

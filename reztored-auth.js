@@ -528,11 +528,12 @@ export async function actualizarColorPerfil(uid, color) {
 }
 
 /**
- * Guarda los dos colores del banner personalizado del usuario logueado
- * (se usan como degradé). Solo funciona si el usuario ya compró el
- * producto 'banner_personalizado' en la tienda.
+ * Guarda el banner de tipo "colores" (degradé de dos colores) del
+ * usuario logueado. Solo funciona si ya compró 'banner_personalizado'.
+ * Marca bannerType: 'color' para que el banner de imagen (si había
+ * uno guardado antes) deje de usarse.
  */
-export async function actualizarBannerPerfil(uid, color1, color2) {
+export async function actualizarBannerColorPerfil(uid, color1, color2) {
     const user = auth.currentUser;
     if (!user || user.uid !== uid) {
         throw new Error("Solo podés personalizar tu propio perfil.");
@@ -549,7 +550,46 @@ export async function actualizarBannerPerfil(uid, color1, color2) {
         throw new Error("Necesitás comprar 'Banner personalizado' en la tienda primero.");
     }
 
-    await setDoc(doc(db, 'users', uid), { bannerColor1: c1, bannerColor2: c2 }, { merge: true });
+    await setDoc(doc(db, 'users', uid), {
+        bannerType: 'color',
+        bannerColor1: c1,
+        bannerColor2: c2
+    }, { merge: true });
+}
+
+/**
+ * Guarda el banner de tipo "imagen o GIF" (un link) del usuario
+ * logueado. Solo funciona si ya compró 'banner_personalizado'.
+ * Marca bannerType: 'imagen' para que se use la imagen en vez de los
+ * colores guardados (si había alguno).
+ */
+export async function actualizarBannerImagenPerfil(uid, url) {
+    const user = auth.currentUser;
+    if (!user || user.uid !== uid) {
+        throw new Error("Solo podés personalizar tu propio perfil.");
+    }
+    const urlLimpia = (url || '').trim();
+
+    let urlValida;
+    try {
+        urlValida = new URL(urlLimpia);
+    } catch {
+        throw new Error("Ese link no es una URL válida.");
+    }
+    if (urlValida.protocol !== 'https:' && urlValida.protocol !== 'http:') {
+        throw new Error("El link tiene que empezar con http:// o https://");
+    }
+
+    const snap = await getDoc(doc(db, 'users', uid));
+    const inventario = snap.exists() ? (snap.data().inventario || {}) : {};
+    if (!inventario['banner_personalizado']) {
+        throw new Error("Necesitás comprar 'Banner personalizado' en la tienda primero.");
+    }
+
+    await setDoc(doc(db, 'users', uid), {
+        bannerType: 'imagen',
+        bannerImageURL: urlLimpia
+    }, { merge: true });
 }
 
 /**

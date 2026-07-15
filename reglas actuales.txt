@@ -1,0 +1,98 @@
+(reglas actuales de firestore):
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // --- FUNCIONES DE SEGURIDAD ---
+    function estaLogueado() {
+      return request.auth != null;
+    }
+    function esDueno(uid) {
+      return estaLogueado() && request.auth.uid == uid;
+    }
+    function esAdmin() {
+      return estaLogueado() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // --- REGLAS ---
+    match /usernames/{username} {
+      allow read: if true;
+      allow create: if estaLogueado() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /users/{uid} {
+      allow read: if true;
+      allow create: if esDueno(uid) && 
+                    request.resource.data.get('coins', 0) is int && 
+                    request.resource.data.get('coins', 0) >= 0;
+      allow update: if (esDueno(uid) || esAdmin() || (estaLogueado() && uid != request.auth.uid)) &&
+                    request.resource.data.get('coins', 0) is int && 
+                    request.resource.data.get('coins', 0) >= 0;
+    }
+
+    match /opinions/{opinionId} {
+      allow read: if true;
+      allow create: if estaLogueado();
+      allow update: if estaLogueado();
+      allow delete: if esAdmin();
+    }
+
+    // ============================================================
+    // REGLAS DEL POKER
+    // ============================================================
+    match /pokerRooms/{roomId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if false;
+
+      match /dealer/{docId} {
+        allow read, write: if request.auth != null &&
+          request.auth.uid == get(/databases/$(database)/documents/pokerRooms/$(roomId)).data.hostUid;
+      }
+
+      match /hands/{uid} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if request.auth != null &&
+          request.auth.uid == get(/databases/$(database)/documents/pokerRooms/$(roomId)).data.hostUid;
+      }
+
+      match /reveals/{uid} {
+        allow read: if true;
+        allow create: if request.auth != null && request.auth.uid == uid &&
+          request.resource.data.cards == get(/databases/$(database)/documents/pokerRooms/$(roomId)/hands/$(uid)).data.cards;
+        allow update: if false;
+        allow delete: if request.auth != null &&
+          request.auth.uid == get(/databases/$(database)/documents/pokerRooms/$(roomId)).data.hostUid;
+      }
+    }
+
+    // ============================================================
+    // REGLAS DEL TRUCO
+    // ============================================================
+    match /trucoRooms/{roomId} {
+      // Acceso público a la mesa para los jugadores
+      allow read: if estaLogueado();
+      allow create: if estaLogueado();
+      allow update: if estaLogueado();
+      allow delete: if false;
+
+      // El mazo es privado: solo el host (creador) puede tocarlo para repartir
+      match /dealer/deck {
+        allow read, write: if estaLogueado() && 
+          request.auth.uid == get(/databases/$(database)/documents/trucoRooms/$(roomId)).data.hostUid;
+      }
+
+      // Las manos son privadas: solo el dueño puede verlas
+      match /hands/{uid} {
+        allow read: if esDueno(uid);
+        // Solo el host puede escribir las cartas al repartir
+        allow write: if estaLogueado() && 
+          request.auth.uid == get(/databases/$(database)/documents/trucoRooms/$(roomId)).data.hostUid;
+      }
+    }
+  }
+}
