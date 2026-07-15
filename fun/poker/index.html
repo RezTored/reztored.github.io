@@ -117,7 +117,6 @@
           <button id="btn-raise" class="bg-yellow-600 hover:bg-yellow-500 px-5 py-2.5 rounded-lg font-bold">Subir</button>
         </div>
       </div>
-      <button id="btn-revelar" class="hidden-imp bg-green-600 hover:bg-green-500 px-6 py-2.5 rounded-lg font-bold">Mostrar mis cartas</button>
     </div>
 
     <button id="btn-iniciar-mano" class="hidden-imp bg-indigo-600 hover:bg-indigo-500 px-6 py-3 rounded-lg font-bold titulo text-sm">▶ Repartir mano</button>
@@ -127,7 +126,7 @@
 
   <script type="module">
     import { auth, db } from '../../reztored-auth.js';
-    import { onSnapshot, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { onSnapshot, doc, collection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     import {
         crearSala, unirseSala, salirDeMesa, suscribirseASala, miMano,
         iniciarMano, accion, escucharComoHost, revelarMano
@@ -136,9 +135,11 @@
     let codigoActual = null;
     let unsubSala = null;
     let unsubHost = null;
+    let unsubReveals = null;
     let ultimaSala = null;
     let cartasMano = null;
     let yaRevele = false;
+    let cartasReveladas = {}; // uid -> cartas, se llena en showdown
 
     const $ = (id) => document.getElementById(id);
 
@@ -217,11 +218,6 @@
     $('btn-check').addEventListener('click', () => ejecutarAccion('check'));
     $('btn-call').addEventListener('click', () => ejecutarAccion('call'));
     $('btn-raise').addEventListener('click', () => ejecutarAccion('raise', parseInt($('input-raise').value)));
-    $('btn-revelar').addEventListener('click', async () => {
-      await revelarMano(codigoActual);
-      yaRevele = true;
-      $('btn-revelar').classList.add('hidden-imp');
-    });
 
     async function ejecutarAccion(tipo, monto) {
       try { await accion(codigoActual, tipo, monto); } catch (e) { mostrarErrorMesa(e.message); }
@@ -236,11 +232,16 @@
 
       unsubSala = suscribirseASala(code, renderSala);
       unsubHost = escucharComoHost(code);
+      unsubReveals = onSnapshot(collection(db, 'pokerRooms', code, 'reveals'), (snap) => {
+        cartasReveladas = {};
+        snap.docs.forEach(d => { cartasReveladas[d.id] = d.data().cards; });
+        if (ultimaSala) renderSala(ultimaSala);
+      });
     }
 
     function salirDeVistaMesa() {
-      unsubSala?.(); unsubHost?.();
-      codigoActual = null; ultimaSala = null; cartasMano = null; yaRevele = false;
+      unsubSala?.(); unsubHost?.(); unsubReveals?.();
+      codigoActual = null; ultimaSala = null; cartasMano = null; yaRevele = false; cartasReveladas = {};
       history.replaceState(null, '', location.pathname);
       $('vista-mesa').classList.add('hidden-imp');
       $('vista-lobby').classList.remove('hidden-imp');
@@ -282,6 +283,14 @@
         if (p.status === 'folded') div.classList.add('plegado');
 
         const esYo = p.uid === user.uid;
+        const cartasDeP = cartasReveladas[p.uid];
+        const mostrarCartasEnAsiento = cartasDeP && ['showdown', 'hand_over'].includes(sala.phase) && !esYo;
+        const cartasHtml = mostrarCartasEnAsiento
+          ? `<div class="flex gap-0.5 mt-1">${cartasDeP.map(c => {
+              const roja = c.palo === '♥' || c.palo === '♦';
+              return `<div class="carta${roja ? ' roja' : ''}" style="width:26px;height:38px;font-size:.65rem">${c.simbolo}<span style="font-size:.8em">${c.palo}</span></div>`;
+            }).join('')}</div>`
+          : '';
         div.innerHTML = `
           <div class="flex items-center gap-1">
             ${p.photoURL ? `<img src="${p.photoURL}" class="w-6 h-6 rounded-full">` : ''}
@@ -290,6 +299,7 @@
           <span class="text-[11px] text-green-400 font-bold">${p.tableChips} 🪙</span>
           ${p.currentBet > 0 ? `<span class="text-[10px] text-blue-300">apostó ${p.currentBet}</span>` : ''}
           <span class="text-[10px] text-gray-400 uppercase">${({active:'',allin:'ALL-IN',folded:'se retiró',sitout:'sentado'})[p.status] || ''}</span>
+          ${cartasHtml}
         `;
         cont.appendChild(div);
       });
@@ -342,11 +352,10 @@
         $('input-raise').min = sala.currentBet + sala.minRaise;
       }
 
-      // revelar en showdown
+      // auto-revelar en showdown (todos los que siguen en la mano)
       if (sala.phase === 'showdown' && jugando && !yaRevele) {
-        $('btn-revelar').classList.remove('hidden-imp');
-      } else {
-        $('btn-revelar').classList.add('hidden-imp');
+        yaRevele = true; // marcar antes de la llamada async para no duplicar
+        try { await revelarMano(codigoActual); } catch (e) { yaRevele = false; }
       }
       if (sala.phase !== 'showdown') yaRevele = false;
     }
