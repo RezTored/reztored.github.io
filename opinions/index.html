@@ -345,7 +345,62 @@
             color: var(--text-main);
             white-space: pre-line;
             letter-spacing: 0.5px;
+            margin-bottom: 10px;
         }
+
+        /* Footer de la card: botón de like */
+        .opinion-footer {
+            display: flex;
+            justify-content: flex-end;
+            border-top: 1px solid rgba(255, 255, 255, 0.03);
+            padding-top: 8px;
+        }
+
+        .btn-like {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 4px 12px 4px 6px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s, transform 0.1s;
+        }
+
+        .btn-like img { width: 16px; height: 16px; display: block; }
+
+        .btn-like:hover { border-color: #5d5d66; transform: translateY(-1px); }
+
+        .btn-like.likeado {
+            color: var(--text-white);
+            border-color: var(--primary);
+            background: rgba(79, 70, 229, 0.15);
+        }
+
+        .btn-like:disabled { cursor: not-allowed; opacity: 0.55; transform: none; }
+
+        /* Badge de saldo de petoCoins en la barra de estado */
+        .coins-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 3px 10px 3px 4px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-white);
+            margin-left: 8px;
+        }
+
+        .coins-badge img { width: 16px; height: 16px; display: block; }
 
         .no-opinions {
             text-align: center;
@@ -528,6 +583,7 @@
                     <span id="user-logged-in" class="hidden">
                         ONLINE: <a href="#" id="user-profile-link" class="status-online">Mi Perfil</a>
                         <span id="admin-badge-nav" class="hidden" style="background:#4f46e5; color:#fff; font-size:0.65rem; font-weight:700; letter-spacing:1px; padding:2px 6px; border-radius:4px; margin-left:6px; vertical-align:middle;">ADMIN</span>
+                        <span id="coins-badge" class="coins-badge hidden"><img src="/petocoin.png" alt="petoCoins"><span id="coins-amount">0</span></span>
                     </span>
                     <button id="btn-login-menu" style="background:none; border:none; padding:0; text-decoration:underline;">STATUS: <span class="status-offline">DESCONECTADO (HACÉ CLIC ACÁ)</span></button>
                 </div>
@@ -617,7 +673,9 @@
         obtenerPerfilPorUid,
         esAdmin,
         eliminarOpinion,
-        asegurarPerfilUsuario
+        asegurarPerfilUsuario,
+        suscribirCoins,
+        toggleLikeOpinion
     } from '../reztored-auth.js';
 
     // Firestore (solo lo que esta página usa además del módulo compartido)
@@ -656,10 +714,18 @@
     const publishSection = document.getElementById('publish-section');
     const loginPrompt = document.getElementById('login-prompt');
 
+    const coinsBadge = document.getElementById('coins-badge');
+    const coinsAmount = document.getElementById('coins-amount');
+
     // ✏️ Estado global: ¿el usuario logueado ahora mismo es admin?
     // Se actualiza en actualizarMenuUsuario() y lo usa el render del
     // feed para saber si hay que mostrar la X de borrar en cada card.
     let soyAdminActual = false;
+
+    // uid del usuario logueado (o null) — lo usa el render del feed
+    // para saber qué posts ya likeó y habilitar/deshabilitar el botón.
+    let uidActual = null;
+    let dejarDeEscucharCoins = null;
 
     // --- EVENTOS DEL MODAL ---
     const abrirModal = () => {
@@ -759,11 +825,25 @@
     // Actualizar la barra de navegación según el estado de la sesión
     async function actualizarMenuUsuario(user) {
         const adminBadgeNav = document.getElementById('admin-badge-nav');
+
+        // Nos desenganchamos de la escucha de coins anterior (si había)
+        // antes de empezar una nueva, para no acumular listeners.
+        if (dejarDeEscucharCoins) {
+            dejarDeEscucharCoins();
+            dejarDeEscucharCoins = null;
+        }
+
         if (user) {
+            uidActual = user.uid;
             btnLoginMenu.classList.add('hidden');
             userLoggedInDiv.classList.remove('hidden');
             btnLogout.classList.remove('hidden');
-            
+
+            coinsBadge.classList.remove('hidden');
+            dejarDeEscucharCoins = suscribirCoins(user.uid, (coins) => {
+                coinsAmount.textContent = coins;
+            });
+
             let name = user.displayName || user.email.split('@')[0];
             if (name.length > 20) name = name.substring(0, 20);
 
@@ -791,13 +871,17 @@
                 soyAdminActual = false;
             }
             adminBadgeNav.classList.toggle('hidden', !soyAdminActual);
+            renderizarFeedActual();
         } else {
+            uidActual = null;
             btnLoginMenu.classList.remove('hidden');
             userLoggedInDiv.classList.add('hidden');
             btnLogout.classList.add('hidden');
             userProfileLink.textContent = "Mi Perfil";
             userProfileLink.href = "#";
             userAvatarMenu.classList.add('hidden');
+            coinsBadge.classList.add('hidden');
+            coinsAmount.textContent = '0';
 
             // Ocultar panel de publicar, mostrar aviso de login
             publishSection.style.display = 'none';
@@ -805,6 +889,10 @@
 
             soyAdminActual = false;
             adminBadgeNav.classList.add('hidden');
+
+            // Volvemos a renderizar el feed para sacar el estado
+            // "likeado" de los botones (ya no hay usuario logueado).
+            renderizarFeedActual();
         }
     }
 
@@ -827,21 +915,24 @@
     const opinionsCollection = collection(db, 'opinions');
     const opinionsQuery = query(opinionsCollection, orderBy('timestamp', 'desc'));
 
-    // Escuchar en tiempo real los comentarios que entren a Firestore
-    onSnapshot(opinionsQuery, (snapshot) => {
+    // Guardamos el último snapshot para poder re-renderizar el feed
+    // (por ej. al loguearse/desloguearse) sin pedirle datos de nuevo a Firestore.
+    let ultimasOpiniones = [];
+
+    function renderizarFeedActual() {
         const container = document.getElementById('opinions-container');
-        if (snapshot.empty) {
+
+        if (ultimasOpiniones.length === 0) {
             container.innerHTML = '<div class="no-opinions">No hay opiniones en la nube. ¡Sé el primero!</div>';
             return;
         }
 
         let opinionsHTML = '';
-        snapshot.forEach((doc) => {
-            const data = doc.data();
+        ultimasOpiniones.forEach(({ id, data }) => {
             const author = data.author || 'Anon';
             const avatar = data.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + encodeURIComponent(author);
             const text = data.text || '';
-            
+
             let dateStr = 'Reciente';
             if (data.timestamp) {
                 dateStr = data.timestamp.toDate().toLocaleString();
@@ -849,6 +940,17 @@
 
             // Creamos la URL limpia con el formato /usuario
             const linkPerfil = `/${encodeURIComponent(author.toLowerCase())}`;
+
+            // --- Likes ---
+            const likedBy = data.likedBy || [];
+            const likesCount = data.likesCount || 0;
+            const yaLikeado = !!(uidActual && likedBy.includes(uidActual));
+            const esElAutor = !!(uidActual && data.authorUid === uidActual);
+            // Deshabilitado si no hay usuario logueado o si es su propio post.
+            const likeDeshabilitado = !uidActual || esElAutor;
+            const tituloLike = !uidActual
+                ? 'Iniciá sesión para dar like'
+                : (esElAutor ? 'No podés likear tu propio post' : (yaLikeado ? 'Sacar like' : 'Dar like (+10 petoCoins para el autor)'));
 
             opinionsHTML += `
                 <div class="opinion-card">
@@ -862,10 +964,16 @@
                         </div>
                         <div style="display:flex; align-items:center; gap:10px;">
                             <span class="opinion-date">${dateStr}</span>
-                            ${soyAdminActual ? `<button type="button" class="btn-borrar-opinion" data-id="${doc.id}" title="Sacar esta opinión" style="background:#3a1d1d; border-color:#5c2b2b; color:#ff5f56; padding:2px 8px; font-size:0.75rem; line-height:1;">✕</button>` : ''}
+                            ${soyAdminActual ? `<button type="button" class="btn-borrar-opinion" data-id="${id}" title="Sacar esta opinión" style="background:#3a1d1d; border-color:#5c2b2b; color:#ff5f56; padding:2px 8px; font-size:0.75rem; line-height:1;">✕</button>` : ''}
                         </div>
                     </div>
                     <div class="opinion-body">${escapeHTML(text)}</div>
+                    <div class="opinion-footer">
+                        <button type="button" class="btn-like ${yaLikeado ? 'likeado' : ''}" data-id="${id}" title="${tituloLike}" ${likeDeshabilitado ? 'disabled' : ''}>
+                            <img src="/petocoin.png" alt="like">
+                            <span>${likesCount}</span>
+                        </button>
+                    </div>
                 </div>
             `;
         });
@@ -884,6 +992,34 @@
                 }
             });
         });
+
+        // Enganchamos los botones de like.
+        container.querySelectorAll('.btn-like').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (!uidActual) return;
+                btn.disabled = true;
+                try {
+                    await toggleLikeOpinion(btn.dataset.id, uidActual);
+                    // No hace falta re-renderizar a mano: el onSnapshot de
+                    // "opinions" va a traer el likesCount/likedBy actualizado.
+                } catch (error) {
+                    console.error(error);
+                    alert('No se pudo procesar el like: ' + error.message);
+                    btn.disabled = false;
+                }
+            });
+        });
+    }
+
+    // Escuchar en tiempo real los comentarios que entren a Firestore
+    onSnapshot(opinionsQuery, (snapshot) => {
+        if (snapshot.empty) {
+            ultimasOpiniones = [];
+            renderizarFeedActual();
+            return;
+        }
+        ultimasOpiniones = snapshot.docs.map((doc) => ({ id: doc.id, data: doc.data() }));
+        renderizarFeedActual();
     }, (error) => {
         console.error("Error al leer Firestore: ", error);
         document.getElementById('opinions-container').innerHTML = '<div class="no-opinions" style="color: #ff5f56;">Error al sincronizar con la nube de Firebase. Asegurate de habilitar Firestore Database en modo prueba.</div>';
@@ -923,7 +1059,9 @@
                 authorUid: currentFirebaseUser.uid,
                 avatar: currentFirebaseUser.photoURL || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + encodeURIComponent(displayName),
                 text: text,
-                timestamp: new Date()
+                timestamp: new Date(),
+                likedBy: [],
+                likesCount: 0
             });
             console.log("5. ¡Éxito! Doc creado con ID:", docRef.id);
             textInput.value = '';

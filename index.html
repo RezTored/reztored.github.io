@@ -42,6 +42,10 @@ Log in <span aria-hidden="true">→</span>
 Mi Perfil
 </a>
 <span id="admin-badge-nav" class="hidden bg-indigo-600 text-white text-[10px] font-bold tracking-widest px-1.5 py-0.5 rounded">ADMIN</span>
+<span id="coins-badge" class="hidden items-center gap-1.5 bg-gray-800 border border-gray-700 rounded-full pl-1 pr-2.5 py-0.5">
+<img src="/petocoin.png" alt="petoCoins" class="h-4 w-4">
+<span id="coins-amount" class="text-xs font-bold text-white">0</span>
+</span>
 <span class="text-gray-600">|</span>
 <button id="btn-logout" class="text-sm font-semibold text-red-400 hover:text-red-300 transition cursor-pointer">Salir</button>
 </div>
@@ -63,6 +67,10 @@ Mi Perfil
                 <a id="user-profile-link-mobile" href="#" class="text-sm text-indigo-400 font-semibold">Mi Perfil</a>
                 <span id="admin-badge-nav-mobile" class="hidden bg-indigo-600 text-white text-[10px] font-bold tracking-widest px-1.5 py-0.5 rounded">ADMIN</span>
             </div>
+            <span id="coins-badge-mobile" class="hidden items-center gap-1.5 bg-gray-800 border border-gray-700 rounded-full pl-1 pr-2.5 py-0.5">
+                <img src="/petocoin.png" alt="petoCoins" class="h-4 w-4">
+                <span id="coins-amount-mobile" class="text-xs font-bold text-white">0</span>
+            </span>
             <button id="btn-logout-mobile" class="text-sm font-semibold text-red-400">Salir</button>
         </div>
     </div>
@@ -268,7 +276,8 @@ googleProvider,
 registrarUsuario,
 esAdmin,
 obtenerPerfilPorUid,
-asegurarPerfilUsuario
+asegurarPerfilUsuario,
+suscribirCoins
 } from '/reztored-auth.js';
 
 let modoLogin = true;
@@ -394,12 +403,31 @@ if (btnLogoutMobile) {
     });
 }
 
+let dejarDeEscucharCoins = null;
+
 function actualizarMenuUsuario(user) {
+const coinsBadge = document.getElementById('coins-badge');
+const coinsAmount = document.getElementById('coins-amount');
+const coinsBadgeMobile = document.getElementById('coins-badge-mobile');
+const coinsAmountMobile = document.getElementById('coins-amount-mobile');
+
+if (dejarDeEscucharCoins) {
+    dejarDeEscucharCoins();
+    dejarDeEscucharCoins = null;
+}
+
 if (user) {
 btnLoginMenu.classList.add('hidden');
 userLoggedInDiv.classList.remove('hidden');
 if (btnLoginMenuMobile) btnLoginMenuMobile.classList.add('hidden');
 if (userLoggedInDivMobile) userLoggedInDivMobile.classList.remove('hidden');
+
+coinsBadge.style.display = 'inline-flex';
+if (coinsBadgeMobile) coinsBadgeMobile.style.display = 'inline-flex';
+dejarDeEscucharCoins = suscribirCoins(user.uid, (coins) => {
+    coinsAmount.textContent = coins;
+    if (coinsAmountMobile) coinsAmountMobile.textContent = coins;
+});
 
 let name = user.displayName || user.email.split('@')[0];
 
@@ -440,6 +468,8 @@ userProfileLink.textContent = "Mi Perfil";
 userProfileLink.href = "#";
 userAvatarMenu.classList.add('hidden');
 document.getElementById('admin-badge-nav').classList.add('hidden');
+coinsBadge.style.display = 'none';
+if (coinsBadgeMobile) coinsBadgeMobile.style.display = 'none';
 
 if (btnLoginMenuMobile) btnLoginMenuMobile.classList.remove('hidden');
 if (userLoggedInDivMobile) userLoggedInDivMobile.classList.add('hidden');

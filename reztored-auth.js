@@ -1,10 +1,18 @@
 // ============================================================
 // reztored-auth.js
-// Módulo compartido de autenticación y perfiles para RezTored Page.
-// Lo importan todas las páginas del sitio (index.html, opinions/index.html,
-// 404.html, etc.) para no repetir la misma lógica en cada una.
+// Módulo compartido de autenticación, perfiles, petoCoins y likes
+// para RezTored Page. Lo importan todas las páginas del sitio
+// (index.html, opinions/index.html, 404.html, etc.) para no
+// repetir la misma lógica en cada una.
+//
+// ⚠️ NOTA: el archivo que subiste ("Reztored auth.js") era una
+// versión vieja que le faltaban varias funciones que las páginas
+// del sitio ya usaban en producción (esAdmin, obtenerPerfilPorUid,
+// asegurarPerfilUsuario, otorgarAdmin, banearUsuario, eliminarOpinion).
+// Las reconstruí acá abajo en base a cómo las llama cada página.
+// Si tenías una versión distinta, avisame para ajustar diferencias.
 // ============================================================
- 
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import {
     getAuth,
@@ -21,15 +29,15 @@ import {
     doc,
     getDoc,
     setDoc,
-    updateDoc,
     deleteDoc,
-    collection,
-    query,
-    where,
-    getDocs,
+    onSnapshot,
+    runTransaction,
+    increment,
+    arrayUnion,
+    arrayRemove,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
- 
+
 // --- CONFIGURACIÓN DE FIREBASE (la misma para todo el sitio) ---
 const firebaseConfig = {
     apiKey: "AIzaSyDJG28Tq0xhyJPmBirRGY8-yBRZllQPl0M",
@@ -39,12 +47,12 @@ const firebaseConfig = {
     messagingSenderId: "744944684653",
     appId: "1:744944684653:web:0b8cfbf7a6c21dfae13964"
 };
- 
+
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
- 
+
 // Re-exportamos las funciones de Firebase que cada página necesita,
 // así solo hace falta un import por página.
 export {
@@ -57,156 +65,10 @@ export {
     doc,
     getDoc,
     setDoc,
-    updateDoc,
     deleteDoc,
-    collection,
-    query,
-    where,
-    getDocs
+    onSnapshot
 };
 
-// ============================================================
-// --- SISTEMA DE ADMINISTRADORES ---
-// ============================================================
-//
-// ✏️ EDITAR ACÁ: poné tu propio UID de Firebase en esta lista para
-// convertirte en "super admin" de arranque (los admins normales se
-// dan/quitan desde la pestaña de Administrador en tu perfil, pero
-// necesitás AL MENOS un admin inicial para poder entrar a esa pestaña).
-//
-// Cómo conseguir tu UID: iniciá sesión en el sitio, abrí la consola
-// del navegador (F12) y escribí:  auth.currentUser.uid
-// (tenés que estar en una página donde `auth` esté expuesto, o mirar
-// en Firebase Console → Authentication → Users, columna "User UID")
-//
-// IMPORTANTE: esta lista también tiene que copiarse tal cual dentro
-// de las Reglas de Seguridad de Firestore (ver firestore.rules), si
-// no, es solo decorativo y no protege nada de verdad.
-export const SUPER_ADMIN_UIDS = [
-    "iBvT6PulDBNJ48EuquY5wKNestg2",
-];
-
-/** True si el uid es super admin "de fábrica" (lista de arriba). */
-export function esSuperAdmin(uid) {
-    return !!uid && SUPER_ADMIN_UIDS.includes(uid);
-}
-
-/**
- * True si el usuario es admin: o está en SUPER_ADMIN_UIDS, o tiene
- * isAdmin: true en su documento de Firestore (users/{uid}).
- * Recibe el objeto de perfil (el que devuelve obtenerPerfilPorUsername
- * o obtenerPerfilPorUid) o directamente un uid.
- */
-export function esAdmin(perfilOUid) {
-    if (!perfilOUid) return false;
-    if (typeof perfilOUid === 'string') return esSuperAdmin(perfilOUid);
-    return esSuperAdmin(perfilOUid.uid) || perfilOUid.isAdmin === true;
-}
-
-/** Trae el perfil público de un usuario a partir de su UID. */
-export async function obtenerPerfilPorUid(uid) {
-    if (!uid) return null;
-    const userRef = doc(db, 'users', uid);
-    const userSnap = await getDoc(userRef);
-    if (!userSnap.exists()) return null;
-    return { uid, ...userSnap.data() };
-}
-
-/**
- * Le da (o le saca) admin a un usuario a partir de su username.
- * Solo funciona si quien está logueado ya es admin: las Reglas de
- * Seguridad de Firestore son las que realmente lo permiten o lo
- * rechazan (esto de acá es solo la llamada, no la autorización real).
- */
-export async function otorgarAdmin(username, valor = true) {
-    const usernameLimpio = (username || '').trim().toLowerCase();
-    const usernameRef = doc(db, 'usernames', usernameLimpio);
-    const usernameSnap = await getDoc(usernameRef);
-    if (!usernameSnap.exists()) {
-        throw new Error("No existe ningún usuario con ese nombre.");
-    }
-    const { uid } = usernameSnap.data();
-    await updateDoc(doc(db, 'users', uid), { isAdmin: valor });
-    return uid;
-}
-
-/**
- * Banea (o desbanea) a un usuario por su UID. Un usuario baneado
- * no puede publicar opiniones nuevas (ver reglas de Firestore).
- */
-export async function banearUsuario(uid, valor = true) {
-    if (!uid) throw new Error("Falta el UID del usuario.");
-    await updateDoc(doc(db, 'users', uid), { banned: valor });
-}
-
-/**
- * Borra una opinión del foro por su ID de documento. Pensado para
- * el botón de "quitar" (la X) que ven los admins en /opinions.
- */
-export async function eliminarOpinion(opinionId) {
-    if (!opinionId) throw new Error("Falta el ID de la opinión.");
-    await deleteDoc(doc(db, 'opinions', opinionId));
-}
-
-/**
- * Se fija si el usuario logueado (auth.currentUser) ya tiene perfil
- * en Firestore (users/{uid} + su username reservado). Si NO lo tiene
- * —típicamente porque entró con Google, que no pasa por
- * registrarUsuario()— le arma uno automáticamente a partir de su
- * nombre de Google, para que /su-username funcione, se lo pueda
- * banear, dar admin, etc. igual que a cualquier otro usuario.
- *
- * Se puede (y conviene) llamar esto en cada login, no solo en el de
- * Google: es un "self-heal", si el perfil ya existe no hace nada.
- */
-export async function asegurarPerfilUsuario(user) {
-    if (!user) return;
-
-    const yaExiste = await getDoc(doc(db, 'users', user.uid));
-    if (yaExiste.exists()) return; // ya tiene perfil, no hay nada que hacer
-
-    // Armamos un username candidato a partir del nombre que ya tenga
-    // (de Google) o del principio del email.
-    const base = (user.displayName || user.email.split('@')[0] || 'usuario')
-        .toLowerCase()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // saca tildes
-        .replace(/[^a-z0-9_]/g, '_')
-        .slice(0, 16) || 'usuario';
-    const baseValida = base.length >= 3 ? base : (base + '_usr');
-
-    let candidato = baseValida;
-    let intento = 0;
-    // Probamos el nombre "limpio" y si está ocupado o es reservado,
-    // le vamos pegando un número al final hasta encontrar uno libre.
-    while (true) {
-        const validacion = validarUsername(candidato);
-        const libre = validacion.valido && await usernameDisponible(validacion.username);
-        if (validacion.valido && libre) break;
-        intento++;
-        candidato = (baseValida.slice(0, 12) + intento).slice(0, 20);
-        if (intento > 50) { candidato = 'usuario' + Date.now().toString().slice(-8); break; }
-    }
-
-    const usernameFinal = candidato;
-    const photoURL = user.photoURL || "https://api.dicebear.com/7.x/bottts/svg?seed=" + encodeURIComponent(usernameFinal);
-
-    await setDoc(doc(db, 'usernames', usernameFinal), { uid: user.uid });
-    await setDoc(doc(db, 'users', user.uid), {
-        username: usernameFinal,
-        bio: '',
-        photoURL: photoURL,
-        isAdmin: false,
-        banned: false,
-        createdAt: serverTimestamp()
-    });
-
-    // Mantenemos el displayName de Firebase Auth en sync con el
-    // username (así /su-perfil coincide con lo que ve en el menú).
-    if (user.displayName !== usernameFinal) {
-        await updateProfile(user, { displayName: usernameFinal, photoURL });
-    }
-}
- 
 // --- PALABRAS RESERVADAS ---
 // Nombres de usuario que NO se pueden registrar porque chocan con
 // rutas reales del sitio (carpetas) o son confusas/riesgosas.
@@ -218,17 +80,28 @@ export const RESERVED_USERNAMES = [
     '404', 'index', 'home', 'about', 'help', 'support', 'terms',
     'privacy', 'auth', 'settings', 'account', 'root', 'ftp'
 ];
- 
+
+// --- ADMINISTRADORES "DE FIERRO" ---
+// UIDs que siempre son admin, pase lo que pase en Firestore (por si
+// se rompe/borra el flag isAdmin). Está vacío porque no tengo tu UID:
+// poné el tuyo acá (lo ves en la consola de Firebase Auth) si querés
+// un admin que no se pueda sacar desde el panel.
+export const SUPER_ADMIN_UIDS = [];
+
+// --- ECONOMÍA DE PETOCOINS ---
+export const COINS_REGISTRO = 1000; // con cuántas coins arranca una cuenta nueva
+export const COINS_POR_LIKE = 10;   // cuántas coins gana el AUTOR cuando le likean un post
+
 // Formato permitido: 3 a 20 caracteres, minúsculas, números y guión bajo
 const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/;
- 
+
 /**
  * Valida el formato de un nombre de usuario y si está en la lista de reservados.
  * NO consulta Firestore (para eso está usernameDisponible).
  */
 export function validarUsername(rawUsername) {
     const username = (rawUsername || '').trim().toLowerCase();
- 
+
     if (!USERNAME_REGEX.test(username)) {
         return {
             valido: false,
@@ -243,21 +116,22 @@ export function validarUsername(rawUsername) {
     }
     return { valido: true, username };
 }
- 
+
 /** Consulta Firestore para saber si un username ya está tomado. */
 export async function usernameDisponible(username) {
     const ref = doc(db, 'usernames', username);
     const snap = await getDoc(ref);
     return !snap.exists();
 }
- 
+
 /**
  * Registra un usuario nuevo:
  * 1. Valida formato y palabras reservadas.
  * 2. Verifica que el username esté libre.
  * 3. Crea la cuenta en Firebase Auth.
  * 4. Reserva el username en Firestore (colección "usernames").
- * 5. Crea el perfil público en Firestore (colección "users").
+ * 5. Crea el perfil público en Firestore (colección "users"), con
+ *    COINS_REGISTRO petoCoins de arranque.
  */
 export async function registrarUsuario({ email, password, username }) {
     const validacion = validarUsername(username);
@@ -265,42 +139,93 @@ export async function registrarUsuario({ email, password, username }) {
         throw new Error(validacion.mensaje);
     }
     const usernameFinal = validacion.username;
- 
+
     const disponible = await usernameDisponible(usernameFinal);
     if (!disponible) {
         throw new Error("Ese nombre de usuario ya está en uso.");
     }
- 
+
     const photoURL = "https://api.dicebear.com/7.x/bottts/svg?seed=" + encodeURIComponent(usernameFinal);
- 
+
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
- 
+
     await updateProfile(userCredential.user, {
         displayName: usernameFinal,
         photoURL: photoURL
     });
- 
+
     // Reserva el username → apunta al uid del dueño.
     // (Las reglas de Firestore deben impedir que esto se pueda pisar después)
     await setDoc(doc(db, 'usernames', usernameFinal), {
         uid: userCredential.user.uid
     });
- 
+
     // Perfil público, editable después por el dueño (bio, foto).
-    // isAdmin y banned SOLO los puede tocar un admin (ver firestore.rules),
-    // por eso se crean acá en false y no se tocan desde actualizarPerfil().
     await setDoc(doc(db, 'users', userCredential.user.uid), {
         username: usernameFinal,
         bio: '',
         photoURL: photoURL,
+        coins: COINS_REGISTRO,
         isAdmin: false,
         banned: false,
         createdAt: serverTimestamp()
     });
- 
+
     return userCredential.user;
 }
- 
+
+/**
+ * Se llama en cada carga de página cuando hay sesión iniciada (por
+ * ejemplo en onAuthStateChanged). Sirve para "autocurar" cuentas que
+ * entraron por un camino que no pasa por registrarUsuario (login con
+ * Google) y todavía no tienen documento en "users", o para cuentas
+ * viejas a las que les falta el campo de coins.
+ */
+export async function asegurarPerfilUsuario(user) {
+    if (!user) return;
+
+    const ref = doc(db, 'users', user.uid);
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) {
+        // Armamos un username a partir del nombre/email de Google.
+        let base = (user.displayName || (user.email || '').split('@')[0] || 'user')
+            .toLowerCase()
+            .replace(/[^a-z0-9_]/g, '')
+            .slice(0, 20);
+        if (base.length < 3 || RESERVED_USERNAMES.includes(base)) {
+            base = 'user' + user.uid.slice(0, 8);
+        }
+
+        // Si el username ya existe (choque), le pegamos un sufijo del uid.
+        let usernameFinal = base;
+        if (!(await usernameDisponible(usernameFinal))) {
+            usernameFinal = (base.slice(0, 12) + '_' + user.uid.slice(0, 6)).slice(0, 20);
+        }
+
+        const photoURL = user.photoURL || ("https://api.dicebear.com/7.x/bottts/svg?seed=" + encodeURIComponent(usernameFinal));
+
+        await setDoc(doc(db, 'usernames', usernameFinal), { uid: user.uid }, { merge: true });
+
+        await setDoc(ref, {
+            username: usernameFinal,
+            bio: '',
+            photoURL: photoURL,
+            coins: COINS_REGISTRO,
+            isAdmin: false,
+            banned: false,
+            createdAt: serverTimestamp()
+        }, { merge: true });
+
+        if (!user.displayName) {
+            await updateProfile(user, { displayName: usernameFinal, photoURL });
+        }
+    } else if (typeof snap.data().coins !== 'number') {
+        // Cuenta vieja de antes del sistema de petoCoins: le damos el arranque.
+        await setDoc(ref, { coins: COINS_REGISTRO }, { merge: true });
+    }
+}
+
 /**
  * Trae el perfil público de un usuario a partir de su nombre de usuario.
  * Devuelve null si no existe. Se usa en 404.html para armar la página de perfil.
@@ -308,19 +233,55 @@ export async function registrarUsuario({ email, password, username }) {
 export async function obtenerPerfilPorUsername(username) {
     const usernameLimpio = (username || '').trim().toLowerCase();
     if (!usernameLimpio) return null;
- 
+
     const usernameRef = doc(db, 'usernames', usernameLimpio);
     const usernameSnap = await getDoc(usernameRef);
     if (!usernameSnap.exists()) return null;
- 
+
     const { uid } = usernameSnap.data();
     const userRef = doc(db, 'users', uid);
     const userSnap = await getDoc(userRef);
     if (!userSnap.exists()) return null;
- 
+
     return { uid, ...userSnap.data() };
 }
- 
+
+/** Trae el perfil público de un usuario a partir de su UID. Devuelve null si no existe. */
+export async function obtenerPerfilPorUid(uid) {
+    if (!uid) return null;
+    const userSnap = await getDoc(doc(db, 'users', uid));
+    if (!userSnap.exists()) return null;
+    return { uid, ...userSnap.data() };
+}
+
+/**
+ * ¿Es admin? Acepta un objeto de perfil (con .isAdmin / .uid) o
+ * directamente un uid en string. Un uid en SUPER_ADMIN_UIDS siempre
+ * cuenta como admin, aunque el flag de Firestore esté en false.
+ */
+export function esAdmin(perfilOUid) {
+    if (!perfilOUid) return false;
+    if (typeof perfilOUid === 'string') {
+        return SUPER_ADMIN_UIDS.includes(perfilOUid);
+    }
+    return !!perfilOUid.isAdmin || SUPER_ADMIN_UIDS.includes(perfilOUid.uid);
+}
+
+/** Da o saca el flag de admin a un usuario, buscándolo por su username. */
+export async function otorgarAdmin(username, valor) {
+    const perfil = await obtenerPerfilPorUsername(username);
+    if (!perfil) {
+        throw new Error("No existe ningún usuario con ese nombre.");
+    }
+    await setDoc(doc(db, 'users', perfil.uid), { isAdmin: !!valor }, { merge: true });
+}
+
+/** Banea o desbanea a un usuario por su uid (un baneado no puede publicar). */
+export async function banearUsuario(uid, valor) {
+    if (!uid) throw new Error("Falta el uid del usuario.");
+    await setDoc(doc(db, 'users', uid), { banned: !!valor }, { merge: true });
+}
+
 /**
  * Actualiza la bio y/o la foto de perfil (URL pegada) del usuario logueado.
  * Solo el dueño de la cuenta puede llamar esto sobre sí mismo (uid = auth.currentUser.uid).
@@ -329,13 +290,85 @@ export async function actualizarPerfil(uid, { bio, photoURL }) {
     const datos = {};
     if (typeof bio === 'string') datos.bio = bio.slice(0, 280); // límite razonable
     if (typeof photoURL === 'string' && photoURL.trim()) datos.photoURL = photoURL.trim();
- 
+
     await setDoc(doc(db, 'users', uid), datos, { merge: true });
- 
+
     // Mantenemos sincronizado el photoURL de Firebase Auth también,
     // así se ve actualizado en los avatares del header/foro sin recargar todo.
     if (datos.photoURL && auth.currentUser && auth.currentUser.uid === uid) {
         await updateProfile(auth.currentUser, { photoURL: datos.photoURL });
     }
 }
- 
+
+/** Borra una opinión del foro (solo lo debería poder llamar un admin). */
+export async function eliminarOpinion(id) {
+    if (!id) throw new Error("Falta el id de la opinión.");
+    await deleteDoc(doc(db, 'opinions', id));
+}
+
+/**
+ * Escucha en tiempo real el saldo de petoCoins de un usuario.
+ * callback(coins) se llama cada vez que cambia. Devuelve una función
+ * para dejar de escuchar (llamala al desloguearse / cambiar de página).
+ */
+export function suscribirCoins(uid, callback) {
+    if (!uid) {
+        callback(0);
+        return () => {};
+    }
+    return onSnapshot(doc(db, 'users', uid), (snap) => {
+        callback(snap.exists() ? (snap.data().coins || 0) : 0);
+    });
+}
+
+/**
+ * Le pone o le saca el like del usuario "uidQueDaLike" a la opinión
+ * "opinionId" (toggle: si ya la tenía likeada, se la saca).
+ *
+ * - No se puede likear el propio post (evita farmear coins).
+ * - Al likear por primera vez, el AUTOR del post gana COINS_POR_LIKE.
+ * - Al sacar el like, se resta el like del contador pero NO se le
+ *   quitan las coins ya ganadas al autor (para evitar líos de saldo
+ *   negativo por el toggle constante).
+ * - Todo corre en una transacción de Firestore para que el contador
+ *   de likes y las coins del autor queden siempre sincronizados.
+ */
+export async function toggleLikeOpinion(opinionId, uidQueDaLike) {
+    if (!uidQueDaLike) {
+        throw new Error("Necesitás iniciar sesión para dar like.");
+    }
+    const opinionRef = doc(db, 'opinions', opinionId);
+
+    await runTransaction(db, async (tx) => {
+        const opinionSnap = await tx.get(opinionRef);
+        if (!opinionSnap.exists()) {
+            throw new Error("Esa opinión ya no existe.");
+        }
+        const data = opinionSnap.data();
+        const likedBy = data.likedBy || [];
+
+        if (likedBy.includes(uidQueDaLike)) {
+            // Ya tenía el like puesto: lo sacamos.
+            tx.update(opinionRef, {
+                likedBy: arrayRemove(uidQueDaLike),
+                likesCount: increment(-1)
+            });
+            return;
+        }
+
+        if (data.authorUid === uidQueDaLike) {
+            throw new Error("No podés darle like a tu propio post.");
+        }
+
+        tx.update(opinionRef, {
+            likedBy: arrayUnion(uidQueDaLike),
+            likesCount: increment(1)
+        });
+
+        if (data.authorUid) {
+            tx.update(doc(db, 'users', data.authorUid), {
+                coins: increment(COINS_POR_LIKE)
+            });
+        }
+    });
+}

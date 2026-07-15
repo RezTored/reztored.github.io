@@ -152,6 +152,34 @@
             margin-left: 8px;
         }
 
+        .perfil-coins {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: var(--bg-header);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin: 0 0 16px;
+        }
+
+        .perfil-coins img { width: 24px; height: 24px; display: block; }
+
+        .perfil-coins .monto {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-white);
+        }
+
+        .perfil-coins .etiqueta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
         .aviso-baneado {
             background: #3a1d1d;
             border: 1px solid #5c2b2b;
@@ -376,6 +404,13 @@
             <img class="perfil-avatar" src="${perfil.photoURL || ''}" alt="Avatar de ${escapeHTML(perfil.username)}">
             <div class="perfil-username">${escapeHTML(perfil.username)}${tagAdminHTML}</div>
             <div class="perfil-fecha">Miembro desde ${formatearFecha(perfil.createdAt)}</div>
+
+            <div class="perfil-coins">
+                <img src="/petocoin.png" alt="petoCoins">
+                <span class="monto">${(perfil.coins ?? 0).toLocaleString('es-AR')}</span>
+                <span class="etiqueta">petoCoins</span>
+            </div>
+
             ${avisoBaneadoHTML}
 
             ${mostrarPestanas ? `
