@@ -20,8 +20,12 @@
 </div>
 <!-- Botón hamburguesa: solo visible en mobile (fuera de la columna del logo) -->
 <div class="flex lg:hidden">
-<button id="menu-btn" class="p-2 text-gray-400" aria-label="Abrir menú">
-    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+<button id="menu-btn" class="hamburger-btn relative z-50 -mr-2 flex h-11 w-11 items-center justify-center text-gray-300 active:scale-90 transition-transform" aria-label="Abrir menú" aria-expanded="false" aria-controls="mobile-menu">
+    <span class="hamburger-icon">
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+    </span>
 </button>
 </div>
 <!-- Columna del medio: links, centrados por los flex-1 de los costados -->
@@ -64,35 +68,38 @@ Mi Perfil
 </div>
 </div>
 </nav>
+<!-- Fondo oscuro detrás del menú mobile -->
+<div id="mobile-menu-backdrop" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm opacity-0 transition-opacity duration-300 z-30 lg:hidden"></div>
+
 <!-- Menú desplegable de mobile: hermano del <nav>, no adentro, así no rompe el flex de arriba -->
-<div id="mobile-menu" class="hidden lg:hidden absolute top-full left-0 w-full bg-gray-900 border-b border-gray-800 p-6 flex flex-col gap-4 text-center z-40">
-    <a href="/" class="text-white hover:text-indigo-400">Inicio</a>
-    <a href="/opinions" class="text-white hover:text-indigo-400">Foro</a>
-    <a href="/info" class="text-white hover:text-indigo-400">Info</a>
-    <a href="/fun" class="text-white hover:text-indigo-400">fun</a>
-    <a href="/tienda" class="text-white hover:text-indigo-400">Tienda</a>
+<div id="mobile-menu" class="hidden lg:hidden absolute top-full left-0 w-full max-h-[calc(100vh-5rem)] overflow-y-auto bg-gray-900 border-b border-gray-800 p-6 flex flex-col gap-2 text-center z-40 opacity-0 -translate-y-2 transition-all duration-300 ease-out shadow-2xl">
+    <a href="/" class="rounded-lg py-3 text-base font-semibold text-white hover:bg-gray-800 hover:text-indigo-400 transition">Inicio</a>
+    <a href="/opinions" class="rounded-lg py-3 text-base font-semibold text-white hover:bg-gray-800 hover:text-indigo-400 transition">Foro</a>
+    <a href="/info" class="rounded-lg py-3 text-base font-semibold text-white hover:bg-gray-800 hover:text-indigo-400 transition">Info</a>
+    <a href="/fun" class="rounded-lg py-3 text-base font-semibold text-white hover:bg-gray-800 hover:text-indigo-400 transition">Fun</a>
+    <a href="/tienda" class="rounded-lg py-3 text-base font-semibold text-white hover:bg-gray-800 hover:text-indigo-400 transition">Tienda</a>
 
     <!-- Estado de sesión también en mobile, ya que la columna derecha de arriba está "hidden lg:flex" -->
-    <div class="pt-4 border-t border-gray-800 flex flex-col items-center gap-3">
-        <button id="btn-login-menu-mobile" class="text-white font-semibold">Log in →</button>
-        <div id="user-logged-in-mobile" class="hidden flex flex-col items-center gap-2 w-full">
+    <div class="pt-4 mt-2 border-t border-gray-800 flex flex-col items-center gap-3">
+        <button id="btn-login-menu-mobile" class="w-full rounded-lg py-3 text-base text-white font-semibold hover:bg-gray-800 transition">Log in →</button>
+        <div id="user-logged-in-mobile" class="hidden flex flex-col items-center gap-3 w-full">
             <div class="flex items-center gap-2">
-                <img id="user-avatar-menu-mobile" src="" alt="Avatar" class="h-8 w-8 rounded-full object-cover border border-gray-700 hidden">
-                <a id="user-profile-link-mobile" href="#" class="text-sm text-indigo-400 font-semibold">Mi Perfil</a>
+                <img id="user-avatar-menu-mobile" src="" alt="Avatar" class="h-9 w-9 rounded-full object-cover border border-gray-700 hidden">
+                <a id="user-profile-link-mobile" href="#" class="text-base text-indigo-400 font-semibold">Mi Perfil</a>
                 <span id="admin-badge-nav-mobile" class="hidden bg-indigo-600 text-white text-[10px] font-bold tracking-widest px-1.5 py-0.5 rounded">ADMIN</span>
             </div>
-            <span id="coins-badge-mobile" class="hidden items-center gap-1.5 bg-gray-800 border border-gray-700 rounded-full pl-1 pr-2.5 py-0.5">
+            <span id="coins-badge-mobile" class="hidden items-center gap-1.5 bg-gray-800 border border-gray-700 rounded-full pl-1 pr-2.5 py-1">
                 <img src="/petocoin.png" alt="petoCoins" class="h-4 w-4">
                 <span id="coins-amount-mobile" class="text-xs font-bold text-white">0</span>
             </span>
-            <button id="btn-notificaciones-mobile" class="relative text-white font-semibold flex items-center gap-2" type="button">
+            <button id="btn-notificaciones-mobile" class="relative w-full justify-center rounded-lg py-2.5 text-white font-semibold flex items-center gap-2 hover:bg-gray-800 transition" type="button">
                 🔔 Notificaciones
                 <span id="notif-badge-mobile" class="hidden bg-red-500 text-white text-[10px] font-bold rounded-full h-4 min-w-4 px-1 items-center justify-center">0</span>
             </button>
             <div id="notif-panel-mobile" class="hidden w-full bg-gray-800 border border-gray-700 rounded-lg p-2 max-h-72 overflow-y-auto">
                 <div id="notif-lista-mobile" class="flex flex-col gap-1"></div>
             </div>
-            <button id="btn-logout-mobile" class="text-sm font-semibold text-red-400">Salir</button>
+            <button id="btn-logout-mobile" class="w-full rounded-lg py-2.5 text-sm font-semibold text-red-400 hover:bg-gray-800 transition">Salir</button>
         </div>
     </div>
 
@@ -334,24 +341,3 @@ const btnLoginMenuMobile = document.getElementById('btn-login-menu-mobile');
 const userLoggedInDivMobile = document.getElementById('user-logged-in-mobile');
 const userProfileLinkMobile = document.getElementById('user-profile-link-mobile');
 const userAvatarMenuMobile = document.getElementById('user-avatar-menu-mobile');
-const btnLogoutMobile = document.getElementById('btn-logout-mobile');
-
-// Campana de notificaciones (donaciones y regalos recibidos)
-const btnNotificaciones = document.getElementById('btn-notificaciones');
-const notifPanel = document.getElementById('notif-panel');
-const notifBadge = document.getElementById('notif-badge');
-const notifLista = document.getElementById('notif-lista');
-const btnNotificacionesMobile = document.getElementById('btn-notificaciones-mobile');
-const notifPanelMobile = document.getElementById('notif-panel-mobile');
-const notifBadgeMobile = document.getElementById('notif-badge-mobile');
-const notifListaMobile = document.getElementById('notif-lista-mobile');
-const adminBadgeNavMobile = document.getElementById('admin-badge-nav-mobile');
-
-btnLoginMenu.addEventListener('click', () => {
-authModal.classList.remove('hidden');
-});
-
-if (btnLoginMenuMobile) {
-    btnLoginMenuMobile.addEventListener('click', () => {
-        authModal.classList.remove('hidden');
-        docum
