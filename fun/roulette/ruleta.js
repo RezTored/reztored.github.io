@@ -103,9 +103,9 @@ const SIMBOLOS_DATA = [
     // bug de "3 en columna no pagaba"). Al duplicar la cantidad de
     // líneas que pueden ganar, había que ajustar el pago por línea
     // para que la ruleta no vuelva a pagar de más.
-    { emoji: '🍒', peso: 25, p3: 1.5, p4: 5, p5: 10 },
-    { emoji: '🍋', peso: 20, p3: 2, p4: 8, p5: 15 },
-    { emoji: '⭐', peso: 18, p3: 3, p4: 12, p5: 25 },
+    { emoji: '🍒', peso: 25, p3: 1.5, p4: 5, p5: 15 },
+    { emoji: '🍋', peso: 20, p3: 2, p4: 8, p5: 20 },
+    { emoji: '⭐', peso: 18, p3: 3, p4: 12, p5: 30 },
     { emoji: '🍀', peso: 15, p3: 4, p4: 20, p5: 40 },
     { emoji: '🔔', peso: 10, p3: 6, p4: 30, p5: 60 },
     { emoji: '💎', peso: 8, p3: 10, p4: 60, p5: 120 },
