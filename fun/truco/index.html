@@ -28,27 +28,27 @@
 
   /* --- Cartas --- */
   .carta {
-    width: 58px; height: 84px; border-radius: 8px; background: #fdfcf7;
+    width: clamp(64px, 18vw, 96px); height: clamp(92px, 26vw, 138px); border-radius: 10px; background: #fdfcf7;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    box-shadow: 0 3px 10px rgba(0,0,0,.45);
-    border-top: 4px solid var(--palo-color, #6366f1);
+    box-shadow: 0 4px 14px rgba(0,0,0,.45);
+    border-top: 5px solid var(--palo-color, #6366f1);
     flex-shrink: 0;
     position: relative;
     animation: aparecer .22s ease-out;
   }
-  .carta .num { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 1.35rem; color: #111; line-height: 1; }
-  .carta .sim { font-size: 1.15rem; margin-top: 2px; }
-  .carta .nom { position: absolute; bottom: 3px; font-size: .5rem; color: #666; text-transform: uppercase; letter-spacing: .04em; }
-  .carta.mini { width: 36px; height: 52px; border-top-width: 3px; }
-  .carta.mini .num { font-size: .85rem; }
-  .carta.mini .sim { font-size: .7rem; margin-top:0; }
+  .carta .num { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: clamp(1.5rem, 4.5vw, 2.1rem); color: #111; line-height: 1; }
+  .carta .sim { font-size: clamp(1.35rem, 3.8vw, 1.8rem); margin-top: 4px; }
+  .carta .nom { position: absolute; bottom: 5px; font-size: .62rem; color: #666; text-transform: uppercase; letter-spacing: .04em; }
+  .carta.mini { width: clamp(42px, 11vw, 62px); height: clamp(60px, 16vw, 90px); border-top-width: 4px; }
+  .carta.mini .num { font-size: clamp(1rem, 3vw, 1.3rem); }
+  .carta.mini .sim { font-size: clamp(.9rem, 2.4vw, 1.15rem); margin-top: 2px; }
   .carta.mini .nom { display: none; }
   .carta.dorso {
     background: repeating-linear-gradient(135deg, #92400e, #92400e 6px, #78350f 6px, #78350f 12px);
-    border-top: 4px solid #b45309;
+    border-top: 5px solid #b45309;
   }
   .carta.jugable { cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
-  .carta.jugable:hover { transform: translateY(-8px) scale(1.04); box-shadow: 0 10px 20px rgba(0,0,0,.5); }
+  .carta.jugable:hover { transform: translateY(-10px) scale(1.06); box-shadow: 0 14px 26px rgba(0,0,0,.5); }
   @keyframes aparecer { from { opacity: 0; transform: translateY(10px) scale(.9); } to { opacity: 1; transform: none; } }
 
   /* --- Turno / avatar --- */
@@ -70,10 +70,10 @@
   .chip.selected { transform: translateY(-3px); box-shadow: 0 0 0 2px #fbbf24, 0 6px 16px rgba(251,191,36,.35); }
 
   /* --- Coin --- */
-  .petocoin-icon { width: 20px; height: 20px; object-fit: contain; animation: spin-coin 4s linear infinite; }
+  .petocoin-icon { width: 24px; height: 24px; object-fit: contain; animation: spin-coin 4s linear infinite; }
   @keyframes spin-coin { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); } }
 
-  .pip { width: 9px; height: 9px; border-radius: 999px; background: #374151; }
+  .pip { width: 12px; height: 12px; border-radius: 999px; background: #374151; }
   .pip.yo { background: #fbbf24; }
   .pip.rival { background: #f87171; }
   .pip.parda { background: #9ca3af; }
@@ -134,62 +134,62 @@
   </div>
 
   <!-- ===================== MESA ===================== -->
-  <div id="vista-mesa" class="hidden-imp w-full max-w-md flex flex-col items-center gap-4">
+  <div id="vista-mesa" class="hidden-imp w-full max-w-2xl flex flex-col items-center gap-5">
 
-    <div class="flex items-center gap-2 flex-wrap justify-center text-xs">
+    <div class="flex items-center gap-2.5 flex-wrap justify-center text-sm">
       <span class="text-gray-400">Sala:</span>
-      <span id="codigo-sala" class="titulo font-bold text-base tracking-widest text-yellow-400"></span>
-      <button id="btn-copiar-codigo" class="bg-gray-800 border border-gray-700 rounded px-2 py-1 hover:bg-gray-700">Copiar</button>
+      <span id="codigo-sala" class="titulo font-bold text-lg tracking-widest text-yellow-400"></span>
+      <button id="btn-copiar-codigo" class="bg-gray-800 border border-gray-700 rounded px-2.5 py-1 hover:bg-gray-700">Copiar</button>
       <span class="text-gray-600">·</span>
-      <span class="flex items-center gap-1 text-yellow-300 font-bold"><img src="petocoin.png" class="petocoin-icon">x<span id="apuesta-info"></span></span>
+      <span class="flex items-center gap-1.5 text-yellow-300 font-bold text-base"><img src="petocoin.png" class="petocoin-icon">x<span id="apuesta-info"></span></span>
       <span class="text-gray-600">·</span>
       <span id="puntos-info" class="text-gray-400"></span>
       <button id="btn-salir-mesa" class="hidden-imp text-red-400 hover:text-red-300 ml-1">Salir de la mesa</button>
     </div>
 
     <!-- carril de duelo -->
-    <div class="lane relative rounded-2xl w-full p-4 flex flex-col gap-3">
+    <div class="lane relative rounded-2xl w-full p-5 sm:p-7 flex flex-col gap-4">
 
       <!-- rival -->
-      <div id="panel-rival" class="panel-jugador relative z-10 bg-black/35 border-2 border-transparent rounded-xl p-3 flex flex-col gap-2">
+      <div id="panel-rival" class="panel-jugador relative z-10 bg-black/35 border-2 border-transparent rounded-xl p-4 flex flex-col gap-3">
         <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2.5">
             <div id="avatar-rival" class="avatar-mano"></div>
-            <span id="nombre-rival" class="text-sm font-bold"></span>
+            <span id="nombre-rival" class="text-base font-bold"></span>
           </div>
-          <span id="score-rival" class="titulo text-lg font-black text-red-400"></span>
+          <span id="score-rival" class="titulo text-2xl font-black text-red-400"></span>
         </div>
-        <div id="cartas-rival" class="flex gap-1.5 justify-center min-h-[56px]"></div>
+        <div id="cartas-rival" class="flex gap-2 sm:gap-3 justify-center min-h-[76px]"></div>
       </div>
 
       <!-- centro: pips + canto -->
-      <div class="relative z-10 flex flex-col items-center gap-2 py-1">
-        <div id="ronda-pips" class="flex gap-1.5"></div>
-        <div id="zona-canto" class="hidden-imp canto-banner w-full bg-black/60 border border-yellow-500/50 rounded-xl px-4 py-3 text-center"></div>
-        <div id="resultado-mano" class="text-xs text-emerald-300 font-bold text-center"></div>
-        <div id="fase-actual" class="text-[10px] uppercase tracking-widest text-gray-400"></div>
+      <div class="relative z-10 flex flex-col items-center gap-2.5 py-1">
+        <div id="ronda-pips" class="flex gap-2"></div>
+        <div id="zona-canto" class="hidden-imp canto-banner w-full bg-black/60 border border-yellow-500/50 rounded-xl px-5 py-4 text-center"></div>
+        <div id="resultado-mano" class="text-sm text-emerald-300 font-bold text-center"></div>
+        <div id="fase-actual" class="text-xs uppercase tracking-widest text-gray-400"></div>
       </div>
 
       <!-- yo -->
-      <div id="panel-yo" class="panel-jugador relative z-10 bg-black/35 border-2 border-transparent rounded-xl p-3 flex flex-col gap-2">
+      <div id="panel-yo" class="panel-jugador relative z-10 bg-black/35 border-2 border-transparent rounded-xl p-4 flex flex-col gap-3">
         <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2.5">
             <div id="avatar-yo" class="avatar-mano"></div>
-            <span id="nombre-yo" class="text-sm font-bold text-yellow-300"></span>
+            <span id="nombre-yo" class="text-base font-bold text-yellow-300"></span>
           </div>
-          <span id="score-yo" class="titulo text-lg font-black text-yellow-300"></span>
+          <span id="score-yo" class="titulo text-2xl font-black text-yellow-300"></span>
         </div>
-        <div id="cartas-yo" class="flex gap-1.5 justify-center min-h-[92px]"></div>
+        <div id="cartas-yo" class="flex gap-2 sm:gap-3 justify-center min-h-[128px]"></div>
       </div>
     </div>
 
     <!-- acciones -->
-    <div id="panel-acciones" class="hidden-imp flex gap-2 justify-center flex-wrap w-full">
-      <button id="btn-envido" class="hidden-imp bg-sky-600 hover:bg-sky-500 px-4 py-2.5 rounded-lg font-bold text-sm">¡Envido!</button>
-      <button id="btn-truco" class="hidden-imp bg-red-600 hover:bg-red-500 px-4 py-2.5 rounded-lg font-bold text-sm"></button>
+    <div id="panel-acciones" class="hidden-imp flex gap-3 justify-center flex-wrap w-full">
+      <button id="btn-envido" class="hidden-imp bg-sky-600 hover:bg-sky-500 px-6 py-3.5 rounded-lg font-bold text-base">¡Envido!</button>
+      <button id="btn-truco" class="hidden-imp bg-red-600 hover:bg-red-500 px-6 py-3.5 rounded-lg font-bold text-base"></button>
     </div>
 
-    <button id="btn-repartir" class="hidden-imp bg-indigo-600 hover:bg-indigo-500 px-6 py-3 rounded-lg font-bold titulo text-sm">▶ Repartir mano</button>
+    <button id="btn-repartir" class="hidden-imp bg-indigo-600 hover:bg-indigo-500 px-8 py-4 rounded-lg font-bold titulo text-base">▶ Repartir mano</button>
     <p id="espera-msg" class="hidden-imp text-gray-400 text-sm text-center"></p>
     <p id="mesa-error" class="hidden-imp text-red-400 text-sm text-center"></p>
   </div>
@@ -202,6 +202,9 @@
       repartirMano, jugarCarta, cantarEnvido, responderEnvido, declararValorEnvido,
       cantarTruco, responderTruco, nombreCarta, simboloCarta
     } from './truco.js';
+    import { activarMusicaFondo } from '../../musica-fondo.js';
+
+    activarMusicaFondo('musica.mp3');
 
     const $ = (id) => document.getElementById(id);
     const PALO_COLOR = { E: '#7dd3fc', B: '#a3e635', O: '#fde047', C: '#fb7185' };
@@ -210,6 +213,7 @@
     let unsubSala = null;
     let ultimaSala = null;
     let cartasMano = null;
+    let handNumberVisto = null;
 
     // ---------- helpers de UI ----------
 
@@ -229,8 +233,8 @@
 
     function avatar(p) {
       return p?.photoURL
-        ? `<img src="${p.photoURL}" class="w-7 h-7 rounded-full border border-gray-700">`
-        : `<div class="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center text-xs">👤</div>`;
+        ? `<img src="${p.photoURL}" class="w-10 h-10 rounded-full border border-gray-700">`
+        : `<div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-base">👤</div>`;
     }
 
     function mostrarErrorLobby(msg) {
@@ -357,7 +361,7 @@
 
     function salirDeVistaMesa() {
       unsubSala?.();
-      codigoActual = null; ultimaSala = null; cartasMano = null;
+      codigoActual = null; ultimaSala = null; cartasMano = null; handNumberVisto = null;
       history.replaceState(null, '', location.pathname);
       $('vista-mesa').classList.add('hidden-imp');
       $('vista-lobby').classList.remove('hidden-imp');
@@ -426,6 +430,12 @@
         sala.envido.estado === 'ninguno' && !sala.truco.pendiente;
 
       if (jugando || sala.phase === 'hand_over' || sala.phase === 'game_over') {
+        // cada vez que el host reparte, handNumber cambia: hay que traer las cartas nuevas
+        // (si no, quedaban pegadas las de la mano anterior al pasar de hand_over a jugando)
+        if (sala.handNumber !== handNumberVisto) {
+          handNumberVisto = sala.handNumber;
+          cartasMano = null;
+        }
         if (!cartasMano) cartasMano = await miMano(codigoActual);
         const jugadasIds = new Set((yo.cartasJugadas || []).map(c => c.id));
         (cartasMano || []).forEach(c => {
@@ -457,38 +467,38 @@
 
       if (sala.envido.estado === 'cantado') {
         const esMio = sala.envido.cantadoPor === user.uid;
-        cantoHtml = `<div class="titulo font-black text-sky-300 text-lg mb-1">¡ENVIDO!</div>`;
+        cantoHtml = `<div class="titulo font-black text-sky-300 text-2xl mb-1">¡ENVIDO!</div>`;
         if (esMio) {
-          cantoHtml += `<div class="text-xs text-gray-300">Esperando la respuesta de ${rival?.username || 'tu rival'}...</div>`;
+          cantoHtml += `<div class="text-sm text-gray-300">Esperando la respuesta de ${rival?.username || 'tu rival'}...</div>`;
         } else {
-          cantoHtml += `<div class="text-xs text-gray-300 mb-2">${sala.players.find(p=>p.uid===sala.envido.cantadoPor)?.username} cantó envido.</div>
+          cantoHtml += `<div class="text-sm text-gray-300 mb-2">${sala.players.find(p=>p.uid===sala.envido.cantadoPor)?.username} cantó envido.</div>
             <div class="flex gap-2 justify-center">
-              <button class="btn-quiero-envido bg-emerald-600 hover:bg-emerald-500 px-4 py-1.5 rounded-lg text-sm font-bold">Quiero</button>
-              <button class="btn-no-quiero-envido bg-gray-700 hover:bg-gray-600 px-4 py-1.5 rounded-lg text-sm font-bold">No quiero</button>
+              <button class="btn-quiero-envido bg-emerald-600 hover:bg-emerald-500 px-5 py-2 rounded-lg text-base font-bold">Quiero</button>
+              <button class="btn-no-quiero-envido bg-gray-700 hover:bg-gray-600 px-5 py-2 rounded-lg text-base font-bold">No quiero</button>
             </div>`;
         }
       } else if (sala.envido.estado === 'esperando_valores') {
         const yaDeclare = yo.envidoValor !== null;
-        cantoHtml = `<div class="titulo font-black text-sky-300 text-lg mb-1">¡QUIERO!</div>`;
+        cantoHtml = `<div class="titulo font-black text-sky-300 text-2xl mb-1">¡QUIERO!</div>`;
         cantoHtml += yaDeclare
           ? `<div class="text-xs text-gray-300">Ya declaraste tu envido. Esperando al rival...</div>`
-          : `<div class="text-xs text-gray-300 mb-2">Declará tu envido (se calcula solo con tus cartas).</div>
-             <button class="btn-declarar-envido bg-sky-600 hover:bg-sky-500 px-4 py-1.5 rounded-lg text-sm font-bold">Declarar mi envido</button>`;
+          : `<div class="text-sm text-gray-300 mb-2">Declará tu envido (se calcula solo con tus cartas).</div>
+             <button class="btn-declarar-envido bg-sky-600 hover:bg-sky-500 px-5 py-2 rounded-lg text-base font-bold">Declarar mi envido</button>`;
       } else if (sala.truco.pendiente) {
         const esMio = sala.truco.cantadoPor === user.uid;
         const nombreNivel = NOMBRE_NIVEL[sala.truco.propuesto];
-        cantoHtml = `<div class="titulo font-black text-red-400 text-xl mb-1 truco-valor">¡${nombreNivel}!</div>`;
+        cantoHtml = `<div class="titulo font-black text-red-400 text-3xl mb-1 truco-valor">¡${nombreNivel}!</div>`;
         if (esMio) {
-          cantoHtml += `<div class="text-xs text-gray-300">Esperando la respuesta de ${rival?.username || 'tu rival'}...</div>`;
+          cantoHtml += `<div class="text-sm text-gray-300">Esperando la respuesta de ${rival?.username || 'tu rival'}...</div>`;
         } else {
-          cantoHtml += `<div class="text-xs text-gray-300 mb-2">${sala.players.find(p=>p.uid===sala.truco.cantadoPor)?.username} cantó ${nombreNivel.toLowerCase()}.</div>
+          cantoHtml += `<div class="text-sm text-gray-300 mb-2">${sala.players.find(p=>p.uid===sala.truco.cantadoPor)?.username} cantó ${nombreNivel.toLowerCase()}.</div>
             <div class="flex gap-2 justify-center">
-              <button class="btn-quiero-truco bg-emerald-600 hover:bg-emerald-500 px-4 py-1.5 rounded-lg text-sm font-bold">Quiero</button>
-              <button class="btn-no-quiero-truco bg-gray-700 hover:bg-gray-600 px-4 py-1.5 rounded-lg text-sm font-bold">No quiero</button>
+              <button class="btn-quiero-truco bg-emerald-600 hover:bg-emerald-500 px-5 py-2 rounded-lg text-base font-bold">Quiero</button>
+              <button class="btn-no-quiero-truco bg-gray-700 hover:bg-gray-600 px-5 py-2 rounded-lg text-base font-bold">No quiero</button>
             </div>`;
         }
       } else if (sala.truco.estado !== 'ninguno') {
-        cantoHtml = `<div class="titulo font-black text-red-400 text-base truco-valor">${NOMBRE_NIVEL[sala.truco.estado]} en juego · vale ${sala.truco.valor}</div>`;
+        cantoHtml = `<div class="titulo font-black text-red-400 text-lg truco-valor">${NOMBRE_NIVEL[sala.truco.estado]} en juego · vale ${sala.truco.valor}</div>`;
       }
 
       if (cantoHtml) { zona.innerHTML = cantoHtml; zona.classList.remove('hidden-imp'); }
@@ -539,6 +549,9 @@
     const params = new URLSearchParams(location.search);
     if (params.get('sala')) $('input-codigo').value = params.get('sala').toUpperCase();
   </script>
-
+  <script type="module">
+     import { activarMusicaFondo } from '../../musica-fondo.js';
+     activarMusicaFondo('truco.mp3');
+  </script>
 </body>
 </html>

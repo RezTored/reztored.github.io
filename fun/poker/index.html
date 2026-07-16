@@ -131,6 +131,9 @@
         crearSala, unirseSala, salirDeMesa, suscribirseASala, miMano,
         iniciarMano, accion, escucharComoHost, revelarMano
     } from './poker.js';
+    import { activarMusicaFondo } from '../../musica-fondo.js';
+
+    activarMusicaFondo('musica.mp3');
 
     let codigoActual = null;
     let unsubSala = null;
@@ -364,6 +367,9 @@
     const params = new URLSearchParams(location.search);
     if (params.get('sala')) $('input-codigo').value = params.get('sala').toUpperCase();
   </script>
-
+  <script type="module">
+     import { activarMusicaFondo } from '../../musica-fondo.js';
+     activarMusicaFondo('poker.mp3');
+  </script>
 </body>
 </html>
