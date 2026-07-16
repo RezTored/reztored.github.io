@@ -12,7 +12,7 @@ export const CONFIG = {
     // pagara MUCHO más de lo que recibía (jackpot "fácil" y multiplicador
     // "demasiado" alto). Se baja la probabilidad y se pesa el sorteo del
     // símbolo igual que en un giro normal.
-    PROBABILIDAD_JACKPOT: 0.004,
+    PROBABILIDAD_JACKPOT: 0.005,
 
     SONIDOS: {
         giro: "sonidos/slot.mp3",
@@ -103,7 +103,7 @@ const SIMBOLOS_DATA = [
     // bug de "3 en columna no pagaba"). Al duplicar la cantidad de
     // líneas que pueden ganar, había que ajustar el pago por línea
     // para que la ruleta no vuelva a pagar de más.
-    { emoji: '🍒', peso: 25, p3: 1, p4: 5, p5: 10 },
+    { emoji: '🍒', peso: 25, p3: 1.5, p4: 5, p5: 10 },
     { emoji: '🍋', peso: 20, p3: 2, p4: 8, p5: 15 },
     { emoji: '⭐', peso: 18, p3: 3, p4: 12, p5: 25 },
     { emoji: '🍀', peso: 15, p3: 4, p4: 20, p5: 40 },
