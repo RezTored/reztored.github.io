@@ -44,7 +44,16 @@
             border-radius: 12px;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
             overflow: hidden;
-            transition: box-shadow 0.4s ease, border-color 0.4s ease;
+            transition: box-shadow 0.4s ease, border-color 0.4s ease, max-width 0.2s ease;
+        }
+
+        /* En pantallas anchas, el perfil se agranda y pasa a mostrar una
+           columna lateral (Top Petocoins + Redes) al lado del contenido
+           principal, para que se sienta más "página de perfil" y menos
+           "tarjetita" chica. En mobile se queda angosto como antes. */
+        @media (min-width: 860px) {
+            body { padding: 32px 20px; align-items: flex-start; }
+            .app-window { max-width: 900px; }
         }
  
         .window-header {
@@ -245,6 +254,81 @@
         }
         .donar-box select { min-width: 0; }
 
+        /* --- LAYOUT CON SIDEBAR (contenido principal + Top Petocoins/Redes) --- */
+        .perfil-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+            margin-top: 8px;
+        }
+        @media (min-width: 860px) {
+            .perfil-grid { grid-template-columns: 2fr 1fr; align-items: start; }
+        }
+
+        .sidebar-box {
+            background: var(--bg-header);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .sidebar-box:last-child { margin-bottom: 0; }
+        .sidebar-box h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--text-white);
+            margin-bottom: 12px;
+        }
+
+        /* Top Petocoins */
+        .leaderboard-list { list-style: none; }
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.85rem;
+        }
+        .leaderboard-item:last-child { border-bottom: none; }
+        .leaderboard-item.leaderboard-item-actual { color: var(--primary, #4f46e5); }
+        .leaderboard-rank { font-weight: 700; color: var(--text-muted); width: 26px; flex-shrink: 0; }
+        .leaderboard-item.leaderboard-item-actual .leaderboard-rank { color: var(--primary, #4f46e5); }
+        .leaderboard-name {
+            flex-grow: 1;
+            color: var(--text-main);
+            text-decoration: none;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .leaderboard-name:hover { text-decoration: underline; }
+        .leaderboard-coins { color: #ffd700; font-weight: 700; font-size: 0.8rem; white-space: nowrap; }
+
+        /* Redes sociales */
+        .redes-grid { display: flex; flex-direction: column; gap: 8px; }
+        .red-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            text-decoration: none;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+        .red-link:hover { border-color: var(--primary, #4f46e5); transform: translateX(2px); }
+        .red-emoji { font-size: 1rem; }
+        .redes-vacio { color: var(--text-muted); font-size: 0.8rem; font-style: italic; }
+        .edit-form .redes-grid-inputs { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+        .edit-form .redes-grid-inputs label { margin-bottom: 0; }
+        .edit-form .redes-grid-inputs input { margin-bottom: 0; }
+
  
         .no-encontrado {
             text-align: center;
@@ -324,6 +408,10 @@
             margin: -28px -24px 18px;
             border-bottom: 1px solid var(--border-color);
             background-color: var(--bg-header);
+        }
+        @media (min-width: 860px) {
+            .perfil-banner { height: 170px; }
+            .perfil-avatar { width: 128px; height: 128px; border-width: 4px; margin-top: -64px; }
         }
 
         /* Tabs "🎨 Colores" / "🖼️ Imagen o GIF" dentro de "Personalizar" */
@@ -559,11 +647,13 @@
         onAuthStateChanged,
         obtenerPerfilPorUsername,
         obtenerPerfilPorUid,
+        obtenerTopPetocoins,
         actualizarPerfil,
         actualizarColorPerfil,
         actualizarBannerColorPerfil,
         actualizarBannerImagenPerfil,
         actualizarMarcoPerfil,
+        actualizarRedesPerfil,
         otorgarAdmin,
         banearUsuario,
         esAdmin,
@@ -576,6 +666,19 @@
  
     const contenedor = document.getElementById('contenido-perfil');
     const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
+
+    // Redes sociales que se pueden mostrar/editar en el perfil, debajo
+    // del cuadro de "Top Petocoins".
+    const REDES_CONFIG = [
+        { id: 'instagram', emoji: '📸', label: 'Instagram', placeholder: 'https://instagram.com/tu_usuario' },
+        { id: 'twitter', emoji: '🐦', label: 'X / Twitter', placeholder: 'https://x.com/tu_usuario' },
+        { id: 'tiktok', emoji: '🎵', label: 'TikTok', placeholder: 'https://tiktok.com/@tu_usuario' },
+        { id: 'youtube', emoji: '▶️', label: 'YouTube', placeholder: 'https://youtube.com/@tu_canal' },
+        { id: 'twitch', emoji: '🎮', label: 'Twitch', placeholder: 'https://twitch.tv/tu_usuario' },
+        { id: 'discord', emoji: '💬', label: 'Discord', placeholder: 'https://discord.gg/tu_invitacion' },
+        { id: 'kick', emoji: '🥊', label: 'Kick', placeholder: 'https://kick.com/tu_usuario' },
+        { id: 'otro', emoji: '🔗', label: 'Otro link', placeholder: 'https://...' }
+    ];
 
     // --- Banner de colores "al azar" por defecto (gratis, sin comprar nada) ---
     // No es random de verdad en cada carga (se vería feo/inconsistente):
@@ -681,7 +784,14 @@
             return;
         }
  
-        const perfil = await obtenerPerfilPorUsername(username);
+        // El perfil y el top de petocoins se piden en paralelo; si el
+        // ranking falla por algún motivo, obtenerTopPetocoins ya
+        // devuelve un array vacío en vez de tirar error, así que no
+        // hace falta un try/catch extra acá.
+        const [perfil, topPetocoins] = await Promise.all([
+            obtenerPerfilPorUsername(username),
+            obtenerTopPetocoins(5)
+        ]);
  
         if (!perfil) {
             renderNoEncontrado();
@@ -701,11 +811,11 @@
             }
             const viewerEsAdmin = esAdmin(perfilViewer) || esAdmin(user ? user.uid : null);
 
-            renderPerfil(perfil, esDueno, viewerEsAdmin, user);
+            renderPerfil(perfil, esDueno, viewerEsAdmin, user, topPetocoins);
         });
     }
  
-    function renderPerfil(perfil, esDueno, viewerEsAdmin, viewerUser) {
+    function renderPerfil(perfil, esDueno, viewerEsAdmin, viewerUser, topPetocoins = []) {
         const bioHTML = perfil.bio
             ? `<div class="perfil-bio">${escapeHTML(perfil.bio)}</div>`
             : `<div class="perfil-bio vacia">Este usuario todavía no escribió una bio.</div>`;
@@ -856,6 +966,58 @@
         // Pestaña "Administrador": solo la ve el dueño del perfil, si es admin.
         const mostrarPestanas = esDueno && viewerEsAdmin;
 
+        // --- 🏆 Sidebar: Top Petocoins ---
+        const leaderboardHTML = topPetocoins.length > 0
+            ? `<ul class="leaderboard-list">${topPetocoins.map((u, i) => `
+                <li class="leaderboard-item ${u.uid === perfil.uid ? 'leaderboard-item-actual' : ''}">
+                    <span class="leaderboard-rank">#${i + 1}</span>
+                    <a class="leaderboard-name" href="/${encodeURIComponent(u.username || '')}">${escapeHTML(u.username || 'Usuario')}</a>
+                    <span class="leaderboard-coins">${(u.coins ?? 0).toLocaleString('es-AR')}</span>
+                </li>
+            `).join('')}</ul>`
+            : `<p class="redes-vacio">Todavía no hay suficientes datos para el ranking.</p>`;
+
+        // --- 🔗 Sidebar: Redes sociales ---
+        const redes = perfil.redes || {};
+        const redesConValor = REDES_CONFIG.filter(r => redes[r.id]);
+        const redesListaHTML = redesConValor.length > 0
+            ? `<div class="redes-grid">${redesConValor.map(r => `
+                <a class="red-link" href="${escapeAttr(redes[r.id])}" target="_blank" rel="noopener noreferrer nofollow">
+                    <span class="red-emoji">${r.emoji}</span> ${r.label}
+                </a>
+            `).join('')}</div>`
+            : `<p class="redes-vacio">${esDueno ? 'Todavía no cargaste tus redes.' : 'Este usuario todavía no cargó sus redes.'}</p>`;
+
+        const redesEditFormHTML = esDueno ? `
+            <button type="button" id="btn-editar-redes" style="width:100%; margin-top:10px;">✏️ Editar mis redes</button>
+            <form class="edit-form" id="form-editar-redes">
+                <div class="redes-grid-inputs">
+                    ${REDES_CONFIG.map(r => `
+                        <div>
+                            <label for="input-red-${r.id}">${r.emoji} ${r.label}</label>
+                            <input type="url" id="input-red-${r.id}" placeholder="${r.placeholder}" value="${redes[r.id] ? escapeAttr(redes[r.id]) : ''}">
+                        </div>
+                    `).join('')}
+                </div>
+                <button type="submit" class="btn-primary" style="width:100%;">Guardar redes</button>
+                <div class="form-msg" id="msg-editar-redes"></div>
+            </form>
+        ` : '';
+
+        const sidebarHTML = `
+            <div class="perfil-sidebar">
+                <div class="sidebar-box">
+                    <h3>🏆 Top Petocoins</h3>
+                    ${leaderboardHTML}
+                </div>
+                <div class="sidebar-box">
+                    <h3>🔗 Redes Sociales</h3>
+                    ${redesListaHTML}
+                    ${redesEditFormHTML}
+                </div>
+            </div>
+        `;
+
         contenedor.innerHTML = `
             ${bannerHTML}
             <img class="${avatarClass}" style="${avatarStyle}" src="${perfil.photoURL || ''}" alt="Avatar de ${escapeHTML(perfil.username)}">
@@ -876,6 +1038,8 @@
 
             ${avisoBaneadoHTML}
 
+            <div class="perfil-grid">
+            <div class="perfil-main">
             ${mostrarPestanas ? `
                 <div class="tabs-perfil">
                     <button class="tab-btn activa" data-tab="tab-perfil">Perfil</button>
@@ -974,6 +1138,9 @@
                     </div>
                 </div>
             ` : ''}
+            </div>
+            ${sidebarHTML}
+            </div>
         `;
 
         const btnMochila = document.getElementById('btn-mochila');
@@ -1233,6 +1400,38 @@
                     }
                 });
             });
+
+            // Botón "✏️ Editar mis redes" (sidebar, debajo del Top Petocoins)
+            const btnEditarRedes = document.getElementById('btn-editar-redes');
+            const formEditarRedes = document.getElementById('form-editar-redes');
+            if (btnEditarRedes && formEditarRedes) {
+                btnEditarRedes.addEventListener('click', () => {
+                    formEditarRedes.classList.toggle('activo');
+                });
+
+                formEditarRedes.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const msgRedes = document.getElementById('msg-editar-redes');
+                    const nuevasRedes = {};
+                    REDES_CONFIG.forEach(r => {
+                        const input = document.getElementById(`input-red-${r.id}`);
+                        if (input) nuevasRedes[r.id] = input.value;
+                    });
+
+                    msgRedes.textContent = 'Guardando...';
+                    msgRedes.className = 'form-msg';
+                    try {
+                        await actualizarRedesPerfil(perfil.uid, nuevasRedes);
+                        msgRedes.textContent = '¡Listo! Recargando...';
+                        msgRedes.className = 'form-msg text-green-400';
+                        setTimeout(() => window.location.reload(), 800);
+                    } catch (error) {
+                        console.error(error);
+                        msgRedes.textContent = 'No se pudo: ' + error.message;
+                        msgRedes.className = 'form-msg text-red-400';
+                    }
+                });
+            }
         }
     }
  

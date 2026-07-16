@@ -39,7 +39,8 @@ import {
     collection,
     query,
     orderBy,
-    limit
+    limit,
+    getDocs
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { PRODUCTOS } from "./tienda/productos.js";
 
@@ -260,6 +261,24 @@ export async function obtenerPerfilPorUid(uid) {
 }
 
 /**
+ * Trae los "cantidad" usuarios con más petoCoins, ordenados de mayor a
+ * menor. Se usa para el cuadro "🏆 Top Petocoins" del perfil. Si falla
+ * la consulta (por ejemplo, permisos de Firestore) devuelve un array
+ * vacío en vez de tirar el error para arriba, así el resto del perfil
+ * se sigue viendo bien aunque el ranking no cargue.
+ */
+export async function obtenerTopPetocoins(cantidad = 5) {
+    try {
+        const q = query(collection(db, 'users'), orderBy('coins', 'desc'), limit(cantidad));
+        const snap = await getDocs(q);
+        return snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    } catch (error) {
+        console.error('No se pudo cargar el top de petoCoins:', error);
+        return [];
+    }
+}
+
+/**
  * ¿Es admin? Acepta un objeto de perfil (con .isAdmin / .uid) o
  * directamente un uid en string. Un uid en SUPER_ADMIN_UIDS siempre
  * cuenta como admin, aunque el flag de Firestore esté en false.
@@ -303,6 +322,42 @@ export async function actualizarPerfil(uid, { bio, photoURL }) {
     if (datos.photoURL && auth.currentUser && auth.currentUser.uid === uid) {
         await updateProfile(auth.currentUser, { photoURL: datos.photoURL });
     }
+}
+
+// Redes sociales que se pueden mostrar en el perfil, debajo del "Top
+// Petocoins". Cualquier clave que no esté en esta lista se ignora al
+// guardar (así nadie puede meter campos raros en el documento).
+export const REDES_PERMITIDAS = ['instagram', 'twitter', 'tiktok', 'youtube', 'twitch', 'discord', 'kick', 'otro'];
+
+/**
+ * Guarda las redes sociales del usuario logueado (solo puede editar
+ * las propias). "redes" es un objeto como { instagram: 'https://...',
+ * twitter: 'https://...' }. Cada valor tiene que ser una URL http(s)
+ * válida o se descarta en silencio (así un campo vacío o mal escrito
+ * no rompe el guardado de los demás). Pisa por completo el campo
+ * "redes" anterior con las claves permitidas que hayan venido.
+ */
+export async function actualizarRedesPerfil(uid, redes) {
+    const user = auth.currentUser;
+    if (!user || user.uid !== uid) {
+        throw new Error("Solo podés editar tus propias redes.");
+    }
+
+    const redesLimpias = {};
+    for (const clave of REDES_PERMITIDAS) {
+        const valor = (redes && redes[clave] ? String(redes[clave]) : '').trim();
+        if (!valor) continue;
+        try {
+            const url = new URL(valor);
+            if (url.protocol === 'https:' || url.protocol === 'http:') {
+                redesLimpias[clave] = valor;
+            }
+        } catch {
+            // No era una URL válida: se descarta esa red en particular.
+        }
+    }
+
+    await setDoc(doc(db, 'users', uid), { redes: redesLimpias }, { merge: true });
 }
 
 /** Borra una opinión del foro (solo lo debería poder llamar un admin). */
