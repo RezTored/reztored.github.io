@@ -31,6 +31,17 @@ service cloud.firestore {
       allow update: if (esDueno(uid) || esAdmin() || (estaLogueado() && uid != request.auth.uid)) &&
                     request.resource.data.get('coins', 0) is int && 
                     request.resource.data.get('coins', 0) >= 0;
+
+      // Notificaciones (donaciones y regalos recibidos): cualquier
+      // usuario logueado puede CREARLE una notificación a OTRO (para
+      // avisarle que le donó/regaló algo), pero solo el dueño de la
+      // cuenta puede leerlas o marcarlas como leídas.
+      match /notificaciones/{notiId} {
+        allow read: if esDueno(uid);
+        allow create: if estaLogueado() && request.resource.data.deUid == request.auth.uid;
+        allow update: if esDueno(uid);
+        allow delete: if false;
+      }
     }
 
     match /opinions/{opinionId} {

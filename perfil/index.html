@@ -1,645 +1,409 @@
 <!DOCTYPE html>
-
 <html lang="es">
-
 <head>
-
     <meta charset="UTF-8">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Perfil de Usuario</title>
-
-    
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
-
-
-
     <style>
-
+        /* --- ESTILOS VISUALES DEL PERFIL --- */
         :root {
-
-            --bg-page: #121214;
-
-            --bg-card: #1e1e22;
-
-            --bg-header: #18181c;
-
-            --border-color: #2d2d34;
-
-            --text-main: #e1e1e6;
-
-            --text-muted: #8e8e93;
-
-            --text-white: #ffffff;
-
-            --accent-red: #ff5f56;
-
-            --primary: #4f46e5;
-
+            --bg-dark: #111111;
+            --panel-dark: #1e1e24;
+            --text-light: #f5f5f5;
+            --text-muted: #a0a0a0;
+            --user-theme-color: #8b5cf6; /* Color por defecto */
         }
 
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            scrollbar-width: thin;
+            scrollbar-color: var(--user-theme-color) var(--bg-dark);
+        }
 
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-
-
-        body {
-
-            background: var(--bg-page); 
-
-            font-family: 'Rajdhani', sans-serif;
-
-            color: var(--text-main);
-
+        .profile-fullscreen {
             min-height: 100vh;
-
             display: flex;
-
-            justify-content: center;
-
-            align-items: center;
-
+            flex-direction: column;
         }
 
+        /* Banner Masivo */
+        .profile-banner {
+            height: 450px;
+            background-size: cover;
+            background-position: center;
+            background-color: #2c2c35;
+            position: relative;
+            border-bottom: 4px solid var(--user-theme-color);
+        }
 
-
-        .page-container {
-
+        .banner-overlay {
+            position: absolute;
+            bottom: 0;
             width: 100%;
-
-            max-width: 500px; 
-
-            padding: 20px;
-
+            height: 200px;
+            background: linear-gradient(to top, var(--bg-dark), transparent);
         }
 
-
-
-        .app-window {
-
-            background: var(--bg-card);
-
-            border: 1px solid var(--border-color);
-
-            border-radius: 12px;
-
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
-
-            overflow: hidden;
-
+        /* Botón Editar sobre el Banner */
+        .btn-edit-banner {
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            z-index: 10;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        .btn-edit-banner:hover {
+            background: var(--user-theme-color);
+            border-color: transparent;
         }
 
-
-
-        .window-header {
-
-            background: var(--bg-header);
-
-            padding: 12px 16px;
-
-            display: flex;
-
-            align-items: center;
-
-            justify-content: space-between;
-
-            border-bottom: 1px solid var(--border-color);
-
+        /* Contenido */
+        .profile-content {
+            max-width: 1200px;
+            margin: -120px auto 0;
+            padding: 0 20px 50px;
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            box-sizing: border-box;
         }
-
-
-
-        .window-dots { display: flex; gap: 8px; }
-
-        .dot { width: 11px; height: 11px; border-radius: 50%; }
-
-        .dot.close { background: #ff5f56; }
-
-        .dot.minimize { background: #ffbd2e; }
-
-        .dot.maximize { background: #27c93f; }
-
-
-
-        .window-title {
-
-            font-family: 'Orbitron', sans-serif;
-
-            font-size: 0.75rem;
-
-            font-weight: 700;
-
-            color: var(--text-muted);
-
-            letter-spacing: 2px;
-
-            text-transform: uppercase;
-
-        }
-
-        .window-spacer { width: 49px; }
-
-
-
-        .window-content {
-
-            padding: 24px;
-
-            max-height: 80vh;
-
-            overflow-y: auto;
-
-        }
-
-
-
-        /* --- DISEÑO DEL PERFIL --- */
 
         .profile-header {
-
             display: flex;
-
-            flex-direction: column;
-
-            align-items: center;
-
-            padding: 30px 20px;
-
-            background: var(--bg-header);
-
-            border: 1px solid var(--border-color);
-
-            border-radius: 8px;
-
-            margin-bottom: 24px;
-
-            text-align: center;
-
-        }
-
-
-
-        .profile-avatar-large {
-
-            width: 90px;
-
-            height: 90px;
-
-            border-radius: 50%;
-
-            border: 2px solid var(--accent-red);
-
-            box-shadow: 0 0 15px rgba(255, 95, 86, 0.3);
-
-            margin-bottom: 15px;
-
-            background: var(--bg-card);
-
-        }
-
-
-
-        .profile-info h2 {
-
-            font-family: 'Orbitron', sans-serif;
-
-            font-size: 1.5rem;
-
-            color: var(--text-white);
-
-            margin-bottom: 5px;
-
-            letter-spacing: 1.5px;
-
-        }
-
-
-
-        .profile-info p {
-
-            color: var(--text-muted);
-
-            font-size: 0.95rem;
-
-            font-family: monospace;
-
-            background: #121214;
-
-            padding: 4px 10px;
-
-            border-radius: 4px;
-
-            border: 1px dashed var(--border-color);
-
-        }
-
-
-
-        /* --- NAVEGACIÓN Y FEED --- */
-
-        .auth-status-bar {
-
-            background: var(--bg-header);
-
-            border: 1px solid var(--border-color);
-
-            border-radius: 8px;
-
-            padding: 10px 14px;
-
-            font-size: 0.85rem;
-
-            display: flex;
-
             justify-content: space-between;
-
-            align-items: center;
-
-            margin-bottom: 20px;
-
+            align-items: flex-end;
+            margin-bottom: 40px;
         }
 
-
-
-        .auth-status-bar a {
-
-            color: var(--text-main);
-
-            text-decoration: none;
-
-            font-weight: bold;
-
-            letter-spacing: 1px;
-
-        }
-
-
-
-        .auth-status-bar a:hover {
-
-            color: var(--text-white);
-
-            text-decoration: underline;
-
-        }
-
-
-
-        .opinions-feed {
-
+        .user-identity {
             display: flex;
-
-            flex-direction: column;
-
-            gap: 12px;
-
+            align-items: flex-end;
+            gap: 25px;
         }
 
-
-
-        .opinion-card {
-
-            background: var(--bg-header);
-
-            border: 1px solid var(--border-color);
-
-            border-radius: 8px;
-
-            padding: 16px;
-
+        .avatar {
+            width: 180px;
+            height: 180px;
+            border-radius: 15px;
+            border: 5px solid var(--bg-dark);
+            box-shadow: 0 0 25px rgba(0,0,0,0.6);
+            background-color: var(--panel-dark);
+            object-fit: cover;
         }
 
+        .user-titles h1 {
+            margin: 0 0 10px 0;
+            font-size: 3.2rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
 
-
-        .opinion-card-header {
-
+        .badges-container {
             display: flex;
-
-            justify-content: space-between;
-
+            gap: 10px;
             align-items: center;
-
-            margin-bottom: 8px;
-
-            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-
-            padding-bottom: 6px;
-
+            flex-wrap: wrap;
         }
 
-
-
-        .opinion-date {
-
-            color: var(--text-muted);
-
-            font-size: 0.8rem;
-
-        }
-
-
-
-        .opinion-body {
-
-            font-size: 0.95rem;
-
-            color: var(--text-main);
-
-            white-space: pre-line;
-
-            letter-spacing: 0.5px;
-
-        }
-
-
-
-        .no-opinions {
-
-            text-align: center;
-
-            padding: 30px;
-
-            color: var(--text-muted);
-
+        .user-badge {
+            background-color: var(--user-theme-color);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 600;
             font-size: 0.9rem;
-
-            border: 1px dashed var(--border-color);
-
-            border-radius: 8px;
-
         }
 
-        
+        .rank-badge {
+            background-color: rgba(255, 215, 0, 0.1);
+            color: #ffd700;
+            border: 1px solid #ffd700;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
 
-        .window-content::-webkit-scrollbar { width: 6px; }
+        .user-actions {
+            display: flex;
+            gap: 10px;
+        }
 
-        .window-content::-webkit-scrollbar-track { background: var(--bg-card); }
+        .btn-mochila, .btn-admin {
+            background-color: var(--panel-dark);
+            color: white;
+            border: 2px solid var(--user-theme-color);
+            padding: 12px 20px;
+            font-size: 1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
 
-        .window-content::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+        .btn-admin {
+            border-color: #ef4444; /* Rojo para destacar admin */
+        }
+        .btn-admin:hover {
+            background-color: #ef4444;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+        }
+        .btn-mochila:hover {
+            background-color: var(--user-theme-color);
+            transform: translateY(-2px);
+        }
 
+        /* Layout Grid */
+        .custom-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+        }
+
+        .custom-bio-section, .custom-box {
+            background-color: var(--panel-dark);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .custom-bio-section h2, .custom-box h3 {
+            margin-top: 0;
+            color: var(--user-theme-color);
+            border-bottom: 2px solid rgba(255,255,255,0.05);
+            padding-bottom: 10px;
+        }
+
+        .bio-content {
+            line-height: 1.6;
+            font-size: 1.1rem;
+            color: #cccccc;
+            white-space: pre-wrap; /* Respeta los saltos de línea */
+        }
+
+        /* Leaderboard */
+        .leaderboard-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .leaderboard-rank { font-weight: bold; color: var(--user-theme-color); width: 30px; }
+        .leaderboard-name { flex-grow: 1; }
+        .leaderboard-coins { color: #ffd700; font-weight: bold; }
+
+        /* --- MODALES (Formularios flotantes) --- */
+        .modal {
+            display: none; /* Oculto por defecto */
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: var(--panel-dark);
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 2px solid var(--user-theme-color);
+        }
+
+        .modal-content h2 {
+            margin-top: 0;
+            color: var(--user-theme-color);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-group label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .form-group input, .form-group textarea {
+            background: #111;
+            border: 1px solid #333;
+            padding: 10px;
+            color: white;
+            border-radius: 8px;
+            font-family: inherit;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--user-theme-color);
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-save, .btn-cancel {
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            border: none;
+        }
+
+        .btn-save { background: var(--user-theme-color); color: white; }
+        .btn-cancel { background: #333; color: white; }
+
+        .hidden { display: none !important; }
+
+        @media (max-width: 800px) {
+            .custom-layout { grid-template-columns: 1fr; }
+            .profile-header { flex-direction: column; align-items: flex-start; gap: 20px; }
+        }
     </style>
-
 </head>
-
 <body>
 
-
-
-<div class="page-container">
-
-    <div class="app-window">
-
-        
-
-        <div class="window-header">
-
-            <div class="window-dots">
-
-                <span class="dot close"></span>
-
-                <span class="dot minimize"></span>
-
-                <span class="dot maximize"></span>
-
-            </div>
-
-            <div class="window-title">USER PROFILE</div>
-
-            <div class="window-spacer"></div>
-
-        </div>
-
-
-
-        <div class="window-content">
-
-            
-
-            <div class="auth-status-bar">
-
-                <a href="/opinions/index.html" style="color: var(--text-muted);">&lt; VOLVER AL FORO</a>
-
-                <a href="/" id="logo-inicio">INICIO</a>
-
-            </div>
-
-
-
-            <!-- Cabecera del Perfil -->
-
-            <div class="profile-header" id="profile-header" style="display: none;">
-
-                <img id="profile-avatar" class="profile-avatar-large" src="" alt="Avatar">
-
-                <div class="profile-info">
-
-                    <h2 id="profile-username">...</h2>
-
-                    <p id="profile-stats">Buscando datos...</p>
-
-                </div>
-
-            </div>
-
-
-
-            <!-- Feed de este usuario -->
-
-            <div class="opinions-feed" id="user-opinions-container">
-
-                <div class="no-opinions">Cargando perfil...</div>
-
-            </div>
-
-
-
-        </div>
-
+<div class="profile-fullscreen" id="profileContainer">
+    
+    <div class="profile-banner" id="userBanner" style="background-image: url('https://picsum.photos/1200/450');">
+        <div class="banner-overlay"></div>
+        <button id="editProfileBtn" class="btn-edit-banner hidden">✏️ Personalizar Perfil</button>
     </div>
 
+    <div class="profile-content">
+        
+        <div class="profile-header">
+            <div class="user-identity">
+                <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=default" alt="Avatar" class="avatar" id="userAvatar">
+                <div class="user-titles">
+                    <h1 id="userName">Cargando...</h1>
+                    <div class="badges-container">
+                        <span class="user-badge" id="userBadge">Miembro</span>
+                        <span class="rank-badge">🏆 Rank #<span id="userRank">--</span> | 🪙 <span id="userCoins">0</span> Petocoins</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="user-actions">
+                <button id="mochilaBtn" class="btn-mochila hidden">🎒 Mi Mochila</button>
+                <button id="adminBtn" class="btn-admin hidden">⚙️ Panel Admin</button>
+            </div>
+        </div>
+
+        <div class="custom-layout">
+            <div class="custom-bio-section">
+                <h2>Sobre mí</h2>
+                <div id="userBio" class="bio-content">Cargando biografía...</div>
+            </div>
+
+            <div class="side-panel">
+                <div class="custom-box">
+                    <h3>🏆 Top Petocoins</h3>
+                    <ul class="leaderboard-list" id="leaderboardList">
+                        <li>Cargando posiciones...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
+<div class="modal" id="editModal">
+    <div class="modal-content">
+        <h2>Personaliza tu Perfil</h2>
+        <div class="form-group">
+            <label>Nombre de Usuario</label>
+            <input type="text" id="editNameInput">
+        </div>
+        <div class="form-group">
+            <label>Biografía (Sobre mí)</label>
+            <textarea id="editBioInput" rows="4"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Color de Tema (Hexadecimal)</label>
+            <input type="color" id="editColorInput" style="height: 40px; padding: 2px;">
+        </div>
+        <div class="form-group">
+            <label>URL de la imagen de Avatar</label>
+            <input type="url" id="editAvatarInput" placeholder="https://ejemplo.com/avatar.png">
+        </div>
+        <div class="form-group">
+            <label>URL del Banner</label>
+            <input type="url" id="editBannerInput" placeholder="https://ejemplo.com/banner.png">
+        </div>
+        <div class="modal-buttons">
+            <button class="btn-cancel" id="closeEditModal">Cancelar</button>
+            <button class="btn-save" id="saveProfileBtn">Guardar cambios</button>
+        </div>
+    </div>
+</div>
 
-
-<script type="module">
-
-    import { auth, db } from '../reztored-auth.js';
-
-    import {
-
-        collection,
-
-        query,
-
-        where,
-
-        orderBy,
-
-        onSnapshot
-
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-
-
-    // Extraer el nombre de usuario de la URL de forma segura
-
-    const path = window.location.pathname;
-
-    const targetUsername = decodeURIComponent(path.split('/').pop() || '').trim();
-
-
-
-    const container = document.getElementById('user-opinions-container');
-
-    const profileHeader = document.getElementById('profile-header');
-
-    const profileUsername = document.getElementById('profile-username');
-
-    const profileAvatar = document.getElementById('profile-avatar');
-
-    const profileStats = document.getElementById('profile-stats');
-
-
-
-    if (!targetUsername || targetUsername === "perfil" || targetUsername === "index.html") {
-
-        container.innerHTML = '<div class="no-opinions" style="color: #ff5f56;">Usuario no encontrado o URL inválida.</div>';
-
-    } else {
-
-        profileHeader.style.display = 'flex';
-
-        profileUsername.textContent = targetUsername.toUpperCase();
-
+<div class="modal" id="adminModal" style="border-color: #ef4444;">
+    <div class="modal-content" style="border-color: #ef4444;">
+        <h2 style="color: #ef4444;">Panel de Administración</h2>
+        <p style="color: var(--text-muted); font-size:0.9rem;">Busca un usuario por su UID de Firebase para gestionarlo.</p>
         
+        <div class="form-group">
+            <label>ID del Usuario (UID)</label>
+            <div style="display:flex; gap: 5px;">
+                <input type="text" id="searchUserUid" placeholder="Copiar UID desde Firebase Console" style="flex-grow:1;">
+                <button class="btn-save" id="btnSearchUser" style="background:#ef4444;">Buscar</button>
+            </div>
+        </div>
 
-        // Establecemos un bottt-avatar por defecto usando el seed del usuario
-
-        const defaultAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(targetUsername)}`;
-
-        profileAvatar.src = defaultAvatar;
-
-
-
-        // Consultar a Firestore los posts de este usuario
-
-        const opinionsCollection = collection(db, 'opinions');
-
-        const userOpinionsQuery = query(
-
-            opinionsCollection, 
-
-            where('author', '==', targetUsername), 
-
-            orderBy('timestamp', 'desc')
-
-        );
-
-
-
-        onSnapshot(userOpinionsQuery, (snapshot) => {
-
-            if (snapshot.empty) {
-
-                profileStats.textContent = "0 POSTS";
-
-                container.innerHTML = '<div class="no-opinions">Este usuario todavía no publicó nada.</div>';
-
-                return;
-
-            }
-
-
-
-            profileStats.textContent = `${snapshot.size} POST${snapshot.size !== 1 ? 'S' : ''}`;
-
-            let opinionsHTML = '';
-
-            let avatarSet = false;
-
+        <div id="adminUserArea" class="hidden" style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;">
+            <h3 id="adminSearchedUserName" style="margin: 0 0 15px 0;">Usuario: --</h3>
             
+            <div class="form-group">
+                <label>Editar Petocoins</label>
+                <input type="number" id="adminCoinsInput">
+            </div>
 
-            snapshot.forEach((doc) => {
+            <div class="form-group">
+                <label>Rol del Usuario</label>
+                <select id="adminRoleSelect" style="background: #111; color: white; padding: 10px; border-radius: 8px; border: 1px solid #333;">
+                    <option value="usuario">Usuario Estándar</option>
+                    <option value="admin">Administrador</option>
+                </select>
+            </div>
 
-                const data = doc.data();
+            <div class="modal-buttons">
+                <button class="btn-cancel" id="closeAdminModal">Cerrar</button>
+                <button class="btn-save" id="adminSaveBtn" style="background: #ef4444;">Aplicar Cambios</button>
+            </div>
+        </div>
+        <div id="adminSearchError" class="hidden" style="color: #ef4444; margin-top: 10px;">Usuario no encontrado.</div>
+    </div>
+</div>
 
-                const text = data.text || '';
-
-                
-
-                // 1. Evitamos que el toDate() explote si el timestamp aún es null en local cache
-
-                let dateStr = 'Reciente...';
-
-                if (data.timestamp && typeof data.timestamp.toDate === 'function') {
-
-                    dateStr = data.timestamp.toDate().toLocaleString();
-
-                }
-
-
-
-                // 2. Solo usamos el avatar del post más reciente (el primero en el bucle 'desc')
-
-                if (!avatarSet && data.avatar) {
-
-                    profileAvatar.src = data.avatar;
-
-                    avatarSet = true;
-
-                }
-
-
-
-                opinionsHTML += `
-
-                    <div class="opinion-card">
-
-                        <div class="opinion-card-header">
-
-                            <span class="opinion-date" style="color: var(--accent-red); font-weight: bold;">[ HISTORIAL ]</span>
-
-                            <span class="opinion-date">${dateStr}</span>
-
-                        </div>
-
-                        <div class="opinion-body">${escapeHTML(text)}</div>
-
-                    </div>
-
-                `;
-
-            });
-
-            container.innerHTML = opinionsHTML;
-
-        }, (error) => {
-
-            console.error("Error consultando el perfil:", error);
-
-            container.innerHTML = '<div class="no-opinions" style="color: #ff5f56;">Error al cargar datos. Asegúrate de tener creado el índice compuesto en Firestore si ordenas y filtras a la vez.</div>';
-
-        });
-
-    }
-
-
-
-    function escapeHTML(str) {
-
-        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
-
-        return str.replace(/[&<>'"]/g, tag => map[tag] || tag);
-
-    }
-
-</script>
-
+<script type="module" src="app.js"></script>
 </body>
-
 </html>

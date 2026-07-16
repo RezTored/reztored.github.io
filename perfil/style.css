@@ -1,0 +1,55 @@
+/* Añade esto a tu style.css */
+
+.badges-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 5px;
+}
+
+.rank-badge {
+    background-color: rgba(255, 215, 0, 0.1); /* Un tono dorado suave */
+    color: #ffd700; /* Letras doradas */
+    border: 1px solid #ffd700;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+/* Estilos para la Leaderboard */
+.leaderboard-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.leaderboard-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background-color 0.2s;
+}
+
+.leaderboard-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.leaderboard-rank {
+    font-weight: bold;
+    color: var(--user-theme-color);
+    width: 30px;
+}
+
+.leaderboard-name {
+    flex-grow: 1;
+    color: var(--text-light);
+}
+
+.leaderboard-coins {
+    color: #ffd700;
+    font-weight: bold;
+}
