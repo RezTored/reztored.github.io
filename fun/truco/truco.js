@@ -110,6 +110,11 @@ export async function crearSala({ apuesta = 50, puntosLimite = 15 }) {
     const user = auth.currentUser;
     if (!user) throw new Error('Necesitás iniciar sesión.');
 
+    apuesta = parseInt(apuesta);
+    if (!Number.isInteger(apuesta) || apuesta <= 0) {
+        throw new Error('La sala tiene que jugarse por una cantidad de petoCoins mayor a 0.');
+    }
+
     let code;
     for (let intento = 0; intento < 5; intento++) {
         code = generarCodigo();

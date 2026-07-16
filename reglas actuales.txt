@@ -49,6 +49,16 @@ service cloud.firestore {
       allow create: if estaLogueado();
       allow update: if estaLogueado();
       allow delete: if esAdmin();
+
+      // Comentarios de cada opinión: cualquiera logueado puede crear
+      // el suyo (firmado con su propio uid), y solo puede borrar el
+      // comentario el que lo escribió o un admin.
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if estaLogueado() && request.resource.data.authorUid == request.auth.uid;
+        allow update: if false;
+        allow delete: if esAdmin() || (estaLogueado() && resource.data.authorUid == request.auth.uid);
+      }
     }
 
     // ============================================================
