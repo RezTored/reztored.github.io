@@ -48,7 +48,8 @@
 // ⚠️ IDs "ESPECIALES":
 //   Los siguientes ids están conectados a efectos visuales reales en
 //   la página de perfil (404.html), no son solo decorativos:
-//     - 'titulo_vip'            -> muestra la insignia "👑 Título VIP"
+//     - 'titulo_vip'            -> muestra la insignia "👑 VIP" (con
+//                                  borde, distinta a la de abajo)
 //     - 'membresia_vip'         -> insignia dorada "VIP" al lado del
 //                                  nombre de usuario. Es SOLO una
 //                                  etiqueta, no pone marco en la foto
@@ -56,6 +57,12 @@
 //                                  uno de los productos categoria:'marco'
 //                                  que tenga comprados, desde el panel
 //                                  "🎨 Personalizar" de su perfil).
+//
+//     👉 Ambas insignias ("titulo_vip" y "membresia_vip") salen de la
+//     lista INSIGNIAS_PERFIL en 404.html (buscá ese nombre ahí). Para
+//     agregar una insignia nueva: creá acá el producto con su id, y
+//     sumá una línea en esa lista con { id, texto, clase }. No hace
+//     falta tocar nada más.
 //     - categoria:'marco'       -> cualquier producto con esta
 //                                  categoria (marco_perfil_dorado,
 //                                  marco_plata, marco_fuego,
@@ -88,7 +95,7 @@
 export const PRODUCTOS = [
     {
         id: 'titulo_vip',
-        nombre: 'Título VIP',
+        nombre: 'VIP',
         descripcion: 'Un título especial para destacarte en el foro. Se muestra como insignia en tu perfil.',
         precio: 10000,
         emoji: '👑',

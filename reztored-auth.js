@@ -98,6 +98,16 @@ export const SUPER_ADMIN_UIDS = ['iBvT6PulDBNJ48EuquY5wKNestg2'];
 export const COINS_REGISTRO = 1000; // con cuántas coins arranca una cuenta nueva
 export const COINS_POR_LIKE = 10;   // cuántas coins gana el AUTOR cuando le likean un post
 
+// --- PETOWORKS ---
+// "Trabajos" (minijuegos de habilidad, no de apuesta) donde se pueden
+// ganar petoCoins de verdad sin arriesgar el saldo. Tienen un tope
+// compartido entre TODOS los trabajos: nadie puede ganar más de
+// PETOWORKS_LIMITE_DIARIO petoCoins por día, sin importar en cuántos
+// trabajos distintos jugó. El contador se guarda en el propio
+// documento del usuario (campo "petoworksHoy") y se resetea solo
+// cuando cambia la fecha.
+export const PETOWORKS_LIMITE_DIARIO = 2000;
+
 // Formato permitido: 3 a 20 caracteres, minúsculas, números y guión bajo
 const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/;
 
@@ -378,6 +388,104 @@ export function suscribirCoins(uid, callback) {
     }
     return onSnapshot(doc(db, 'users', uid), (snap) => {
         callback(snap.exists() ? (snap.data().coins || 0) : 0);
+    });
+}
+
+/** Devuelve la fecha de hoy como "YYYY-MM-DD" (hora local del navegador). */
+function fechaHoyPetoworks() {
+    const hoy = new Date();
+    const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoy.getDate()).padStart(2, '0');
+    return `${hoy.getFullYear()}-${mes}-${dia}`;
+}
+
+/** A partir de los datos crudos del documento de usuario, calcula cuánto ganó hoy en Petoworks y cuánto le queda. */
+function calcularProgresoPetoworks(datosUsuario) {
+    const pw = datosUsuario ? datosUsuario.petoworksHoy : null;
+    const ganado = (pw && pw.fecha === fechaHoyPetoworks()) ? (pw.ganado || 0) : 0;
+    return { ganado, restante: Math.max(0, PETOWORKS_LIMITE_DIARIO - ganado) };
+}
+
+/**
+ * Trae cuánto ganó hoy el usuario en Petoworks y cuánto le queda de
+ * margen hasta el tope diario. Se usa para pintar la barra de
+ * progreso al entrar a /fun/petoworks o a cualquier trabajo.
+ */
+export async function obtenerProgresoPetoworks(uid) {
+    if (!uid) return { ganado: 0, restante: PETOWORKS_LIMITE_DIARIO };
+    const snap = await getDoc(doc(db, 'users', uid));
+    if (!snap.exists()) return { ganado: 0, restante: PETOWORKS_LIMITE_DIARIO };
+    return calcularProgresoPetoworks(snap.data());
+}
+
+/**
+ * Escucha en tiempo real el progreso diario de Petoworks del usuario
+ * ({ ganado, restante }). callback se llama cada vez que cambia (por
+ * ejemplo, al cobrar en cualquier trabajo, incluso en otra pestaña).
+ * Devuelve una función para dejar de escuchar.
+ */
+export function suscribirProgresoPetoworks(uid, callback) {
+    if (!uid) {
+        callback({ ganado: 0, restante: PETOWORKS_LIMITE_DIARIO });
+        return () => {};
+    }
+    return onSnapshot(doc(db, 'users', uid), (snap) => {
+        callback(snap.exists() ? calcularProgresoPetoworks(snap.data()) : { ganado: 0, restante: PETOWORKS_LIMITE_DIARIO });
+    });
+}
+
+/**
+ * Acredita petoCoins ganadas en un trabajo de Petoworks a la cuenta
+ * logueada actual, respetando el tope diario COMPARTIDO entre todos
+ * los trabajos (PETOWORKS_LIMITE_DIARIO). Si "cantidadCruda" supera lo
+ * que le queda disponible por hoy, se le acredita solo lo que le
+ * queda (nunca de más), y si ya no le queda nada tira un error claro.
+ *
+ * Todo corre en una transacción: lee el progreso de hoy, lo resetea
+ * solo si cambió la fecha, suma el saldo y actualiza el contador
+ * diario en un solo paso atómico.
+ *
+ * Devuelve { acreditado, nuevoSaldo, ganadoHoy, restante, limiteAlcanzado }.
+ */
+export async function ganarPetoworks(cantidadCruda) {
+    const user = auth.currentUser;
+    if (!user) throw new Error("Necesitás iniciar sesión para trabajar.");
+
+    const monto = Math.floor(Number(cantidadCruda));
+    if (!Number.isFinite(monto) || monto <= 0) {
+        throw new Error("Monto inválido.");
+    }
+
+    const userRef = doc(db, 'users', user.uid);
+    const hoy = fechaHoyPetoworks();
+
+    return await runTransaction(db, async (tx) => {
+        const snap = await tx.get(userRef);
+        if (!snap.exists()) throw new Error("No se encontró tu perfil.");
+
+        const datos = snap.data();
+        const { ganado: ganadoHoy, restante } = calcularProgresoPetoworks(datos);
+
+        if (restante <= 0) {
+            throw new Error(`Ya alcanzaste el límite diario de ${PETOWORKS_LIMITE_DIARIO} petoCoins en Petoworks. Volvé mañana.`);
+        }
+
+        const acreditado = Math.min(monto, restante);
+        const nuevoSaldo = (datos.coins || 0) + acreditado;
+        const nuevoGanadoHoy = ganadoHoy + acreditado;
+
+        tx.update(userRef, {
+            coins: nuevoSaldo,
+            petoworksHoy: { fecha: hoy, ganado: nuevoGanadoHoy }
+        });
+
+        return {
+            acreditado,
+            nuevoSaldo,
+            ganadoHoy: nuevoGanadoHoy,
+            restante: PETOWORKS_LIMITE_DIARIO - nuevoGanadoHoy,
+            limiteAlcanzado: nuevoGanadoHoy >= PETOWORKS_LIMITE_DIARIO
+        };
     });
 }
 

@@ -712,6 +712,39 @@
     const contenedor = document.getElementById('contenido-perfil');
     const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
 
+    // ============================================================
+    // 🏷️ INSIGNIAS DE PERFIL (los "tags" al lado del nombre de usuario)
+    // ------------------------------------------------------------
+    // Para agregar una insignia nueva NO hace falta tocar nada más
+    // que esta lista (y, si querés que sea comprable, sumar el
+    // producto correspondiente en tienda/productos.js):
+    //
+    //   1. (Opcional) Agregá el producto en tienda/productos.js con
+    //      un "id" único, por ejemplo 'titulo_leyenda'.
+    //   2. Sumá acá abajo un objeto nuevo:
+    //        { id: 'titulo_leyenda', texto: '🔥 Leyenda', clase: 'tag-titulo' }
+    //      - id    -> tiene que ser EXACTAMENTE el mismo "id" del
+    //                 producto de la tienda (así sabe cuándo mostrarla:
+    //                 se muestra sola si el usuario lo tiene en el
+    //                 inventario). También podés usar cualquier otra
+    //                 clave del inventario que ya exista.
+    //      - texto -> lo que se lee dentro de la insignia.
+    //      - clase -> el estilo visual. Reusá "tag-vip" (insignia
+    //                 dorada rellena) o "tag-titulo" (insignia con
+    //                 borde dorado), o creá una clase CSS nueva en el
+    //                 bloque "Insignias junto al nombre de usuario"
+    //                 (buscá ese comentario más arriba, cerca de
+    //                 ".tag-vip" / ".tag-titulo").
+    //
+    //   Listo: la insignia va a aparecer sola en cualquier perfil que
+    //   tenga ese item, en el mismo orden en que esté en esta lista.
+    //   No hace falta tocar renderPerfil() ni ningún otro lado.
+    // ============================================================
+    const INSIGNIAS_PERFIL = [
+        { id: 'membresia_vip', texto: 'VIP', clase: 'tag-vip' },
+        { id: 'titulo_vip', texto: '👑 VIP', clase: 'tag-titulo' }
+    ];
+
     // Redes sociales que se pueden mostrar/editar en el perfil, debajo
     // del cuadro de "Top Petocoins".
     const REDES_CONFIG = [
@@ -967,8 +1000,6 @@
 
         // --- Cosméticos comprados en la tienda (users/{uid}.inventario) ---
         const inventario = perfil.inventario || {};
-        const tieneTituloVip = !!inventario['titulo_vip'];
-        const tieneVip = !!inventario['membresia_vip'];
         const tieneColorPerso = !!inventario['color_personalizado'];
         const tieneBannerPerso = !!inventario['banner_personalizado'];
         const tieneMusica = !!inventario['musica_perfil'];
@@ -1005,10 +1036,14 @@
             ? ` style="color:${escapeAttr(colorElegido)};"`
             : '';
 
-        // La insignia VIP es solo una etiqueta dorada al lado del
-        // nombre, no pone marco en la foto (el marco se elige aparte).
-        const tagVipHTML = tieneVip ? `<span class="tag-vip">VIP</span>` : '';
-        const tagTituloHTML = tieneTituloVip ? `<span class="tag-titulo">👑 Título VIP</span>` : '';
+        // Las insignias son solo etiquetas al lado del nombre, no
+        // ponen marco en la foto (el marco se elige aparte). Se arman
+        // solas a partir de INSIGNIAS_PERFIL: para agregar una nueva
+        // no hace falta tocar esta línea, solo la lista de ahí arriba.
+        const tagsInsigniasHTML = INSIGNIAS_PERFIL
+            .filter(insignia => !!inventario[insignia.id])
+            .map(insignia => `<span class="${insignia.clase}">${insignia.texto}</span>`)
+            .join('');
         const stickersHTML = cantStickers > 0
             ? `<div class="stickers-line">🎁 Tiene ${cantStickers} sticker${cantStickers !== 1 ? 's' : ''} sorpresa</div>`
             : '';
@@ -1167,7 +1202,7 @@
             <div class="perfil-header">
                 <img class="${avatarClass}" style="${avatarStyle}" src="${perfil.photoURL || ''}" alt="Avatar de ${escapeHTML(perfil.username)}">
                 <div class="perfil-identidad">
-                    <div class="perfil-username"${usernameStyle}>${escapeHTML(perfil.username)}${tagAdminHTML}${tagVipHTML}${tagTituloHTML}</div>
+                    <div class="perfil-username"${usernameStyle}>${escapeHTML(perfil.username)}${tagAdminHTML}${tagsInsigniasHTML}</div>
                     <div class="perfil-fecha">Miembro desde ${formatearFecha(perfil.createdAt)}</div>
                 </div>
             </div>
