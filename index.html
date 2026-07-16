@@ -341,3 +341,372 @@ const btnLoginMenuMobile = document.getElementById('btn-login-menu-mobile');
 const userLoggedInDivMobile = document.getElementById('user-logged-in-mobile');
 const userProfileLinkMobile = document.getElementById('user-profile-link-mobile');
 const userAvatarMenuMobile = document.getElementById('user-avatar-menu-mobile');
+const btnLogoutMobile = document.getElementById('btn-logout-mobile');
+
+// Campana de notificaciones (donaciones y regalos recibidos)
+const btnNotificaciones = document.getElementById('btn-notificaciones');
+const notifPanel = document.getElementById('notif-panel');
+const notifBadge = document.getElementById('notif-badge');
+const notifLista = document.getElementById('notif-lista');
+const btnNotificacionesMobile = document.getElementById('btn-notificaciones-mobile');
+const notifPanelMobile = document.getElementById('notif-panel-mobile');
+const notifBadgeMobile = document.getElementById('notif-badge-mobile');
+const notifListaMobile = document.getElementById('notif-lista-mobile');
+const adminBadgeNavMobile = document.getElementById('admin-badge-nav-mobile');
+
+btnLoginMenu.addEventListener('click', () => {
+authModal.classList.remove('hidden');
+});
+
+if (btnLoginMenuMobile) {
+    btnLoginMenuMobile.addEventListener('click', () => {
+        authModal.classList.remove('hidden');
+        if (window.cerrarMenuMobile) window.cerrarMenuMobile();
+    });
+}
+
+closeModal.addEventListener('click', () => {
+authModal.classList.add('hidden');
+authMessage.classList.add('hidden');
+authForm.reset();
+});
+
+btnToggleAuth.addEventListener('click', () => {
+modoLogin = !modoLogin;
+if (modoLogin) {
+modalTitle.textContent = "Iniciar Sesión";
+btnSubmitAuth.textContent = "Ingresar";
+toggleText.textContent = "¿No tenés cuenta?";
+btnToggleAuth.textContent = "Registrate";
+usernameContainer.classList.add('hidden');
+authUsernameInput.removeAttribute('required');
+} else {
+modalTitle.textContent = "Crear Cuenta";
+btnSubmitAuth.textContent = "Registrarse";
+toggleText.textContent = "¿Ya tenés cuenta?";
+btnToggleAuth.textContent = "Inicia Sesión";
+usernameContainer.classList.remove('hidden');
+authUsernameInput.setAttribute('required', 'true');
+}
+});
+
+authForm.addEventListener('submit', async (e) => {
+e.preventDefault();
+const email = document.getElementById('auth-email').value;
+const password = document.getElementById('auth-password').value;
+const username = authUsernameInput.value.trim();
+
+authMessage.classList.remove('hidden');
+authMessage.className = "text-sm text-center text-gray-300";
+authMessage.textContent = "Procesando...";
+
+try {
+if (modoLogin) {
+await signInWithEmailAndPassword(auth, email, password);
+mostrarMensaje("¡Sesión iniciada con éxito!", "text-green-400");
+setTimeout(() => authModal.classList.add('hidden'), 1500);
+} else {
+await registrarUsuario({ email, password, username });
+mostrarMensaje("¡Cuenta creada con éxito!", "text-green-400");
+setTimeout(() => {
+authModal.classList.add('hidden');
+actualizarMenuUsuario(auth.currentUser);
+}, 1500);
+}
+authForm.reset();
+} catch (error) {
+let mensajeError = error.message || "Ocurrió un error.";
+if (error.code === 'auth/weak-password') mensajeError = "La contraseña debe tener mínimo 6 caracteres.";
+if (error.code === 'auth/email-already-in-use') mensajeError = "Ese correo ya está registrado.";
+if (error.code === 'auth/invalid-credential') mensajeError = "Correo o contraseña incorrectos.";
+mostrarMensaje(mensajeError, "text-red-400");
+}
+});
+
+btnGoogle.addEventListener('click', async () => {
+authMessage.classList.remove('hidden');
+authMessage.className = "text-sm text-center text-gray-300";
+authMessage.textContent = "Abriendo ventana de Google...";
+try {
+await signInWithPopup(auth, googleProvider);
+mostrarMensaje("¡Sesión iniciada con Google!", "text-green-400");
+setTimeout(() => authModal.classList.add('hidden'), 1500);
+} catch (error) {
+console.error(error);
+mostrarMensaje("No se pudo iniciar sesión con Google.", "text-red-400");
+}
+});
+
+btnLogout.addEventListener('click', () => {
+signOut(auth);
+});
+
+if (btnLogoutMobile) {
+    btnLogoutMobile.addEventListener('click', () => {
+        signOut(auth);
+        if (window.cerrarMenuMobile) window.cerrarMenuMobile();
+    });
+}
+
+let dejarDeEscucharCoins = null;
+let dejarDeEscucharNotis = null;
+let notisActuales = [];
+
+function formatearFechaNoti(timestamp) {
+    if (!timestamp || typeof timestamp.toDate !== 'function') return 'Recién';
+    return timestamp.toDate().toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+function textoNotificacion(noti) {
+    if (noti.tipo === 'donacion') {
+        return `🪙 <strong>${escapeHTMLNoti(noti.deUsername || 'Alguien')}</strong> te donó <strong>${(noti.monto || 0).toLocaleString('es-AR')}</strong> petoCoins`;
+    }
+    if (noti.tipo === 'regalo') {
+        let texto = `${noti.productoEmoji || '🎁'} <strong>${escapeHTMLNoti(noti.deUsername || 'Alguien')}</strong> te regaló <strong>${escapeHTMLNoti(noti.productoNombre || 'un producto')}</strong>`;
+        if (noti.mensaje) {
+            texto += `<br><span class="text-gray-400 italic">"${escapeHTMLNoti(noti.mensaje)}"</span>`;
+        }
+        return texto;
+    }
+    if (noti.tipo === 'like') {
+        return `👍 <strong>${escapeHTMLNoti(noti.deUsername || 'Alguien')}</strong> le dio like a tu publicación`;
+    }
+    return 'Nueva notificación';
+}
+
+function escapeHTMLNoti(str) {
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
+    return String(str).replace(/[&<>'"]/g, tag => map[tag] || tag);
+}
+
+function renderNotificaciones(notis) {
+    notisActuales = notis;
+    const noLeidas = notis.filter(n => !n.leida).length;
+
+    [notifBadge, notifBadgeMobile].forEach(badge => {
+        if (!badge) return;
+        if (noLeidas > 0) {
+            badge.textContent = noLeidas > 9 ? '9+' : String(noLeidas);
+            badge.classList.remove('hidden');
+            badge.classList.add('flex');
+        } else {
+            badge.classList.add('hidden');
+            badge.classList.remove('flex');
+        }
+    });
+
+    const html = notis.length > 0
+        ? notis.map(n => `
+            <div class="px-2 py-2 rounded-lg ${n.leida ? '' : 'bg-gray-800'} text-sm text-gray-200">
+                <p>${textoNotificacion(n)}</p>
+                <p class="text-[11px] text-gray-500 mt-0.5">${formatearFechaNoti(n.timestamp)}</p>
+            </div>
+        `).join('')
+        : `<p class="text-gray-500 text-sm text-center py-4">No tenés notificaciones.</p>`;
+
+    if (notifLista) notifLista.innerHTML = html;
+    if (notifListaMobile) notifListaMobile.innerHTML = html;
+}
+
+function actualizarMenuUsuario(user) {
+const coinsBadge = document.getElementById('coins-badge');
+const coinsAmount = document.getElementById('coins-amount');
+const coinsBadgeMobile = document.getElementById('coins-badge-mobile');
+const coinsAmountMobile = document.getElementById('coins-amount-mobile');
+
+if (dejarDeEscucharCoins) {
+    dejarDeEscucharCoins();
+    dejarDeEscucharCoins = null;
+}
+if (dejarDeEscucharNotis) {
+    dejarDeEscucharNotis();
+    dejarDeEscucharNotis = null;
+}
+
+if (user) {
+btnLoginMenu.classList.add('hidden');
+userLoggedInDiv.classList.remove('hidden');
+if (btnLoginMenuMobile) btnLoginMenuMobile.classList.add('hidden');
+if (userLoggedInDivMobile) userLoggedInDivMobile.classList.remove('hidden');
+
+coinsBadge.style.display = 'inline-flex';
+if (coinsBadgeMobile) coinsBadgeMobile.style.display = 'inline-flex';
+dejarDeEscucharCoins = suscribirCoins(user.uid, (coins) => {
+    coinsAmount.textContent = coins;
+    if (coinsAmountMobile) coinsAmountMobile.textContent = coins;
+});
+dejarDeEscucharNotis = suscribirNotificaciones(user.uid, renderNotificaciones);
+
+let name = user.displayName || user.email.split('@')[0];
+
+userProfileLink.textContent = name;
+userProfileLink.href = `/${encodeURIComponent(name)}`;
+if (userProfileLinkMobile) {
+    userProfileLinkMobile.textContent = name;
+    userProfileLinkMobile.href = `/${encodeURIComponent(name)}`;
+}
+
+if (user.photoURL) {
+userAvatarMenu.src = user.photoURL;
+userAvatarMenu.classList.remove('hidden');
+if (userAvatarMenuMobile) {
+    userAvatarMenuMobile.src = user.photoURL;
+    userAvatarMenuMobile.classList.remove('hidden');
+}
+} else {
+userAvatarMenu.classList.add('hidden');
+if (userAvatarMenuMobile) userAvatarMenuMobile.classList.add('hidden');
+}
+
+// ✏️ Tag "ADMIN" al lado de "Mi Perfil": se calcula consultando
+// Firestore (o la lista SUPER_ADMIN_UIDS) de forma asíncrona.
+const adminBadgeNav = document.getElementById('admin-badge-nav');
+obtenerPerfilPorUid(user.uid).then((perfilActual) => {
+    const esAdminActual = esAdmin(perfilActual) || esAdmin(user.uid);
+    adminBadgeNav.classList.toggle('hidden', !esAdminActual);
+    if (adminBadgeNavMobile) adminBadgeNavMobile.classList.toggle('hidden', !esAdminActual);
+}).catch(() => {
+    adminBadgeNav.classList.add('hidden');
+    if (adminBadgeNavMobile) adminBadgeNavMobile.classList.add('hidden');
+});
+} else {
+btnLoginMenu.classList.remove('hidden');
+userLoggedInDiv.classList.add('hidden');
+userProfileLink.textContent = "Mi Perfil";
+userProfileLink.href = "#";
+userAvatarMenu.classList.add('hidden');
+document.getElementById('admin-badge-nav').classList.add('hidden');
+coinsBadge.style.display = 'none';
+if (coinsBadgeMobile) coinsBadgeMobile.style.display = 'none';
+renderNotificaciones([]);
+if (notifPanel) notifPanel.classList.add('hidden');
+if (notifPanelMobile) notifPanelMobile.classList.add('hidden');
+
+if (btnLoginMenuMobile) btnLoginMenuMobile.classList.remove('hidden');
+if (userLoggedInDivMobile) userLoggedInDivMobile.classList.add('hidden');
+if (userProfileLinkMobile) { userProfileLinkMobile.textContent = "Mi Perfil"; userProfileLinkMobile.href = "#"; }
+if (userAvatarMenuMobile) userAvatarMenuMobile.classList.add('hidden');
+if (adminBadgeNavMobile) adminBadgeNavMobile.classList.add('hidden');
+}
+}
+
+onAuthStateChanged(auth, async (user) => {
+if (user) {
+    // ✏️ Self-heal: si entró con Google (o cualquier método que no
+    // pase por el registro con username), esto le arma el perfil.
+    try { await asegurarPerfilUsuario(user); } catch (e) { console.error('No se pudo asegurar el perfil:', e); }
+}
+actualizarMenuUsuario(auth.currentUser || user);
+});
+
+function mostrarMensaje(texto, claseColor) {
+authMessage.textContent = texto;
+authMessage.className = `text-sm text-center ${claseColor} mt-2`;
+}
+
+// --- Campana de notificaciones: abrir/cerrar y marcar como leídas ---
+function marcarComoLeidasSiHace() {
+    const user = auth.currentUser;
+    if (!user) return;
+    marcarTodasLasNotificacionesLeidas(user.uid, notisActuales).catch(err => console.error(err));
+}
+
+if (btnNotificaciones && notifPanel) {
+    btnNotificaciones.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const abriendo = notifPanel.classList.contains('hidden');
+        notifPanel.classList.toggle('hidden');
+        if (abriendo) marcarComoLeidasSiHace();
+    });
+    document.addEventListener('click', (e) => {
+        if (!notifPanel.classList.contains('hidden') && !notifPanel.contains(e.target) && e.target !== btnNotificaciones) {
+            notifPanel.classList.add('hidden');
+        }
+    });
+}
+
+if (btnNotificacionesMobile && notifPanelMobile) {
+    btnNotificacionesMobile.addEventListener('click', () => {
+        const abriendo = notifPanelMobile.classList.contains('hidden');
+        notifPanelMobile.classList.toggle('hidden');
+        if (abriendo) marcarComoLeidasSiHace();
+    });
+}
+</script>
+
+<script>
+const logoInicio = document.getElementById('logo-inicio');
+const linkInicio = document.getElementById('link-inicio');
+
+if (logoInicio) {
+logoInicio.addEventListener('click', (evento) => {
+evento.preventDefault();
+window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+}
+
+if (linkInicio) {
+linkInicio.addEventListener('click', (evento) => {
+evento.preventDefault();
+window.location.href = window.location.origin + window.location.pathname;
+});
+}
+</script>
+<script>
+    const btn = document.getElementById('menu-btn');
+    const menu = document.getElementById('mobile-menu');
+    const backdrop = document.getElementById('mobile-menu-backdrop');
+
+    function menuAbierto() {
+        return !menu.classList.contains('hidden') && menu.classList.contains('opacity-100');
+    }
+
+    function abrirMenu() {
+        menu.classList.remove('hidden');
+        backdrop.classList.remove('hidden');
+        requestAnimationFrame(() => {
+            menu.classList.remove('opacity-0', '-translate-y-2');
+            menu.classList.add('opacity-100', 'translate-y-0');
+            backdrop.classList.remove('opacity-0');
+            backdrop.classList.add('opacity-100');
+        });
+        btn.classList.add('is-open');
+        btn.setAttribute('aria-expanded', 'true');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function cerrarMenu() {
+        menu.classList.add('opacity-0', '-translate-y-2');
+        menu.classList.remove('opacity-100', 'translate-y-0');
+        backdrop.classList.add('opacity-0');
+        backdrop.classList.remove('opacity-100');
+        btn.classList.remove('is-open');
+        btn.setAttribute('aria-expanded', 'false');
+        document.body.classList.remove('overflow-hidden');
+        setTimeout(() => {
+            if (!menuAbierto()) {
+                menu.classList.add('hidden');
+                backdrop.classList.add('hidden');
+            }
+        }, 300);
+    }
+
+    // Función global para que otros scripts (login/logout mobile) puedan cerrar el menú prolijamente
+    window.cerrarMenuMobile = cerrarMenu;
+
+    btn.addEventListener('click', () => {
+        menuAbierto() ? cerrarMenu() : abrirMenu();
+    });
+
+    backdrop.addEventListener('click', cerrarMenu);
+
+    // Cerrar el menú al tocar un link de navegación
+    menu.querySelectorAll('a').forEach(link => link.addEventListener('click', cerrarMenu));
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && menuAbierto()) cerrarMenu();
+    });
+</script>
+
+</body>
+</html>
