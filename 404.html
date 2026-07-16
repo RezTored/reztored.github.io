@@ -649,25 +649,97 @@
         }
         .bloqueado-nota a { color: var(--primary); }
 
-        /* --- 🎵 Música de perfil (botón flotante para pausar/reanudar) --- */
-        #btn-musica-perfil {
+        /* --- 🎵 Mini reproductor de la música del perfil (fijo abajo) --- */
+        #reproductor-musica-perfil {
             position: fixed;
-            bottom: 18px;
-            right: 18px;
-            width: 48px;
-            height: 48px;
+            left: 50%;
+            bottom: 16px;
+            transform: translateX(-50%);
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 30px;
+            padding: 8px 14px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+            max-width: calc(100% - 24px);
+        }
+
+        #reproductor-musica-perfil button {
+            background: none;
+            border: none;
+            width: 34px;
+            height: 34px;
+            min-width: 34px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.3rem;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
-            z-index: 999;
+            font-size: 1.05rem;
+            color: var(--text-white);
+            cursor: pointer;
             padding: 0;
         }
-        #btn-musica-perfil:hover { background: #3e3e46; }
+        #reproductor-musica-perfil button:hover { background: #3e3e46; }
+
+        #reproductor-musica-perfil .rmp-info {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 0;
+        }
+        #reproductor-musica-perfil .rmp-titulo {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        /* Ecualizador animado que muestra que hay música sonando */
+        #reproductor-musica-perfil .rmp-ondas {
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            height: 14px;
+        }
+        #reproductor-musica-perfil .rmp-ondas span {
+            display: block;
+            width: 3px;
+            background: var(--primary, #4f46e5);
+            border-radius: 2px;
+            animation: rmp-onda 0.9s ease-in-out infinite;
+        }
+        #reproductor-musica-perfil .rmp-ondas span:nth-child(1) { height: 6px;  animation-delay: 0s; }
+        #reproductor-musica-perfil .rmp-ondas span:nth-child(2) { height: 14px; animation-delay: .15s; }
+        #reproductor-musica-perfil .rmp-ondas span:nth-child(3) { height: 9px;  animation-delay: .3s; }
+        #reproductor-musica-perfil.rmp-pausado .rmp-ondas span {
+            animation-play-state: paused;
+            opacity: 0.35;
+        }
+        @keyframes rmp-onda {
+            0%, 100% { transform: scaleY(0.4); }
+            50% { transform: scaleY(1); }
+        }
+
+        #reproductor-musica-perfil .rmp-volumen-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        #reproductor-musica-perfil input[type="range"] {
+            width: 84px;
+            accent-color: var(--primary, #4f46e5);
+            cursor: pointer;
+        }
+
+        @media (max-width: 560px) {
+            #reproductor-musica-perfil { gap: 6px; padding: 8px 10px; }
+            #reproductor-musica-perfil .rmp-titulo { display: none; }
+            #reproductor-musica-perfil input[type="range"] { width: 58px; }
+        }
     </style>
 </head>
 <body>
@@ -797,6 +869,19 @@
         }
     }
 
+    // Devuelve siempre una URL de imagen usable para el avatar.
+    // Antes, cuando perfil.photoURL estaba vacío se usaba src="" en el
+    // <img>, y los navegadores interpretan un src vacío como "pedí de
+    // nuevo la URL de la página actual", lo que rompía la imagen (y
+    // generaba una descarga extra innecesaria). Acá generamos un
+    // avatar de respaldo determinístico (siempre el mismo para el
+    // mismo usuario) en vez de dejar el src vacío.
+    function avatarSeguro(perfil) {
+        if (esUrlDeImagenValida(perfil.photoURL)) return perfil.photoURL.trim();
+        const seed = encodeURIComponent(perfil.username || perfil.uid || 'reztored');
+        return `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
+    }
+
     // --- 🎵 Música de fondo del perfil ---
     // Saca el ID de video si el link es de YouTube (watch?v=, youtu.be/,
     // /embed/, /shorts/). Si no es de YouTube, devuelve null y se trata
@@ -830,6 +915,11 @@
 
         const ytId = extraerIdYoutube(urlLimpia);
         let sonando = true;
+        let muteado = false;
+        // Volumen recordado entre perfiles (0-100). Si no hay nada guardado, arranca a mitad.
+        let volumen = parseInt(localStorage.getItem('reztored_volumen_perfil'), 10);
+        if (isNaN(volumen) || volumen < 0 || volumen > 100) volumen = 70;
+
         let media;
 
         if (ytId) {
@@ -844,36 +934,90 @@
             media.src = urlLimpia;
             media.loop = true;
             media.autoplay = true;
+            media.volume = volumen / 100;
         }
         document.body.appendChild(media);
 
-        const btn = document.createElement('button');
-        btn.id = 'btn-musica-perfil';
-        btn.type = 'button';
-        btn.textContent = '🎵';
-        btn.title = 'Pausar la música del perfil';
-        document.body.appendChild(btn);
+        // --- Armado del mini reproductor ---
+        const reproductor = document.createElement('div');
+        reproductor.id = 'reproductor-musica-perfil';
+        reproductor.innerHTML = `
+            <button type="button" id="rmp-btn-play" title="Pausar música del perfil">⏸️</button>
+            <div class="rmp-info">
+                <span class="rmp-titulo">Música del perfil</span>
+                <div class="rmp-ondas"><span></span><span></span><span></span></div>
+            </div>
+            <div class="rmp-volumen-wrap">
+                <button type="button" id="rmp-btn-mute" title="Silenciar">🔊</button>
+                <input type="range" id="rmp-volumen" min="0" max="100" value="${volumen}" title="Volumen">
+            </div>
+        `;
+        document.body.appendChild(reproductor);
 
-        function mandarComandoYoutube(comando) {
+        const btnPlay = reproductor.querySelector('#rmp-btn-play');
+        const btnMute = reproductor.querySelector('#rmp-btn-mute');
+        const inputVolumen = reproductor.querySelector('#rmp-volumen');
+
+        function mandarComandoYoutube(comando, args = []) {
             if (media.tagName === 'IFRAME' && media.contentWindow) {
-                media.contentWindow.postMessage(JSON.stringify({ event: 'command', func: comando, args: [] }), '*');
+                media.contentWindow.postMessage(JSON.stringify({ event: 'command', func: comando, args }), '*');
             }
         }
 
-        function actualizarBoton() {
-            btn.textContent = sonando ? '🎵' : '🔇';
-            btn.title = sonando ? 'Pausar la música del perfil' : 'Reproducir la música del perfil';
+        function iconoVolumen() {
+            if (muteado || volumen === 0) return '🔇';
+            if (volumen < 50) return '🔉';
+            return '🔊';
         }
 
-        btn.addEventListener('click', () => {
+        function actualizarUI() {
+            reproductor.classList.toggle('rmp-pausado', !sonando);
+            btnPlay.textContent = sonando ? '⏸️' : '▶️';
+            btnPlay.title = sonando ? 'Pausar música del perfil' : 'Reproducir música del perfil';
+            btnMute.textContent = iconoVolumen();
+            btnMute.title = muteado ? 'Reactivar sonido' : 'Silenciar';
+            inputVolumen.disabled = muteado;
+        }
+
+        function aplicarVolumen() {
+            const volumenEfectivo = muteado ? 0 : volumen;
+            if (media.tagName === 'AUDIO') {
+                media.volume = volumenEfectivo / 100;
+            } else {
+                mandarComandoYoutube('setVolume', [volumenEfectivo]);
+                mandarComandoYoutube(muteado ? 'mute' : 'unMute');
+            }
+        }
+
+        // ▶️ / ⏸️ Play y pausa
+        btnPlay.addEventListener('click', () => {
             sonando = !sonando;
             if (media.tagName === 'AUDIO') {
                 if (sonando) media.play().catch(() => {}); else media.pause();
             } else {
                 mandarComandoYoutube(sonando ? 'playVideo' : 'pauseVideo');
             }
-            actualizarBoton();
+            actualizarUI();
         });
+
+        // 🔇 Mute directo (guarda el volumen anterior para restaurarlo)
+        btnMute.addEventListener('click', () => {
+            muteado = !muteado;
+            aplicarVolumen();
+            actualizarUI();
+        });
+
+        // 🔊 Slider de volumen (subir / bajar)
+        inputVolumen.addEventListener('input', () => {
+            volumen = parseInt(inputVolumen.value, 10) || 0;
+            localStorage.setItem('reztored_volumen_perfil', String(volumen));
+            if (muteado && volumen > 0) muteado = false; // mover el slider desmutea
+            aplicarVolumen();
+            actualizarUI();
+        });
+
+        aplicarVolumen();
+        actualizarUI();
 
         // Intento de autoplay real (funciona directo en algunos
         // navegadores/dispositivos, en otros va a fallar y esperamos
@@ -881,16 +1025,20 @@
         if (media.tagName === 'AUDIO') {
             media.play().catch(() => {
                 sonando = false;
-                actualizarBoton();
+                actualizarUI();
                 const activarConGesto = () => {
                     media.play().then(() => {
                         sonando = true;
-                        actualizarBoton();
+                        actualizarUI();
                     }).catch(() => {});
                 };
                 document.addEventListener('click', activarConGesto, { once: true });
                 document.addEventListener('touchstart', activarConGesto, { once: true });
             });
+        } else {
+            // Con YouTube el volumen inicial se manda apenas el iframe
+            // está listo para recibir comandos.
+            media.addEventListener('load', aplicarVolumen);
         }
     }
 
@@ -1073,7 +1221,7 @@
             const claseAvatar = preview ? `avatar-${preview.clase}` : '';
             return `
                 <button type="button" class="marco-opcion ${seleccionada ? 'seleccionado' : ''}" data-marco-id="${id}">
-                    <img class="${claseAvatar}" src="${perfil.photoURL || ''}" alt="${escapeAttr(nombre)}">
+                    <img class="${claseAvatar}" src="${avatarSeguro(perfil)}" alt="${escapeAttr(nombre)}" loading="lazy">
                     <span>${nombre}</span>
                 </button>
             `;
@@ -1200,7 +1348,7 @@
         contenedor.innerHTML = `
             ${bannerHTML}
             <div class="perfil-header">
-                <img class="${avatarClass}" style="${avatarStyle}" src="${perfil.photoURL || ''}" alt="Avatar de ${escapeHTML(perfil.username)}">
+                <img class="${avatarClass}" style="${avatarStyle}" src="${avatarSeguro(perfil)}" alt="Avatar de ${escapeHTML(perfil.username)}" loading="lazy" onerror="this.onerror=null; this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(perfil.username || perfil.uid || 'reztored')}';">
                 <div class="perfil-identidad">
                     <div class="perfil-username"${usernameStyle}>${escapeHTML(perfil.username)}${tagAdminHTML}${tagsInsigniasHTML}</div>
                     <div class="perfil-fecha">Miembro desde ${formatearFecha(perfil.createdAt)}</div>

@@ -68,25 +68,25 @@
 
     const BANCO_PREGUNTAS = [
       { p: '¿Cuál es el río más largo del mundo?', o: ['Nilo', 'Amazonas', 'Yangtsé', 'Misisipi'], r: 1 },
-      { p: '¿Quién fue el primer hombre en la Luna?', o: ['Un estadounidense', 'petope', 'Rez', 'Un ruso'], r: 3 },
+      { p: '¿Quién fue el primer hombre en la Luna?', o: ['Un estadounidense', 'petope', 'Rez', 'Un ruso'], r: 0 },
       { p: '¿Cuál es el planeta más grande del sistema solar?', o: ['Saturno', 'Tierra', 'Júpiter', 'Neptuno'], r: 2 },
-      { p: '¿Quién es petope?', o: ['Who is petope?', 'the ruined king', 'un fracasado', 'una deidad'], r: 2 },
-      { p: '¿Quién es RezTored?', o: ['Un pro', 'Un fracasado', 'Una deidad', 'Un dios'], r: 2 },
-      { p: '¿Cuántos huesos tiene un petope bebe?', o: ['186', '206', '226', '0'], r: 4 },
-      { p: '¿Te gusto la pagina?', o: ['No', 'no', 'si', 'me encantanla pija'], r: 4 },
-      { p: '¿Que va segundo?', o: ['Estados Unidos', '2', 'Francia', 'Dos'], r: 3 },
+      { p: '¿Quién es petope?', o: ['Who is petope?', 'the ruined king', 'un fracasado', 'una deidad'], r: 1 },
+      { p: '¿Quién es RezTored?', o: ['Un pro', 'Un fracasado', 'Una deidad', 'Un dios'], r: 1 },
+      { p: '¿Cuántos huesos tiene un petope bebe?', o: ['186', '206', '226', '0'], r: 3 },
+      { p: '¿Te gusto la pagina?', o: ['No', 'no', 'si', 'me encantanla pija'], r: 3 },
+      { p: '¿Que va segundo?', o: ['Estados Unidos', '2', 'Francia', 'Dos'], r: 2 },
       { p: '¿Cuál es el metal más abundante en la corteza terrestre?', o: ['PetoGold', 'Aluminio', 'Cobre', 'Zinc'], r: 1 },
       { p: '¿Ppr cuanto le ganamos a Egipto?', o: ['67 goles', '1 gol', '2 goles', '3 goles'], r: 2 },
-      { p: '¿Qué vale más?', o: ['Petocoin', 'Peso Argentino', 'Rupia', 'Bitcoin'], r: 4 },
+      { p: '¿Qué vale más?', o: ['Petocoin', 'Peso Argentino', 'Rupia', 'Bitcoin'], r: 3 },
       { p: '¿Qué gas respiramos principalmente del aire?', o: ['Oxígeno', 'Nitrógeno', 'Dióxido de carbono', 'Hidrógeno'], r: 1 },
-      { p: '¿Quién es el hombre mas lindo del Huergo"?', o: ['RezTored', 'Tetex', 'Waa', 'Ninguna de las anteriores'], r: 4 },
-      { p: '¿Cuánto vale una Petocoin en Dolares?', o: ['100$', '0,01$', '1$', '0,5$'], r: 3 },
+      { p: '¿Quién es el hombre mas lindo del Huergo"?', o: ['RezTored', 'Tetex', 'Waa', 'Ninguna de las anteriores'], r: 3 },
+      { p: '¿Cuánto vale una Petocoin en Dolares?', o: ['100$', '0,01$', '1$', '0,5$'], r: 2 },
       { p: '¿Cuál es el animal terrestre más grande del mundo?', o: ['Rinoceronte', 'Hipopótamo', 'Elefante africano', 'Jirafa'], r: 2 },
-      { p: '¿En qué año se creo la página?', o: ['2026', '2016', '2067', '6767'], r: 1 },
+      { p: '¿En qué año se creo la página?', o: ['2026', '2016', '2067', '6767'], r: 0 },
       { p: '¿Cuál es el elemento químico con símbolo "Au"?', o: ['Plata', 'Aluminio', 'Oro', 'Argón'], r: 2 },
       { p: '¿Cuál es la montaña más alta del mundo?', o: ['K2', 'Everest', 'Aconcagua', 'Kilimanjaro'], r: 1 },
-      { p: '¿Con que medimos la temperatura?', o: ['Celcius', 'Farenheirt', 'Kelvin', 'Kilometro'], r: 1 },
-      { p: '¿Quién es la persona mas fracasada del huergo?', o: ['rueini', 'rueini', 'reztored', 'Todas son correctas'], r: 4 }
+      { p: '¿Con que medimos la temperatura?', o: ['Celcius', 'Farenheirt', 'Kelvin', 'Kilometro'], r: 0 },
+      { p: '¿Quién es la persona mas fracasada del huergo?', o: ['rueini', 'rueini2', 'reztored', 'Todas son correctas'], r: 0 }
     ];
 
     const preguntaEl = document.getElementById('pregunta');
@@ -133,6 +133,21 @@
       const actual = rondaPreguntas[indiceActual];
       const botones = Array.from(opcionesEl.children);
       botones.forEach(b => { b.disabled = true; });
+
+      if (!botones[actual.r]) {
+        console.error('Pregunta mal cargada (índice de respuesta fuera de rango):', actual);
+        mensajeEl.textContent = '⚠️ Esta pregunta tenía un error, pasamos a la siguiente.';
+        setTimeout(() => {
+          indiceActual++;
+          if (indiceActual < rondaPreguntas.length) {
+            mostrarPregunta();
+          } else {
+            terminarRonda();
+          }
+        }, 900);
+        return;
+      }
+
       botones[actual.r].classList.add('correcta');
 
       if (idxElegido === actual.r) {

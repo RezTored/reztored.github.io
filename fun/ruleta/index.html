@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ruleta con Petocoins</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+
+        <div class="header-container">
+            <a href="/fun" class="btn-back">⬅ Volver a FUN</a>
+            <h1>🎡 Ruleta</h1>
+        </div>
+
+        <div class="betting-area">
+            <div class="balance-display">
+                Saldo: <span id="petocoins-balance">0</span>
+                <img src="petocoin.png" class="petocoin-icon" alt="Petocoin">
+            </div>
+            <div class="apostado-display">
+                Apostado: <span id="total-apostado">0</span>
+            </div>
+        </div>
+
+        <div class="chip-selector" id="chip-selector">
+            <div class="chip chip-10 activa" data-valor="10">10</div>
+            <div class="chip chip-50" data-valor="50">50</div>
+            <div class="chip chip-100" data-valor="100">100</div>
+            <div class="chip chip-500" data-valor="500">500</div>
+            <div class="chip chip-1000" data-valor="1000">1000</div>
+        </div>
+
+        <div class="wheel-wrap">
+            <div class="wheel-pointer"></div>
+            <svg class="wheel-svg" viewBox="0 0 260 260" id="wheel-svg">
+                <defs>
+                    <radialGradient id="hubGrad" cx="50%" cy="40%" r="70%">
+                        <stop offset="0%" stop-color="#3a3a44"/>
+                        <stop offset="100%" stop-color="#111116"/>
+                    </radialGradient>
+                </defs>
+                <g id="wheel-group"></g>
+                <g id="ball-group"></g>
+            </svg>
+        </div>
+
+        <h2 id="mensaje">Cargando saldo de Firebase...</h2>
+
+        <div class="historial" id="historial"></div>
+
+        <div class="mesa">
+            <div class="mesa-grid" id="mesa-grid"></div>
+            <div class="mesa-exteriores" id="mesa-exteriores"></div>
+            <div class="mesa-docenas" id="mesa-docenas"></div>
+        </div>
+
+        <div class="controles">
+            <button id="btn-deshacer" class="btn btn-secundario">↩ Deshacer</button>
+            <button id="btn-borrar" class="btn btn-secundario">🗑 Borrar apuestas</button>
+            <button id="btn-girar" class="btn btn-girar">🎡 GIRAR</button>
+        </div>
+
+        <p class="nota-info">Elegí tu ficha y hacé click en la mesa: números para apuesta directa (paga 35 a 1), o las apuestas exteriores — rojo/negro, par/impar, 1-18/19-36 (pagan 1 a 1), docenas y columnas (pagan 2 a 1). El 0 es verde y solo gana la apuesta directa a ese número.</p>
+    </div>
+
+    <script type="module" src="ruleta.js"></script>
+</body>
+</html>
