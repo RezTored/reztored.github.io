@@ -649,96 +649,155 @@
         }
         .bloqueado-nota a { color: var(--primary); }
 
-        /* --- 🎵 Mini reproductor de la música del perfil (fijo abajo) --- */
+        /* --- 🎵 Reproductor de música del perfil (estilo Spotify, barra fija abajo) --- */
         #reproductor-musica-perfil {
             position: fixed;
-            left: 50%;
-            bottom: 16px;
-            transform: translateX(-50%);
+            left: 0;
+            right: 0;
+            bottom: 0;
             z-index: 999;
             display: flex;
             align-items: center;
-            gap: 10px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 30px;
-            padding: 8px 14px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
-            max-width: calc(100% - 24px);
+            gap: 14px;
+            background: #0a0a0c;
+            border-top: 1px solid var(--border-color);
+            padding: 8px 16px;
+            height: 56px;
+            box-sizing: border-box;
         }
 
-        #reproductor-musica-perfil button {
-            background: none;
+        /* Empuja el contenido de la página para que la barra no lo tape */
+        body.rmp-activo .app-window { padding-bottom: 56px; }
+
+        /* --- Carátula + título/artista (izquierda) --- */
+        #reproductor-musica-perfil .rmp-track {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            width: 180px;
+            flex-shrink: 0;
+        }
+        #reproductor-musica-perfil .rmp-caratula {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--bg-header);
+            flex-shrink: 0;
+            border: 1px solid var(--border-color);
+        }
+        #reproductor-musica-perfil.rmp-sonando .rmp-caratula {
+            animation: rmp-girar 8s linear infinite;
+        }
+        @keyframes rmp-girar { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        #reproductor-musica-perfil .rmp-textos { min-width: 0; }
+        #reproductor-musica-perfil .rmp-nombre {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-white);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #reproductor-musica-perfil .rmp-artista {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* --- Controles + barra de progreso (centro) --- */
+        #reproductor-musica-perfil .rmp-centro {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            min-width: 0;
+            max-width: 620px;
+            margin: 0 auto;
+        }
+        #reproductor-musica-perfil .rmp-btn-play {
+            background: var(--text-white);
             border: none;
-            width: 34px;
-            height: 34px;
-            min-width: 34px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.05rem;
-            color: var(--text-white);
+            font-size: 0.8rem;
+            color: #0a0a0c;
             cursor: pointer;
             padding: 0;
         }
-        #reproductor-musica-perfil button:hover { background: #3e3e46; }
+        #reproductor-musica-perfil .rmp-btn-play:hover { transform: scale(1.06); }
 
-        #reproductor-musica-perfil .rmp-info {
+        #reproductor-musica-perfil .rmp-barra-fila {
             display: flex;
-            flex-direction: column;
-            gap: 3px;
-            min-width: 0;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
         }
-        #reproductor-musica-perfil .rmp-titulo {
-            font-size: 0.68rem;
+        #reproductor-musica-perfil .rmp-tiempo {
+            font-size: 0.65rem;
             color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            white-space: nowrap;
+            min-width: 32px;
+            text-align: center;
+            flex-shrink: 0;
         }
-
-        /* Ecualizador animado que muestra que hay música sonando */
-        #reproductor-musica-perfil .rmp-ondas {
-            display: flex;
-            align-items: flex-end;
-            gap: 2px;
-            height: 14px;
-        }
-        #reproductor-musica-perfil .rmp-ondas span {
-            display: block;
-            width: 3px;
-            background: var(--primary, #4f46e5);
+        #reproductor-musica-perfil .rmp-progreso {
+            flex: 1;
+            appearance: none;
+            -webkit-appearance: none;
+            height: 4px;
             border-radius: 2px;
-            animation: rmp-onda 0.9s ease-in-out infinite;
-        }
-        #reproductor-musica-perfil .rmp-ondas span:nth-child(1) { height: 6px;  animation-delay: 0s; }
-        #reproductor-musica-perfil .rmp-ondas span:nth-child(2) { height: 14px; animation-delay: .15s; }
-        #reproductor-musica-perfil .rmp-ondas span:nth-child(3) { height: 9px;  animation-delay: .3s; }
-        #reproductor-musica-perfil.rmp-pausado .rmp-ondas span {
-            animation-play-state: paused;
-            opacity: 0.35;
-        }
-        @keyframes rmp-onda {
-            0%, 100% { transform: scaleY(0.4); }
-            50% { transform: scaleY(1); }
+            background: #4d4d4d;
+            cursor: pointer;
+            accent-color: var(--text-white);
         }
 
+        /* --- Volumen (derecha) --- */
         #reproductor-musica-perfil .rmp-volumen-wrap {
             display: flex;
             align-items: center;
             gap: 6px;
+            width: 150px;
+            justify-content: flex-end;
+            flex-shrink: 0;
         }
-        #reproductor-musica-perfil input[type="range"] {
-            width: 84px;
-            accent-color: var(--primary, #4f46e5);
+        #reproductor-musica-perfil .rmp-volumen {
+            width: 90px;
+            appearance: none;
+            -webkit-appearance: none;
+            height: 4px;
+            border-radius: 2px;
+            background: #4d4d4d;
             cursor: pointer;
+            accent-color: var(--text-white);
         }
 
-        @media (max-width: 560px) {
-            #reproductor-musica-perfil { gap: 6px; padding: 8px 10px; }
-            #reproductor-musica-perfil .rmp-titulo { display: none; }
-            #reproductor-musica-perfil input[type="range"] { width: 58px; }
+        #reproductor-musica-perfil button.rmp-icono {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #reproductor-musica-perfil button.rmp-icono:hover { color: var(--text-white); }
+
+        @media (max-width: 700px) {
+            #reproductor-musica-perfil .rmp-track { width: 120px; }
+            #reproductor-musica-perfil .rmp-artista { display: none; }
+            #reproductor-musica-perfil .rmp-volumen-wrap { width: 34px; }
+            #reproductor-musica-perfil .rmp-volumen { display: none; }
         }
     </style>
 </head>
@@ -902,67 +961,134 @@
         return null;
     }
 
+    function formatearTiempo(segundos) {
+        if (!isFinite(segundos) || segundos < 0) segundos = 0;
+        const m = Math.floor(segundos / 60);
+        const s = Math.floor(segundos % 60);
+        return `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    // Trae título, artista y carátula de la canción a partir del link
+    // guardado en el perfil. No existe forma de consultar Spotify desde
+    // acá sin un backend (su API necesita un client_secret que nunca
+    // debería quedar expuesto en el código del sitio), así que para
+    // links de YouTube usamos su oEmbed público —no necesita API key ni
+    // login, y devuelve título, canal y miniatura—, y esa miniatura es
+    // la que se muestra en forma de círculo. Para un link directo a un
+    // archivo de audio (mp3, etc) no hay metadata disponible desde el
+    // navegador, así que el título se arma a partir del nombre del
+    // archivo en la URL.
+    async function obtenerMetadataCancion(urlLimpia, ytId) {
+        if (ytId) {
+            try {
+                const resp = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent('https://www.youtube.com/watch?v=' + ytId)}&format=json`);
+                if (resp.ok) {
+                    const data = await resp.json();
+                    return {
+                        titulo: data.title || 'Música del perfil',
+                        artista: data.author_name || '',
+                        caratula: data.thumbnail_url || `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`
+                    };
+                }
+            } catch {
+                // Si falla el oEmbed (sin conexión, bloqueado, etc), seguimos con la miniatura directa.
+            }
+            return { titulo: 'Música del perfil', artista: '', caratula: `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` };
+        }
+
+        let titulo = 'Música del perfil';
+        try {
+            const u = new URL(urlLimpia);
+            const nombreArchivo = decodeURIComponent(u.pathname.split('/').pop() || '');
+            const sinExtension = nombreArchivo.replace(/\.[a-zA-Z0-9]+$/, '');
+            if (sinExtension) titulo = sinExtension.replace(/[_-]+/g, ' ').trim();
+        } catch {
+            // link raro, nos quedamos con el título genérico
+        }
+        return { titulo, artista: '', caratula: null };
+    }
+
+    // Carga (una sola vez) la API oficial de YouTube para poder manejar
+    // play/pause/volumen/progreso igual que con un <audio> normal.
+    let promesaYoutubeAPI = null;
+    function cargarYoutubeAPI() {
+        if (window.YT && window.YT.Player) return Promise.resolve();
+        if (promesaYoutubeAPI) return promesaYoutubeAPI;
+        promesaYoutubeAPI = new Promise((resolve) => {
+            const previo = window.onYouTubeIframeAPIReady;
+            window.onYouTubeIframeAPIReady = () => {
+                if (typeof previo === 'function') previo();
+                resolve();
+            };
+            const script = document.createElement('script');
+            script.src = 'https://www.youtube.com/iframe_api';
+            document.head.appendChild(script);
+        });
+        return promesaYoutubeAPI;
+    }
+
     // Arranca (una sola vez por carga de página) la música de fondo del
-    // perfil que se está viendo, con un botón flotante para que
-    // cualquiera que entre la pueda pausar. Los navegadores modernos
-    // bloquean el autoplay con sonido hasta que la persona interactúa
-    // con la página, así que si el play() inicial falla, queda
-    // esperando el primer click/touch para arrancar sola.
-    function iniciarMusicaDeFondo(url) {
+    // perfil que se está viendo, con un reproductor fijo abajo para que
+    // cualquiera que entre la pueda pausar, bajar el volumen o
+    // silenciarla. Los navegadores modernos bloquean el autoplay con
+    // sonido hasta que la persona interactúa con la página, así que si
+    // el play() inicial falla, queda esperando el primer click/touch
+    // para arrancar sola.
+    async function iniciarMusicaDeFondo(url) {
         const urlLimpia = (url || '').trim();
         if (!urlLimpia || !esUrlDeImagenValida(urlLimpia)) return;
-        if (document.getElementById('musica-perfil-media')) return; // ya está andando
+        if (document.getElementById('reproductor-musica-perfil')) return; // ya está andando
 
         const ytId = extraerIdYoutube(urlLimpia);
+        const esYoutube = !!ytId;
+
         let sonando = true;
         let muteado = false;
-        // Volumen recordado entre perfiles (0-100). Si no hay nada guardado, arranca a mitad.
+        // Volumen recordado entre perfiles (0-100).
         let volumen = parseInt(localStorage.getItem('reztored_volumen_perfil'), 10);
         if (isNaN(volumen) || volumen < 0 || volumen > 100) volumen = 70;
 
-        let media;
+        const meta = await obtenerMetadataCancion(urlLimpia, ytId);
 
-        if (ytId) {
-            media = document.createElement('iframe');
-            media.id = 'musica-perfil-media';
-            media.src = `https://www.youtube.com/embed/${ytId}?autoplay=1&mute=0&controls=0&loop=1&playlist=${ytId}&enablejsapi=1`;
-            media.allow = 'autoplay; encrypted-media';
-            media.style.cssText = 'position:fixed; width:1px; height:1px; opacity:0; pointer-events:none; border:0; bottom:0; right:0;';
-        } else {
-            media = document.createElement('audio');
-            media.id = 'musica-perfil-media';
-            media.src = urlLimpia;
-            media.loop = true;
-            media.autoplay = true;
-            media.volume = volumen / 100;
-        }
-        document.body.appendChild(media);
-
-        // --- Armado del mini reproductor ---
+        // --- Armado del reproductor (barra fija abajo, estilo Spotify) ---
         const reproductor = document.createElement('div');
         reproductor.id = 'reproductor-musica-perfil';
+        const estiloCaratula = meta.caratula
+            ? `background-image:url('${meta.caratula.replace(/'/g, '%27')}'); background-size:cover; background-position:center;`
+            : 'display:flex; align-items:center; justify-content:center; font-size:1.1rem;';
         reproductor.innerHTML = `
-            <button type="button" id="rmp-btn-play" title="Pausar música del perfil">⏸️</button>
-            <div class="rmp-info">
-                <span class="rmp-titulo">Música del perfil</span>
-                <div class="rmp-ondas"><span></span><span></span><span></span></div>
+            <div class="rmp-track">
+                <div class="rmp-caratula" id="rmp-caratula" style="${estiloCaratula}">${meta.caratula ? '' : '🎵'}</div>
+                <div class="rmp-textos">
+                    <div class="rmp-nombre" title="${escapeAttr(meta.titulo)}">${escapeHTML(meta.titulo)}</div>
+                    <div class="rmp-artista">${escapeHTML(meta.artista || 'Música del perfil')}</div>
+                </div>
+            </div>
+            <div class="rmp-centro">
+                <button type="button" class="rmp-btn-play" id="rmp-btn-play" title="Pausar">⏸</button>
+                <div class="rmp-barra-fila">
+                    <span class="rmp-tiempo" id="rmp-tiempo-actual">0:00</span>
+                    <input type="range" class="rmp-progreso" id="rmp-progreso" min="0" max="100" value="0">
+                    <span class="rmp-tiempo" id="rmp-tiempo-total">0:00</span>
+                </div>
             </div>
             <div class="rmp-volumen-wrap">
-                <button type="button" id="rmp-btn-mute" title="Silenciar">🔊</button>
-                <input type="range" id="rmp-volumen" min="0" max="100" value="${volumen}" title="Volumen">
+                <button type="button" class="rmp-icono" id="rmp-btn-mute" title="Silenciar">🔊</button>
+                <input type="range" class="rmp-volumen" id="rmp-volumen" min="0" max="100" value="${volumen}" title="Volumen">
             </div>
         `;
         document.body.appendChild(reproductor);
+        document.body.classList.add('rmp-activo');
 
         const btnPlay = reproductor.querySelector('#rmp-btn-play');
         const btnMute = reproductor.querySelector('#rmp-btn-mute');
         const inputVolumen = reproductor.querySelector('#rmp-volumen');
+        const inputProgreso = reproductor.querySelector('#rmp-progreso');
+        const spanActual = reproductor.querySelector('#rmp-tiempo-actual');
+        const spanTotal = reproductor.querySelector('#rmp-tiempo-total');
 
-        function mandarComandoYoutube(comando, args = []) {
-            if (media.tagName === 'IFRAME' && media.contentWindow) {
-                media.contentWindow.postMessage(JSON.stringify({ event: 'command', func: comando, args }), '*');
-            }
-        }
+        let arrastrandoProgreso = false;
+        let media = null; // <audio> o instancia de YT.Player, según el link
 
         function iconoVolumen() {
             if (muteado || volumen === 0) return '🔇';
@@ -970,41 +1096,49 @@
             return '🔊';
         }
 
-        function actualizarUI() {
-            reproductor.classList.toggle('rmp-pausado', !sonando);
-            btnPlay.textContent = sonando ? '⏸️' : '▶️';
-            btnPlay.title = sonando ? 'Pausar música del perfil' : 'Reproducir música del perfil';
+        function actualizarUIBase() {
+            reproductor.classList.toggle('rmp-sonando', sonando);
+            btnPlay.textContent = sonando ? '⏸' : '▶';
+            btnPlay.title = sonando ? 'Pausar' : 'Reproducir';
             btnMute.textContent = iconoVolumen();
             btnMute.title = muteado ? 'Reactivar sonido' : 'Silenciar';
-            inputVolumen.disabled = muteado;
         }
 
-        function aplicarVolumen() {
+        function aplicarVolumenReal() {
             const volumenEfectivo = muteado ? 0 : volumen;
-            if (media.tagName === 'AUDIO') {
+            if (esYoutube) {
+                if (media && media.setVolume) media.setVolume(volumenEfectivo);
+            } else if (media) {
                 media.volume = volumenEfectivo / 100;
-            } else {
-                mandarComandoYoutube('setVolume', [volumenEfectivo]);
-                mandarComandoYoutube(muteado ? 'mute' : 'unMute');
             }
         }
 
-        // ▶️ / ⏸️ Play y pausa
+        function actualizarProgreso(actual, duracion) {
+            if (!isFinite(duracion) || duracion <= 0) return;
+            if (!arrastrandoProgreso) {
+                inputProgreso.max = String(Math.floor(duracion));
+                inputProgreso.value = String(Math.floor(actual));
+                spanActual.textContent = formatearTiempo(actual);
+            }
+            spanTotal.textContent = formatearTiempo(duracion);
+        }
+
+        // ⏯️ Play / pausa
         btnPlay.addEventListener('click', () => {
             sonando = !sonando;
-            if (media.tagName === 'AUDIO') {
+            if (esYoutube) {
+                if (media) sonando ? media.playVideo() : media.pauseVideo();
+            } else if (media) {
                 if (sonando) media.play().catch(() => {}); else media.pause();
-            } else {
-                mandarComandoYoutube(sonando ? 'playVideo' : 'pauseVideo');
             }
-            actualizarUI();
+            actualizarUIBase();
         });
 
-        // 🔇 Mute directo (guarda el volumen anterior para restaurarlo)
+        // 🔇 Mute directo
         btnMute.addEventListener('click', () => {
             muteado = !muteado;
-            aplicarVolumen();
-            actualizarUI();
+            aplicarVolumenReal();
+            actualizarUIBase();
         });
 
         // 🔊 Slider de volumen (subir / bajar)
@@ -1012,34 +1146,80 @@
             volumen = parseInt(inputVolumen.value, 10) || 0;
             localStorage.setItem('reztored_volumen_perfil', String(volumen));
             if (muteado && volumen > 0) muteado = false; // mover el slider desmutea
-            aplicarVolumen();
-            actualizarUI();
+            aplicarVolumenReal();
+            actualizarUIBase();
         });
 
-        aplicarVolumen();
-        actualizarUI();
+        // Barra de progreso: mientras se arrastra solo se actualiza el
+        // tiempo mostrado; recién al soltar (change) se hace el seek de
+        // verdad, para no pelearse con la actualización automática.
+        inputProgreso.addEventListener('input', () => {
+            arrastrandoProgreso = true;
+            spanActual.textContent = formatearTiempo(parseFloat(inputProgreso.value));
+        });
+        inputProgreso.addEventListener('change', () => {
+            const destino = parseFloat(inputProgreso.value);
+            if (esYoutube) {
+                if (media && media.seekTo) media.seekTo(destino, true);
+            } else if (media) {
+                media.currentTime = destino;
+            }
+            arrastrandoProgreso = false;
+        });
 
-        // Intento de autoplay real (funciona directo en algunos
-        // navegadores/dispositivos, en otros va a fallar y esperamos
-        // el primer toque en la página para arrancar).
-        if (media.tagName === 'AUDIO') {
+        if (esYoutube) {
+            const contenedorYT = document.createElement('div');
+            contenedorYT.id = 'musica-perfil-media';
+            contenedorYT.style.cssText = 'position:fixed; width:1px; height:1px; opacity:0; pointer-events:none; bottom:0; right:0;';
+            document.body.appendChild(contenedorYT);
+
+            await cargarYoutubeAPI();
+
+            media = new YT.Player('musica-perfil-media', {
+                videoId: ytId,
+                playerVars: { autoplay: 1, controls: 0, loop: 1, playlist: ytId, playsinline: 1 },
+                events: {
+                    onReady: (e) => {
+                        aplicarVolumenReal();
+                        try { e.target.playVideo(); } catch {}
+                    },
+                    onStateChange: (e) => {
+                        if (e.data === YT.PlayerState.PLAYING) { sonando = true; actualizarUIBase(); }
+                        else if (e.data === YT.PlayerState.PAUSED) { sonando = false; actualizarUIBase(); }
+                    }
+                }
+            });
+
+            setInterval(() => {
+                if (!media || !media.getCurrentTime) return;
+                try { actualizarProgreso(media.getCurrentTime(), media.getDuration()); } catch {}
+            }, 500);
+        } else {
+            media = document.createElement('audio');
+            media.id = 'musica-perfil-media';
+            media.src = urlLimpia;
+            media.loop = true;
+            media.autoplay = true;
+            media.volume = (muteado ? 0 : volumen) / 100;
+            document.body.appendChild(media);
+
+            media.addEventListener('play', () => { sonando = true; actualizarUIBase(); });
+            media.addEventListener('pause', () => { sonando = false; actualizarUIBase(); });
+            media.addEventListener('timeupdate', () => actualizarProgreso(media.currentTime, media.duration));
+            media.addEventListener('loadedmetadata', () => actualizarProgreso(media.currentTime, media.duration));
+
             media.play().catch(() => {
                 sonando = false;
-                actualizarUI();
+                actualizarUIBase();
                 const activarConGesto = () => {
-                    media.play().then(() => {
-                        sonando = true;
-                        actualizarUI();
-                    }).catch(() => {});
+                    media.play().then(() => { sonando = true; actualizarUIBase(); }).catch(() => {});
                 };
                 document.addEventListener('click', activarConGesto, { once: true });
                 document.addEventListener('touchstart', activarConGesto, { once: true });
             });
-        } else {
-            // Con YouTube el volumen inicial se manda apenas el iframe
-            // está listo para recibir comandos.
-            media.addEventListener('load', aplicarVolumen);
         }
+
+        actualizarUIBase();
     }
 
     // --- "Theming" de toda la página con el color elegido del dueño ---
