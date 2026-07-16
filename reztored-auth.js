@@ -393,6 +393,12 @@ export async function toggleLikeOpinion(opinionId, uidQueDaLike) {
     }
     const opinionRef = doc(db, 'opinions', opinionId);
 
+    // Lo traemos antes de la transacción (no hace falta que esté
+    // sincronizado al segundo: es solo para el nombre que va a
+    // aparecer en la notificación del autor).
+    const likerSnapPrevio = await getDoc(doc(db, 'users', uidQueDaLike));
+    const deUsername = likerSnapPrevio.exists() ? (likerSnapPrevio.data().username || 'alguien') : 'alguien';
+
     await runTransaction(db, async (tx) => {
         const opinionSnap = await tx.get(opinionRef);
         if (!opinionSnap.exists()) {
@@ -419,6 +425,20 @@ export async function toggleLikeOpinion(opinionId, uidQueDaLike) {
             updates.dislikesCount = increment(-1);
         }
         tx.update(opinionRef, updates);
+
+        // Notificamos al autor del post de que le dieron like (excepto
+        // si se está likeando a sí mismo: no tiene sentido notificarse).
+        if (data.authorUid && data.authorUid !== uidQueDaLike) {
+            const notiRef = doc(collection(db, 'users', data.authorUid, 'notificaciones'));
+            tx.set(notiRef, {
+                tipo: 'like',
+                deUid: uidQueDaLike,
+                deUsername,
+                opinionId,
+                leida: false,
+                timestamp: serverTimestamp()
+            });
+        }
     });
 }
 
@@ -687,6 +707,40 @@ export async function actualizarMarcoPerfil(uid, marcoId) {
 }
 
 /**
+ * Guarda el link de música de fondo del perfil del usuario logueado.
+ * Solo funciona si ya compró 'musica_perfil'. Acepta un link de
+ * YouTube o un link directo a un archivo de audio (.mp3/.ogg/.wav).
+ * Pasar un string vacío ('') saca la música del perfil.
+ */
+export async function actualizarMusicaPerfil(uid, url) {
+    const user = auth.currentUser;
+    if (!user || user.uid !== uid) {
+        throw new Error("Solo podés personalizar tu propio perfil.");
+    }
+    const urlLimpia = (url || '').trim();
+
+    if (urlLimpia) {
+        let urlValida;
+        try {
+            urlValida = new URL(urlLimpia);
+        } catch {
+            throw new Error("Ese link no es una URL válida.");
+        }
+        if (urlValida.protocol !== 'https:' && urlValida.protocol !== 'http:') {
+            throw new Error("El link tiene que empezar con http:// o https://");
+        }
+
+        const snap = await getDoc(doc(db, 'users', uid));
+        const inventario = snap.exists() ? (snap.data().inventario || {}) : {};
+        if (!inventario['musica_perfil']) {
+            throw new Error("Necesitás comprar 'Música de perfil' en la tienda primero.");
+        }
+    }
+
+    await setDoc(doc(db, 'users', uid), { musicaURL: urlLimpia }, { merge: true });
+}
+
+/**
  * Dona "cantidad" de petoCoins de la cuenta logueada actual a la cuenta
  * "uidReceptor". Resta y suma en una sola transacción para que quede
  * siempre consistente (o se hacen las dos escrituras, o ninguna), y le
@@ -744,8 +798,12 @@ export async function donarCoins(uidReceptor, cantidad) {
  * tiene, tira error (no tiene sentido regalarle algo que ya tiene).
  * Todo corre en una transacción para que el saldo del emisor, el
  * inventario del receptor y la notificación queden sincronizados.
+ *
+ * "mensaje" es opcional: un texto corto (se recorta a 200 caracteres)
+ * que el que regala le puede dejar al receptor, y que aparece junto
+ * con el regalo en su notificación.
  */
-export async function regalarProducto(uidReceptor, producto) {
+export async function regalarProducto(uidReceptor, producto, mensaje) {
     const uidEmisor = auth.currentUser ? auth.currentUser.uid : null;
     if (!uidEmisor) throw new Error("Necesitás iniciar sesión para regalar.");
     if (!uidReceptor) throw new Error("Falta el destinatario.");
@@ -753,6 +811,7 @@ export async function regalarProducto(uidReceptor, producto) {
     if (!producto || !producto.id || typeof producto.precio !== 'number' || producto.precio <= 0) {
         throw new Error("Producto inválido.");
     }
+    const mensajeLimpio = typeof mensaje === 'string' ? mensaje.trim().slice(0, 200) : '';
 
     const emisorRef = doc(db, 'users', uidEmisor);
     const receptorRef = doc(db, 'users', uidReceptor);
@@ -786,6 +845,7 @@ export async function regalarProducto(uidReceptor, producto) {
             productoId: producto.id,
             productoNombre: producto.nombre,
             productoEmoji: producto.emoji,
+            ...(mensajeLimpio ? { mensaje: mensajeLimpio } : {}),
             leida: false,
             timestamp: serverTimestamp()
         });
@@ -855,14 +915,18 @@ export async function fijarMisCoins(cantidad) {
 // Firestore bloquea eso por defecto con
 // "Missing or insufficient permissions" a menos que las Reglas de
 // Seguridad del proyecto lo permitan explícitamente.
-// Te paso el archivo de reglas recomendado aparte — sin pegarlo en
-// Firebase Console (Firestore Database → Reglas), ni los likes, ni
-// donar/regalar, ni banear/dar-admin ni borrar opiniones van a
-// funcionar, aunque el código de acá esté perfecto. Para las
-// notificaciones específicamente, la subcolección
+// Te paso el archivo de reglas recomendado aparte ("reglas actuales.txt")
+// — sin pegarlo en Firebase Console (Firestore Database → Reglas), ni
+// los likes, ni donar/regalar, ni banear/dar-admin, ni borrar
+// opiniones/comentarios van a funcionar, aunque el código de acá esté
+// perfecto. Para las notificaciones específicamente, la subcolección
 // users/{uid}/notificaciones necesita permitir: que CUALQUIER usuario
 // logueado pueda CREAR una notificación dentro de la subcolección de
-// OTRO usuario (para poder avisarle que le donaron/regalaron algo),
-// pero que solo el DUEÑO de esa subcolección la pueda LEER o marcar
-// como leída.
+// OTRO usuario (para poder avisarle que le donaron/regalaron/likearon
+// algo — el like ahora también genera notificación), pero que solo el
+// DUEÑO de esa subcolección la pueda LEER o marcar como leída. Y para
+// que cada usuario pueda borrar SUS PROPIOS comentarios del foro (no
+// solo un admin), la subcolección opinions/{opinionId}/comments
+// necesita una regla de "delete" que permita al dueño del comentario
+// (authorUid == su uid) además del admin.
 // ============================================================

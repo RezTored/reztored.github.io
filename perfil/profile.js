@@ -1,1540 +1,172 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Perfil</title>
- 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
- 
-    <style>
-        :root {
-            --bg-page: #121214;
-            --bg-card: #1e1e22;
-            --bg-header: #18181c;
-            --border-color: #2d2d34;
-            --text-main: #e1e1e6;
-            --text-muted: #8e8e93;
-            --text-white: #ffffff;
-            --accent-red: #ff5f56;
-            --primary: #4f46e5;
-            --primary-hover: #4338ca;
-        }
- 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
- 
-        body {
-            background: var(--bg-page);
-            font-family: 'Rajdhani', sans-serif;
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
- 
-        .app-window {
-            width: 100%;
-            max-width: 480px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
-            overflow: hidden;
-            transition: box-shadow 0.4s ease, border-color 0.4s ease, max-width 0.2s ease;
-        }
+// profile.js
+import { 
+    auth, 
+    db, 
+    obtenerPerfilPorUid, 
+    esAdmin, 
+    actualizarColorPerfil, 
+    actualizarBannerImagenPerfil, 
+    actualizarMarcoPerfil 
+} from './reztored-auth.js';
 
-        /* En pantallas anchas, el perfil se agranda y pasa a mostrar una
-           columna lateral (Top Petocoins + Redes) al lado del contenido
-           principal, para que se sienta más "página de perfil" y menos
-           "tarjetita" chica. En mobile se queda angosto como antes. */
-        @media (min-width: 860px) {
-            body { padding: 32px 20px; align-items: flex-start; }
-            .app-window { max-width: 900px; }
-        }
- 
-        .window-header {
-            background: var(--bg-header);
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid var(--border-color);
-        }
- 
-        .window-dots { display: flex; gap: 8px; }
-        .dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
-        .dot.close { background: #ff5f56; }
-        .dot.minimize { background: #ffbd2e; }
-        .dot.maximize { background: #27c93f; }
- 
-        .window-title {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: var(--text-muted);
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
- 
-        .window-spacer { width: 49px; }
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { doc, updateDoc, onSnapshot, collection, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        .window-home-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 49px;
-            height: 22px;
-            text-decoration: none;
-            opacity: 0.75;
-            transition: opacity 0.2s, transform 0.2s;
-        }
-        .window-home-btn:hover {
-            opacity: 1;
-            transform: scale(1.08);
-        }
-        .window-home-btn img {
-            height: 20px;
-            width: auto;
-            display: block;
-        }
- 
-        .window-content { padding: 28px 24px; }
- 
-        .perfil-avatar {
-            width: 96px;
-            height: 96px;
-            border-radius: 50%;
-            border: 2px solid var(--border-color);
-            display: block;
-            margin: -28px 0 16px 18px;
-            object-fit: cover;
-            background: var(--bg-header);
-        }
- 
-        .perfil-username {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.3rem;
-            color: var(--text-white);
-            text-align: center;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            margin-bottom: 4px;
-        }
- 
-        .perfil-fecha {
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 0.8rem;
-            margin-bottom: 20px;
-        }
- 
-        .perfil-bio {
-            background: var(--bg-header);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 14px;
-            font-size: 0.95rem;
-            line-height: 1.5;
-            color: var(--text-main);
-            white-space: pre-line;
-            margin-bottom: 20px;
-            min-height: 40px;
-        }
- 
-        .perfil-bio.vacia { color: var(--text-muted); font-style: italic; }
+const urlParams = new URLSearchParams(window.location.search);
+const profileId = urlParams.get('id');
 
-        /* Tag "ADMIN" al lado del nombre de usuario */
-        .tag-admin {
-            display: inline-block;
-            background: var(--primary);
-            color: #fff;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.6rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-            padding: 3px 7px;
-            border-radius: 4px;
-            vertical-align: middle;
-            margin-left: 8px;
-        }
+let currentUserObj = null;
 
-        .perfil-coins {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            background: var(--bg-header);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 10px 14px;
-            margin: 0 0 16px;
-        }
-
-        .perfil-coins img { width: 24px; height: 24px; display: block; }
-
-        .perfil-coins .monto {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text-white);
-        }
-
-        .perfil-coins .etiqueta {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .aviso-baneado {
-            background: #3a1d1d;
-            border: 1px solid #5c2b2b;
-            color: #ff9b93;
-            border-radius: 8px;
-            padding: 10px 14px;
-            font-size: 0.85rem;
-            text-align: center;
-            margin-bottom: 16px;
-        }
-
-        .btn-danger { background: #7a1f1f; border-color: #a33; }
-        .btn-danger:hover { background: #931f1f; border-color: #c44; }
-
-        /* Pestañas del panel (Perfil / Administrador) */
-        .tabs-perfil {
-            display: flex;
-            gap: 8px;
-            margin: 18px 0 14px;
-            border-bottom: 1px solid var(--border-color);
-        }
-        .tab-btn {
-            background: none;
-            border: none;
-            border-bottom: 2px solid transparent;
-            border-radius: 0;
-            padding: 8px 4px;
-            color: var(--text-muted);
-            font-size: 0.75rem;
-        }
-        .tab-btn.activa { color: var(--text-white); border-bottom-color: var(--primary); }
-        .tab-panel { display: none; }
-        .tab-panel.activa { display: block; }
-
-        .admin-panel-box {
-            background: var(--bg-header);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 14px;
-        }
-        .admin-panel-box p.ayuda { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; }
-
-        .donar-box {
-            background: var(--bg-header);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 14px;
-            margin-top: 8px;
-        }
-        .donar-box p.ayuda { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; }
-        .donar-box .fila { display: flex; gap: 8px; }
-        .donar-box input[type="number"], .donar-box select {
-            flex: 1;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 10px;
-            color: var(--text-white);
-            font-family: 'Rajdhani', sans-serif;
-            font-size: 0.95rem;
-            outline: none;
-        }
-        .donar-box select { min-width: 0; }
-
-        /* --- LAYOUT CON SIDEBAR (contenido principal + Top Petocoins/Redes) --- */
-        .perfil-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 24px;
-            margin-top: 8px;
-        }
-        @media (min-width: 860px) {
-            .perfil-grid { grid-template-columns: 2fr 1fr; align-items: start; }
-        }
-
-        .sidebar-box {
-            background: var(--bg-header);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
-        .sidebar-box:last-child { margin-bottom: 0; }
-        .sidebar-box h3 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.8rem;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            color: var(--text-white);
-            margin-bottom: 12px;
-        }
-
-        /* Top Petocoins */
-        .leaderboard-list { list-style: none; }
-        .leaderboard-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 0;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 0.85rem;
-        }
-        .leaderboard-item:last-child { border-bottom: none; }
-        .leaderboard-item.leaderboard-item-actual { color: var(--primary, #4f46e5); }
-        .leaderboard-rank { font-weight: 700; color: var(--text-muted); width: 26px; flex-shrink: 0; }
-        .leaderboard-item.leaderboard-item-actual .leaderboard-rank { color: var(--primary, #4f46e5); }
-        .leaderboard-name {
-            flex-grow: 1;
-            color: var(--text-main);
-            text-decoration: none;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .leaderboard-name:hover { text-decoration: underline; }
-        .leaderboard-coins { color: #ffd700; font-weight: 700; font-size: 0.8rem; white-space: nowrap; }
-
-        /* Redes sociales */
-        .redes-grid { display: flex; flex-direction: column; gap: 8px; }
-        .red-link {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 8px 10px;
-            font-size: 0.85rem;
-            color: var(--text-main);
-            text-decoration: none;
-            transition: border-color 0.2s, transform 0.2s;
-        }
-        .red-link:hover { border-color: var(--primary, #4f46e5); transform: translateX(2px); }
-        .red-emoji { font-size: 1rem; }
-        .redes-vacio { color: var(--text-muted); font-size: 0.8rem; font-style: italic; }
-        .edit-form .redes-grid-inputs { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
-        .edit-form .redes-grid-inputs label { margin-bottom: 0; }
-        .edit-form .redes-grid-inputs input { margin-bottom: 0; }
-
-        /* Comentarios del Foro */
-        .comentario-foro-item {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 10px 12px;
-            margin-bottom: 8px;
-        }
-        .comentario-foro-item:last-child { margin-bottom: 0; }
-        .comentario-foro-fecha { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 4px; }
-        .comentario-foro-texto { font-size: 0.85rem; color: var(--text-main); white-space: pre-wrap; line-height: 1.4; }
-        .comentario-foro-footer { display: flex; gap: 12px; font-size: 0.72rem; color: var(--text-muted); margin-top: 6px; }
-        .comentario-foro-verforo {
-            display: inline-block;
-            margin-top: 10px;
-            color: var(--primary, #4f46e5);
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.8rem;
-        }
-        .comentario-foro-verforo:hover { text-decoration: underline; }
-
- 
-        .no-encontrado {
-            text-align: center;
-            padding: 20px 0;
-        }
- 
-        .no-encontrado p {
-            color: var(--text-muted);
-            margin-bottom: 16px;
-        }
- 
-        a.btn-link, button {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.8rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-            background: #2d2d34;
-            color: var(--text-white);
-            border: 1px solid var(--border-color);
-            padding: 10px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            text-transform: uppercase;
-            transition: background 0.2s, border-color 0.2s;
-        }
- 
-        a.btn-link:hover, button:hover { background: #3e3e46; border-color: #5d5d66; }
- 
-        .btn-primary { background: var(--primary); border-color: var(--primary); }
-        .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
- 
-        .acciones-perfil { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
- 
-        .edit-form { display: none; margin-top: 16px; }
-        .edit-form.activo { display: block; }
- 
-        .edit-form label {
-            display: block;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-bottom: 6px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
- 
-        .edit-form textarea, .edit-form input {
-            width: 100%;
-            background: var(--bg-header);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 10px;
-            color: var(--text-white);
-            font-family: 'Rajdhani', sans-serif;
-            font-size: 0.95rem;
-            outline: none;
-            margin-bottom: 14px;
-            resize: none;
-        }
- 
-        .edit-form textarea { min-height: 70px; }
- 
-        .form-msg { font-size: 0.85rem; text-align: center; margin-top: 8px; min-height: 1.2em; }
-        .text-green-400 { color: #27c93f; }
-        .text-red-400 { color: #ff5f56; }
- 
-        .cargando { text-align: center; color: var(--text-muted); padding: 30px 0; }
-
-        /* --- COSMÉTICOS DE LA TIENDA --- */
-
-        /* Banner personalizado (banner_personalizado): bleedea hasta
-           los bordes de .window-content usando margen negativo igual
-           a su padding (28px 24px). */
-        .perfil-banner {
-            height: 150px;
-            margin: -28px -24px 18px;
-            border-bottom: 1px solid var(--border-color);
-            background-color: var(--bg-header);
-        }
-        @media (min-width: 860px) {
-            .perfil-banner { height: 320px; }
-            .perfil-avatar { width: 150px; height: 150px; border-width: 4px; margin: -50px 0 16px 24px; }
-        }
-
-        /* Tabs "🎨 Colores" / "🖼️ Imagen o GIF" dentro de "Personalizar" */
-        .banner-tabs {
-            display: flex;
-            gap: 6px;
-            margin-bottom: 10px;
-        }
-        .banner-tab-btn {
-            flex: 1;
-            font-size: 0.72rem;
-            padding: 8px 6px;
-        }
-        .banner-tab-btn.activa {
-            background: var(--primary);
-            border-color: var(--primary);
-        }
-        .banner-tab-panel { display: none; }
-        .banner-tab-panel.activa { display: block; }
-
-        /* --- MARCOS DE PERFIL (comprables en la tienda, categoria:'marco') ---
-           Cada producto categoria:'marco' tiene un campo "clase" que
-           arma la clase CSS de acá abajo como "avatar-<clase>". Si se
-           agrega un marco nuevo en tienda/productos.js, hay que
-           agregarle también su CSS acá. */
-        .avatar-dorado {
-            border-color: #ffd700 !important;
-            box-shadow: 0 0 18px rgba(255, 215, 0, 0.55);
-        }
-        .avatar-plata {
-            border-color: #c9ccd6 !important;
-            box-shadow: 0 0 16px rgba(201, 204, 214, 0.55);
-        }
-        .avatar-fuego {
-            border: 3px solid #ff7a1a !important;
-            animation: marco-fuego 1.6s ease-in-out infinite;
-        }
-        @keyframes marco-fuego {
-            0%, 100% { box-shadow: 0 0 14px rgba(255, 122, 26, 0.55), 0 0 26px rgba(255, 42, 0, 0.25); }
-            50% { box-shadow: 0 0 26px rgba(255, 160, 60, 0.9), 0 0 42px rgba(255, 42, 0, 0.5); }
-        }
-        .avatar-hielo {
-            border: 3px solid #7dd3fc !important;
-            animation: marco-hielo 2.4s ease-in-out infinite;
-        }
-        @keyframes marco-hielo {
-            0%, 100% { box-shadow: 0 0 14px rgba(125, 211, 252, 0.55), 0 0 26px rgba(56, 189, 248, 0.25); }
-            50% { box-shadow: 0 0 26px rgba(186, 230, 253, 0.9), 0 0 42px rgba(56, 189, 248, 0.5); }
-        }
-        .avatar-neon {
-            border: 3px solid #d946ef !important;
-            animation: marco-neon 2.4s linear infinite;
-        }
-        @keyframes marco-neon {
-            0%   { box-shadow: 0 0 16px #d946ef, 0 0 28px #6366f1; }
-            33%  { box-shadow: 0 0 16px #6366f1, 0 0 28px #22d3ee; }
-            66%  { box-shadow: 0 0 16px #22d3ee, 0 0 28px #d946ef; }
-            100% { box-shadow: 0 0 16px #d946ef, 0 0 28px #6366f1; }
-        }
-
-        /* Selector de marco dentro de "🎨 Personalizar" */
-        .marcos-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 14px;
-            justify-content: center;
-            margin-bottom: 10px;
-        }
-        .marco-opcion {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-            background: none;
-            border: none;
-            padding: 4px;
-        }
-        .marco-opcion img, .marco-opcion .marco-vacio {
-            width: 52px;
-            height: 52px;
-            border-radius: 50%;
-            border: 2px solid var(--border-color);
-            object-fit: cover;
-            background: var(--bg-card);
-            display: block;
-        }
-        .marco-opcion .marco-vacio {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-            color: var(--text-muted);
-        }
-        .marco-opcion span {
-            font-size: 0.62rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            max-width: 64px;
-            text-align: center;
-        }
-        .marco-opcion.seleccionado img, .marco-opcion.seleccionado .marco-vacio {
-            outline: 2px solid var(--primary);
-            outline-offset: 2px;
-        }
-        .marco-opcion.seleccionado span { color: var(--text-white); font-weight: 700; }
-
-        /* --- 🎒 MOCHILA (inventario de items comprados) --- */
-        .panel-colapsable { display: none; margin-top: 16px; }
-        .panel-colapsable.activo { display: block; }
-        .mochila-box {
-            background: var(--bg-header);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 14px;
-        }
-        .mochila-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-            gap: 10px;
-        }
-        .mochila-item {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 10px 6px;
-            text-align: center;
-        }
-        .mochila-item .mochila-emoji { font-size: 1.6rem; margin-bottom: 4px; }
-        .mochila-item .mochila-nombre { font-size: 0.68rem; color: var(--text-main); line-height: 1.2; }
-        .mochila-item .mochila-cant { font-size: 0.62rem; color: var(--text-muted); margin-top: 2px; }
-        .mochila-vacia { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 10px 0; }
-
-        /* Insignias junto al nombre de usuario */
-        .tag-vip {
-            display: inline-block;
-            background: linear-gradient(135deg, #ffd700, #ff9f1c);
-            color: #1a1300;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.6rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-            padding: 3px 7px;
-            border-radius: 4px;
-            vertical-align: middle;
-            margin-left: 6px;
-        }
-        .tag-titulo {
-            display: inline-block;
-            background: #2d2d34;
-            border: 1px solid #ffd700;
-            color: #ffd700;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.6rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-            padding: 3px 7px;
-            border-radius: 4px;
-            vertical-align: middle;
-            margin-left: 6px;
-        }
-
-        .stickers-line {
-            text-align: center;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin: -6px 0 16px;
-        }
-
-        /* Panel "Personalizar mi perfil" (color_personalizado / banner_personalizado) */
-        .personalizar-box {
-            background: var(--bg-header);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 14px;
-        }
-        .personalizar-box label {
-            display: block;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .fila-color {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 14px;
-        }
-        .fila-color input[type="color"] {
-            width: 44px;
-            height: 36px;
-            padding: 2px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            background: var(--bg-card);
-            cursor: pointer;
-        }
-        .fila-color button { flex: 1; }
-        .bloqueado-nota {
-            font-size: 0.78rem;
-            color: var(--text-muted);
-            margin-bottom: 14px;
-            line-height: 1.4;
-        }
-        .bloqueado-nota a { color: var(--primary); }
-    </style>
-</head>
-<body>
- 
-<div class="app-window">
-    <div class="window-header">
-        <div class="window-dots">
-            <span class="dot close"></span>
-            <span class="dot minimize"></span>
-            <span class="dot maximize"></span>
-        </div>
-        <div class="window-title">Perfil</div>
-        <a href="/" class="window-home-btn" aria-label="Volver al inicio" title="Volver al inicio">
-            <img src="/lol.png" alt="Inicio">
-        </a>
-    </div>
- 
-    <div class="window-content" id="contenido-perfil">
-        <div class="cargando">Cargando perfil...</div>
-    </div>
-</div>
- 
-<script type="module">
-    import {
-        auth,
-        db,
-        onAuthStateChanged,
-        obtenerPerfilPorUsername,
-        obtenerPerfilPorUid,
-        obtenerTopPetocoins,
-        actualizarPerfil,
-        actualizarColorPerfil,
-        actualizarBannerColorPerfil,
-        actualizarBannerImagenPerfil,
-        actualizarMarcoPerfil,
-        actualizarRedesPerfil,
-        otorgarAdmin,
-        banearUsuario,
-        esAdmin,
-        donarCoins,
-        regalarProducto,
-        fijarMisCoins,
-        RESERVED_USERNAMES
-    } from '/reztored-auth.js';
-    import { PRODUCTOS } from '/tienda/productos.js';
-    import { collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
- 
-    const contenedor = document.getElementById('contenido-perfil');
-    const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
-
-    // Redes sociales que se pueden mostrar/editar en el perfil, debajo
-    // del cuadro de "Top Petocoins".
-    const REDES_CONFIG = [
-        { id: 'instagram', emoji: '📸', label: 'Instagram', placeholder: 'https://instagram.com/tu_usuario' },
-        { id: 'twitter', emoji: '🐦', label: 'X / Twitter', placeholder: 'https://x.com/tu_usuario' },
-        { id: 'tiktok', emoji: '🎵', label: 'TikTok', placeholder: 'https://tiktok.com/@tu_usuario' },
-        { id: 'youtube', emoji: '▶️', label: 'YouTube', placeholder: 'https://youtube.com/@tu_canal' },
-        { id: 'twitch', emoji: '🎮', label: 'Twitch', placeholder: 'https://twitch.tv/tu_usuario' },
-        { id: 'discord', emoji: '💬', label: 'Discord', placeholder: 'https://discord.gg/tu_invitacion' },
-        { id: 'kick', emoji: '🥊', label: 'Kick', placeholder: 'https://kick.com/tu_usuario' },
-        { id: 'otro', emoji: '🔗', label: 'Otro link', placeholder: 'https://...' }
-    ];
-
-    // --- Banner de colores "al azar" por defecto (gratis, sin comprar nada) ---
-    // No es random de verdad en cada carga (se vería feo/inconsistente):
-    // se genera siempre el mismo par de colores a partir del uid, así
-    // cada usuario tiene "su" degradé aleatorio pero estable.
-    function hashDeString(str) {
-        let h = 0;
-        for (let i = 0; i < str.length; i++) {
-            h = (h << 5) - h + str.charCodeAt(i);
-            h |= 0;
-        }
-        return Math.abs(h);
+async function init() {
+    if (!profileId) {
+        document.getElementById('userName').textContent = "Perfil no encontrado";
+        return;
     }
+    await cargarPerfil();
+    escucharSesion();
+    escucharComentariosForo();
+}
 
-    function hslAHex(h, s, l) {
-        s /= 100; l /= 100;
-        const k = n => (n + h / 30) % 12;
-        const a = s * Math.min(l, 1 - l);
-        const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
-        const aHex = x => Math.round(255 * x).toString(16).padStart(2, '0');
-        return `#${aHex(f(0))}${aHex(f(8))}${aHex(f(4))}`;
-    }
+async function cargarPerfil() {
+    try {
+        const userData = await obtenerPerfilPorUid(profileId);
 
-    function colorAleatorioDeUid(uid) {
-        const h = hashDeString(uid || 'reztored');
-        const hue1 = h % 360;
-        const hue2 = (hue1 + 55) % 360;
-        return [hslAHex(hue1, 65, 45), hslAHex(hue2, 65, 45)];
-    }
+        if (userData) {
+            // Llenar UI con datos de tu DB
+            document.getElementById('userName').textContent = userData.username || 'Usuario';
+            document.getElementById('userBio').textContent = userData.bio || 'Este usuario aún no ha escrito su biografía.';
+            document.getElementById('userCoins').textContent = userData.coins || 0;
+            document.getElementById('userBadge').textContent = userData.isAdmin ? '🛡️ Administrador' : 'Miembro';
+            
+            if (userData.photoURL) document.getElementById('userAvatar').src = userData.photoURL;
+            if (userData.bannerImageURL) document.getElementById('userBanner').style.backgroundImage = `url('${userData.bannerImageURL}')`;
+            if (userData.colorPerfil) document.documentElement.style.setProperty('--user-theme-color', userData.colorPerfil);
 
-    function esUrlDeImagenValida(url) {
-        if (typeof url !== 'string' || !url.trim()) return false;
-        try {
-            const u = new URL(url.trim());
-            return u.protocol === 'https:' || u.protocol === 'http:';
-        } catch {
-            return false;
+            // Rellenar inputs del modal
+            document.getElementById('editNameInput').value = userData.username || '';
+            document.getElementById('editBioInput').value = userData.bio || '';
+            document.getElementById('editColorInput').value = userData.colorPerfil || '#8b5cf6';
+            document.getElementById('editAvatarInput').value = userData.photoURL || '';
+            document.getElementById('editBannerInput').value = userData.bannerImageURL || '';
         }
+    } catch (error) {
+        console.error("Error al cargar perfil:", error);
     }
+}
 
-    // --- "Theming" de toda la página con el color elegido del dueño ---
-    // (como en Discord: el perfil de alguien tiñe la vista con SU color,
-    // lo vea quien lo vea).
-    function oscurecerColor(hex, factor) {
-        const num = parseInt(hex.slice(1), 16);
-        const r = Math.round(((num >> 16) & 255) * factor);
-        const g = Math.round(((num >> 8) & 255) * factor);
-        const b = Math.round((num & 255) * factor);
-        return `#${[r, g, b].map(x => x.toString(16).padStart(2, '0')).join('')}`;
-    }
-
-    function hexConAlpha(hex, alpha) {
-        const num = parseInt(hex.slice(1), 16);
-        const r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255;
-        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    }
-
-    function aplicarTemaDePagina(colorHex) {
-        const raiz = document.documentElement;
-        const appWindow = document.querySelector('.app-window');
-        if (!colorHex) {
-            raiz.style.removeProperty('--primary');
-            raiz.style.removeProperty('--primary-hover');
-            if (appWindow) {
-                appWindow.style.boxShadow = '';
-                appWindow.style.borderColor = '';
+function escucharSesion() {
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            currentUserObj = user;
+            // Mostrar botones de edición solo si es el dueño
+            if (user.uid === profileId) {
+                document.getElementById('editProfileBtn').classList.remove('hidden');
             }
-            return;
-        }
-        raiz.style.setProperty('--primary', colorHex);
-        raiz.style.setProperty('--primary-hover', oscurecerColor(colorHex, 0.82));
-        if (appWindow) {
-            appWindow.style.boxShadow = `0 0 55px ${hexConAlpha(colorHex, 0.28)}, 0 15px 35px rgba(0, 0, 0, 0.6)`;
-            appWindow.style.borderColor = hexConAlpha(colorHex, 0.45);
-        }
-    }
- 
-    // Saca el nombre de usuario de la URL, ej: reztored.online/juan -> "juan"
-    function obtenerUsernameDeURL() {
-        const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
-        return path.split('/')[0].toLowerCase();
-    }
- 
-    function renderNoEncontrado() {
-        contenedor.innerHTML = `
-            <div class="no-encontrado">
-                <p>No encontramos ningún perfil con ese nombre de usuario.</p>
-                <a class="btn-link" href="/">Volver al inicio</a>
-            </div>
-        `;
-    }
- 
-    function formatearFecha(timestamp) {
-        if (!timestamp || !timestamp.toDate) return 'Fecha desconocida';
-        return timestamp.toDate().toLocaleDateString('es-AR', { year: 'numeric', month: 'long', day: 'numeric' });
-    }
- 
-    async function iniciar() {
-        const username = obtenerUsernameDeURL();
- 
-        if (!username || RESERVED_USERNAMES.includes(username)) {
-            renderNoEncontrado();
-            return;
-        }
- 
-        // El perfil y el top de petocoins se piden en paralelo; si el
-        // ranking falla por algún motivo, obtenerTopPetocoins ya
-        // devuelve un array vacío en vez de tirar error, así que no
-        // hace falta un try/catch extra acá.
-        const [perfil, topPetocoins] = await Promise.all([
-            obtenerPerfilPorUsername(username),
-            obtenerTopPetocoins(5)
-        ]);
- 
-        if (!perfil) {
-            renderNoEncontrado();
-            return;
-        }
- 
-        // Esperamos a saber si hay sesión iniciada, para saber si mostramos
-        // "Editar perfil", la tag ADMIN, el botón de banear, etc.
-        onAuthStateChanged(auth, async (user) => {
-            const esDueno = user && user.uid === perfil.uid;
-
-            // Perfil del que está MIRANDO (para saber si es admin).
-            // Si está mirando su propio perfil, ya lo tenemos (perfil).
-            let perfilViewer = null;
-            if (user) {
-                perfilViewer = esDueno ? perfil : await obtenerPerfilPorUid(user.uid);
+            // Botón Admin
+            if (esAdmin(user.uid)) {
+                document.getElementById('adminBtn').classList.remove('hidden');
             }
-            const viewerEsAdmin = esAdmin(perfilViewer) || esAdmin(user ? user.uid : null);
+        }
+    });
+}
 
-            renderPerfil(perfil, esDueno, viewerEsAdmin, user, topPetocoins);
+// --- GUARDAR PERFIL (USANDO FUNCIONES DE TIENDA) ---
+
+document.getElementById('saveProfileBtn').onclick = async () => {
+    if (!currentUserObj || currentUserObj.uid !== profileId) return;
+
+    try {
+        // 1. Actualización básica (No requiere compra)
+        await updateDoc(doc(db, "users", profileId), {
+            username: document.getElementById('editNameInput').value,
+            bio: document.getElementById('editBioInput').value,
+            photoURL: document.getElementById('editAvatarInput').value
         });
+
+        // 2. Personalizaciones de Tienda (Están protegidas por tus funciones en reztored-auth.js)
+        // Si el usuario no compró el producto, estas funciones lanzarán un error y el catch lo atrapará.
+        
+        await actualizarColorPerfil(profileId, document.getElementById('editColorInput').value);
+        await actualizarBannerImagenPerfil(profileId, document.getElementById('editBannerInput').value);
+
+        alert("Perfil actualizado correctamente.");
+        document.getElementById('editModal').style.display = 'none';
+        location.reload();
+
+    } catch (error) {
+        // Aquí mostramos el error que viene de tu función (ej: "Necesitás comprar Banner...")
+        alert("Error al guardar: " + error.message);
     }
- 
-    function renderPerfil(perfil, esDueno, viewerEsAdmin, viewerUser, topPetocoins = []) {
-        const bioHTML = perfil.bio
-            ? `<div class="perfil-bio">${escapeHTML(perfil.bio)}</div>`
-            : `<div class="perfil-bio vacia">Este usuario todavía no escribió una bio.</div>`;
+};
 
-        const tagAdminHTML = perfil.isAdmin ? `<span class="tag-admin">ADMIN</span>` : '';
-        const avisoBaneadoHTML = perfil.banned ? `<div class="aviso-baneado">🚫 Este usuario está baneado.</div>` : '';
+// --- PANEL ADMIN ---
 
-        // --- Cosméticos comprados en la tienda (users/{uid}.inventario) ---
-        const inventario = perfil.inventario || {};
-        const tieneTituloVip = !!inventario['titulo_vip'];
-        const tieneVip = !!inventario['membresia_vip'];
-        const tieneColorPerso = !!inventario['color_personalizado'];
-        const tieneBannerPerso = !!inventario['banner_personalizado'];
-        const cantStickers = inventario['sticker_sorpresa'] || 0;
-        const colorElegido = (tieneColorPerso && HEX_COLOR_REGEX.test(perfil.colorPerfil || '')) ? perfil.colorPerfil : null;
+document.getElementById('adminSaveBtn').onclick = async () => {
+    // Aquí puedes usar updateDoc directamente porque eres Admin
+    const nuevasMonedas = parseInt(document.getElementById('adminCoinsInput').value) || 0;
+    const esAdminSeleccionado = document.getElementById('adminRoleSelect').value === 'admin';
 
-        // --- Marco de perfil (categoria:'marco' en tienda/productos.js) ---
-        // La persona puede tener comprados varios marcos, pero solo uno
-        // puesto a la vez (perfil.marcoActivo). Si nunca eligió ninguno
-        // pero ya tenía comprado el marco dorado de antes de que
-        // existiera este selector, se lo dejamos puesto por defecto.
-        const marcosCatalogo = PRODUCTOS.filter(p => p.categoria === 'marco');
-        const marcosPoseidos = marcosCatalogo.filter(p => !!inventario[p.id]);
+    await updateDoc(doc(db, "users", profileId), {
+        coins: nuevasMonedas,
+        isAdmin: esAdminSeleccionado
+    });
 
-        let marcoActivoId = null;
-        if (perfil.marcoActivo && perfil.marcoActivo !== 'ninguno' && inventario[perfil.marcoActivo]) {
-            marcoActivoId = perfil.marcoActivo;
-        } else if (perfil.marcoActivo === undefined && inventario['marco_perfil_dorado']) {
-            marcoActivoId = 'marco_perfil_dorado';
-        }
-        const marcoActivoProducto = marcoActivoId ? marcosCatalogo.find(p => p.id === marcoActivoId) : null;
+    alert("Cambios de admin aplicados.");
+    location.reload();
+};
 
-        // El marco puesto pisa al color personalizado (así siempre se ve
-        // el cosmético "más caro" en la foto de perfil).
-        let avatarClass = 'perfil-avatar';
-        let avatarStyle = '';
-        if (marcoActivoProducto) {
-            avatarClass += ` avatar-${marcoActivoProducto.clase}`;
-        } else if (colorElegido) {
-            avatarStyle = `border-color:${escapeAttr(colorElegido)}; box-shadow:0 0 15px ${escapeAttr(colorElegido)}66;`;
+init();
+
+// --- COMENTARIOS DEL FORO EN EL PERFIL ---
+
+function escapeHTML(str) {
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
+    return String(str).replace(/[&<>'"]/g, tag => map[tag] || tag);
+}
+
+function escucharComentariosForo() {
+    const contenedor = document.getElementById('userForumComments');
+    if (!contenedor) return;
+
+    // Filtramos por authorUid; el orden lo hacemos en el cliente para
+    // no depender de un índice compuesto en Firestore.
+    const comentariosQuery = query(collection(db, 'opinions'), where('authorUid', '==', profileId));
+
+    onSnapshot(comentariosQuery, (snapshot) => {
+        if (snapshot.empty) {
+            contenedor.innerHTML = '<p class="forum-comments-empty">Este usuario todavía no dejó comentarios en el foro.</p>';
+            return;
         }
 
-        const usernameStyle = (colorElegido && !marcoActivoProducto)
-            ? ` style="color:${escapeAttr(colorElegido)};"`
-            : '';
+        const comentarios = snapshot.docs
+            .map(d => d.data())
+            .sort((a, b) => {
+                const ta = a.timestamp && a.timestamp.toMillis ? a.timestamp.toMillis() : 0;
+                const tb = b.timestamp && b.timestamp.toMillis ? b.timestamp.toMillis() : 0;
+                return tb - ta;
+            });
 
-        // La insignia VIP es solo una etiqueta dorada al lado del
-        // nombre, no pone marco en la foto (el marco se elige aparte).
-        const tagVipHTML = tieneVip ? `<span class="tag-vip">VIP</span>` : '';
-        const tagTituloHTML = tieneTituloVip ? `<span class="tag-titulo">👑 Título VIP</span>` : '';
-        const stickersHTML = cantStickers > 0
-            ? `<div class="stickers-line">🎁 Tiene ${cantStickers} sticker${cantStickers !== 1 ? 's' : ''} sorpresa</div>`
-            : '';
+        contenedor.innerHTML = comentarios.map(data => {
+            const texto = data.text || '';
+            const fecha = (data.timestamp && data.timestamp.toDate) ? data.timestamp.toDate().toLocaleString() : 'Reciente';
+            const likes = data.likesCount || 0;
+            const dislikes = data.dislikesCount || 0;
+            const petopes = data.petopeCount || 0;
 
-        // --- 🎒 Mochila: todos los items comprados (visible para cualquiera) ---
-        const itemsMochila = PRODUCTOS.filter(p => !!inventario[p.id]);
-        const mochilaGridHTML = itemsMochila.length > 0
-            ? `<div class="mochila-grid">${itemsMochila.map(p => `
-                <div class="mochila-item">
-                    <div class="mochila-emoji">${p.emoji}</div>
-                    <div class="mochila-nombre">${escapeHTML(p.nombre)}</div>
-                    ${p.tipo === 'multiple' ? `<div class="mochila-cant">x${inventario[p.id]}</div>` : ''}
-                </div>
-            `).join('')}</div>`
-            : `<p class="mochila-vacia">${esDueno ? 'Todavía no compraste nada. Visitá la <a href="/tienda" style="color:var(--primary);">tienda</a>.' : 'Este usuario todavía no tiene ningún item.'}</p>`;
-        const mochilaPanelHTML = `
-            <div class="panel-colapsable" id="panel-mochila">
-                <div class="mochila-box">
-                    ${mochilaGridHTML}
-                </div>
-            </div>
-        `;
-
-        // --- Selector de marco (solo se arma si es el dueño mirando su perfil) ---
-        function opcionMarcoHTML(id, emoji, nombre, seleccionada) {
-            const preview = marcosCatalogo.find(p => p.id === id);
-            const claseAvatar = preview ? `avatar-${preview.clase}` : '';
             return `
-                <button type="button" class="marco-opcion ${seleccionada ? 'seleccionado' : ''}" data-marco-id="${id}">
-                    <img class="${claseAvatar}" src="${perfil.photoURL || ''}" alt="${escapeAttr(nombre)}">
-                    <span>${nombre}</span>
-                </button>
+                <div class="forum-comment-card">
+                    <div class="forum-comment-date">${fecha}</div>
+                    <div class="forum-comment-text">${escapeHTML(texto)}</div>
+                    <div class="forum-comment-footer">
+                        <span>👍 ${likes}</span>
+                        <span>👎 ${dislikes}</span>
+                        <span><img src="/petocoin.png" alt="petope" style="width:14px; vertical-align:-2px;"> ${petopes}</span>
+                    </div>
+                </div>
             `;
-        }
-        const marcosOpcionesHTML = [
-            `<button type="button" class="marco-opcion ${!marcoActivoProducto ? 'seleccionado' : ''}" data-marco-id="ninguno">
-                <span class="marco-vacio">✕</span>
-                <span>Ninguno</span>
-            </button>`,
-            ...marcosPoseidos.map(p => opcionMarcoHTML(p.id, p.emoji, p.nombre, marcoActivoId === p.id))
-        ].join('');
-
-        // Tiñe toda la página con el color que eligió el DUEÑO del
-        // perfil, lo vea quien lo vea (como el perfil de Discord).
-        aplicarTemaDePagina(colorElegido);
-
-        // --- Banner: imagen/GIF > colores elegidos > colores al azar por defecto ---
-        const [randomC1, randomC2] = colorAleatorioDeUid(perfil.uid);
-        const bannerTypeActual = (tieneBannerPerso && perfil.bannerType === 'imagen') ? 'imagen' : 'color';
-        let bannerStyle;
-        if (tieneBannerPerso && perfil.bannerType === 'imagen' && esUrlDeImagenValida(perfil.bannerImageURL)) {
-            bannerStyle = `background-image:url('${escapeAttr(perfil.bannerImageURL.trim())}'); background-size:cover; background-position:center;`;
-        } else if (tieneBannerPerso && perfil.bannerType === 'color' && HEX_COLOR_REGEX.test(perfil.bannerColor1 || '') && HEX_COLOR_REGEX.test(perfil.bannerColor2 || '')) {
-            bannerStyle = `background:linear-gradient(135deg, ${perfil.bannerColor1}, ${perfil.bannerColor2});`;
-        } else {
-            bannerStyle = `background:linear-gradient(135deg, ${randomC1}, ${randomC2});`;
-        }
-        const bannerHTML = `<div class="perfil-banner" style="${bannerStyle}"></div>`;
-
-        // Botón de banear: lo ve un admin mirando el perfil de OTRA persona
-        // (nunca el propio, para no poder auto-banearse por accidente).
-        const accionesAdminHTML = (viewerEsAdmin && !esDueno) ? `
-            <div class="acciones-perfil" style="margin-top:8px;">
-                <button id="btn-banear" class="${perfil.banned ? '' : 'btn-danger'}">
-                    ${perfil.banned ? 'Desbanear usuario' : 'Banear usuario'}
-                </button>
-            </div>
-        ` : '';
-
-        // Donar petoCoins / regalar un producto: lo ve cualquiera
-        // logueado mirando el perfil de OTRA persona.
-        const opcionesRegaloHTML = PRODUCTOS.map(p =>
-            `<option value="${p.id}">${p.emoji} ${escapeHTML(p.nombre)} — ${p.precio.toLocaleString('es-AR')} petoCoins</option>`
-        ).join('');
-        const donarHTML = (viewerUser && !esDueno) ? `
-            <div class="donar-box">
-                <p class="ayuda">Donale petoCoins a ${escapeHTML(perfil.username)}.</p>
-                <form id="form-donar">
-                    <div class="fila">
-                        <input type="number" id="input-monto-donar" min="1" step="1" placeholder="Cantidad" required>
-                        <button type="submit" class="btn-primary">Donar</button>
-                    </div>
-                    <div class="form-msg" id="msg-donar"></div>
-                </form>
-            </div>
-            <div class="donar-box" style="margin-top:10px;">
-                <p class="ayuda">🎁 Regalale un producto de la tienda a ${escapeHTML(perfil.username)} (se paga con tus petoCoins).</p>
-                <form id="form-regalar">
-                    <div class="fila">
-                        <select id="input-producto-regalar">${opcionesRegaloHTML}</select>
-                        <button type="submit" class="btn-primary">Regalar</button>
-                    </div>
-                    <div class="form-msg" id="msg-regalar"></div>
-                </form>
-            </div>
-        ` : '';
-
-        // Pestaña "Administrador": solo la ve el dueño del perfil, si es admin.
-        const mostrarPestanas = esDueno && viewerEsAdmin;
-
-        // --- 🏆 Sidebar: Top Petocoins ---
-        const leaderboardHTML = topPetocoins.length > 0
-            ? `<ul class="leaderboard-list">${topPetocoins.map((u, i) => `
-                <li class="leaderboard-item ${u.uid === perfil.uid ? 'leaderboard-item-actual' : ''}">
-                    <span class="leaderboard-rank">#${i + 1}</span>
-                    <a class="leaderboard-name" href="/${encodeURIComponent(u.username || '')}">${escapeHTML(u.username || 'Usuario')}</a>
-                    <span class="leaderboard-coins">${(u.coins ?? 0).toLocaleString('es-AR')}</span>
-                </li>
-            `).join('')}</ul>`
-            : `<p class="redes-vacio">Todavía no hay suficientes datos para el ranking.</p>`;
-
-        // --- 🔗 Sidebar: Redes sociales ---
-        const redes = perfil.redes || {};
-        const redesConValor = REDES_CONFIG.filter(r => redes[r.id]);
-        const redesListaHTML = redesConValor.length > 0
-            ? `<div class="redes-grid">${redesConValor.map(r => `
-                <a class="red-link" href="${escapeAttr(redes[r.id])}" target="_blank" rel="noopener noreferrer nofollow">
-                    <span class="red-emoji">${r.emoji}</span> ${r.label}
-                </a>
-            `).join('')}</div>`
-            : `<p class="redes-vacio">${esDueno ? 'Todavía no cargaste tus redes.' : 'Este usuario todavía no cargó sus redes.'}</p>`;
-
-        const redesEditFormHTML = esDueno ? `
-            <button type="button" id="btn-editar-redes" style="width:100%; margin-top:10px;">✏️ Editar mis redes</button>
-            <form class="edit-form" id="form-editar-redes">
-                <div class="redes-grid-inputs">
-                    ${REDES_CONFIG.map(r => `
-                        <div>
-                            <label for="input-red-${r.id}">${r.emoji} ${r.label}</label>
-                            <input type="url" id="input-red-${r.id}" placeholder="${r.placeholder}" value="${redes[r.id] ? escapeAttr(redes[r.id]) : ''}">
-                        </div>
-                    `).join('')}
-                </div>
-                <button type="submit" class="btn-primary" style="width:100%;">Guardar redes</button>
-                <div class="form-msg" id="msg-editar-redes"></div>
-            </form>
-        ` : '';
-
-        // --- 💬 Sidebar: Comentarios en el Foro ---
-        const comentariosForoHTML = `
-            <div class="sidebar-box">
-                <h3>💬 Comentarios en el Foro</h3>
-                <div id="comentarios-foro-lista">
-                    <p class="redes-vacio">Cargando comentarios...</p>
-                </div>
-                <a href="/opinions" class="comentario-foro-verforo">Ver el foro completo →</a>
-            </div>
-        `;
-
-        const sidebarHTML = `
-            <div class="perfil-sidebar">
-                <div class="sidebar-box">
-                    <h3>🏆 Top Petocoins</h3>
-                    ${leaderboardHTML}
-                </div>
-                <div class="sidebar-box">
-                    <h3>🔗 Redes Sociales</h3>
-                    ${redesListaHTML}
-                    ${redesEditFormHTML}
-                </div>
-                ${comentariosForoHTML}
-            </div>
-        `;
-
-        contenedor.innerHTML = `
-            ${bannerHTML}
-            <img class="${avatarClass}" style="${avatarStyle}" src="${perfil.photoURL || ''}" alt="Avatar de ${escapeHTML(perfil.username)}">
-            <div class="perfil-username"${usernameStyle}>${escapeHTML(perfil.username)}${tagAdminHTML}${tagVipHTML}${tagTituloHTML}</div>
-            <div class="perfil-fecha">Miembro desde ${formatearFecha(perfil.createdAt)}</div>
-            ${stickersHTML}
-
-            <div class="perfil-coins">
-                <img src="/petocoin.png" alt="petoCoins">
-                <span class="monto">${(perfil.coins ?? 0).toLocaleString('es-AR')}</span>
-                <span class="etiqueta">petoCoins</span>
-            </div>
-
-            <div class="acciones-perfil" style="margin-top:0;">
-                <button id="btn-mochila">🎒 Mochila</button>
-            </div>
-            ${mochilaPanelHTML}
-
-            ${avisoBaneadoHTML}
-
-            <div class="perfil-grid">
-            <div class="perfil-main">
-            ${mostrarPestanas ? `
-                <div class="tabs-perfil">
-                    <button class="tab-btn activa" data-tab="tab-perfil">Perfil</button>
-                    <button class="tab-btn" data-tab="tab-admin">Administrador</button>
-                </div>
-            ` : ''}
-
-            <div class="tab-panel activa" id="tab-perfil">
-                ${bioHTML}
-                ${esDueno ? `
-                    <div class="acciones-perfil">
-                        <button id="btn-editar-perfil">Editar perfil</button>
-                        <button id="btn-personalizar">🎨 Personalizar</button>
-                    </div>
-                    <form class="edit-form" id="form-editar-perfil">
-                        <label for="input-bio">Bio (máx 280 caracteres)</label>
-                        <textarea id="input-bio" maxlength="280">${escapeHTML(perfil.bio || '')}</textarea>
-                        <label for="input-foto">URL de tu foto de perfil</label>
-                        <input type="url" id="input-foto" placeholder="https://..." value="${perfil.photoURL ? escapeAttr(perfil.photoURL) : ''}">
-                        <button type="submit" class="btn-primary">Guardar cambios</button>
-                        <div class="form-msg" id="msg-editar-perfil"></div>
-                    </form>
-                    <div class="edit-form" id="panel-personalizar">
-                        <div class="personalizar-box">
-                            ${tieneColorPerso ? `
-                                <label for="input-color-perfil">Color personalizado</label>
-                                <div class="fila-color">
-                                    <input type="color" id="input-color-perfil" value="${colorElegido || '#4f46e5'}">
-                                    <button type="button" id="btn-guardar-color" class="btn-primary">Guardar color</button>
-                                </div>
-                            ` : `
-                                <p class="bloqueado-nota">🔒 Comprá <strong>"Color personalizado"</strong> en la <a href="/tienda">tienda</a> para elegir el color de tu perfil.</p>
-                            `}
-                            <label>Marco de perfil</label>
-                            <div class="marcos-grid">
-                                ${marcosOpcionesHTML}
-                            </div>
-                            ${marcosPoseidos.length === 0 ? `
-                                <p class="bloqueado-nota">🔒 Todavía no tenés ningún marco. Comprá marcos en la <a href="/tienda">tienda</a> para ponerle un borde a tu foto.</p>
-                            ` : `
-                                <p class="bloqueado-nota">Tocá un marco para ponértelo. Podés comprar más en la <a href="/tienda">tienda</a>.</p>
-                            `}
-                            ${tieneBannerPerso ? `
-                                <label>Banner (colores o imagen/GIF por link)</label>
-                                <div class="banner-tabs">
-                                    <button type="button" class="banner-tab-btn ${bannerTypeActual !== 'imagen' ? 'activa' : ''}" data-tipo-banner="color">🎨 Colores</button>
-                                    <button type="button" class="banner-tab-btn ${bannerTypeActual === 'imagen' ? 'activa' : ''}" data-tipo-banner="imagen">🖼️ Imagen / GIF</button>
-                                </div>
-                                <div class="banner-tab-panel ${bannerTypeActual !== 'imagen' ? 'activa' : ''}" id="banner-panel-color">
-                                    <div class="fila-color">
-                                        <input type="color" id="input-banner-1" value="${(perfil.bannerColor1 && HEX_COLOR_REGEX.test(perfil.bannerColor1)) ? perfil.bannerColor1 : randomC1}">
-                                        <input type="color" id="input-banner-2" value="${(perfil.bannerColor2 && HEX_COLOR_REGEX.test(perfil.bannerColor2)) ? perfil.bannerColor2 : randomC2}">
-                                        <button type="button" id="btn-guardar-banner-color" class="btn-primary">Guardar</button>
-                                    </div>
-                                </div>
-                                <div class="banner-tab-panel ${bannerTypeActual === 'imagen' ? 'activa' : ''}" id="banner-panel-imagen">
-                                    <input type="url" id="input-banner-imagen" placeholder="https://ejemplo.com/imagen.gif" value="${(perfil.bannerImageURL && esUrlDeImagenValida(perfil.bannerImageURL)) ? escapeAttr(perfil.bannerImageURL) : ''}">
-                                    <button type="button" id="btn-guardar-banner-imagen" class="btn-primary" style="width:100%;">Guardar imagen/GIF</button>
-                                </div>
-                            ` : `
-                                <p class="bloqueado-nota">🔒 Comprá <strong>"Banner personalizado"</strong> en la <a href="/tienda">tienda</a> para poner tus propios colores o una imagen/GIF en tu banner (por ahora tenés uno de colores al azar).</p>
-                            `}
-                            <div class="form-msg" id="msg-personalizar"></div>
-                        </div>
-                    </div>
-                ` : ''}
-                ${accionesAdminHTML}
-                ${donarHTML}
-            </div>
-
-            ${mostrarPestanas ? `
-                <div class="tab-panel" id="tab-admin">
-                    <div class="admin-panel-box">
-                        <p class="ayuda">Escribí el nombre de usuario (sin @, tal cual aparece en su URL) al que querés darle o sacarle admin.</p>
-                        <form id="form-admin">
-                            <label for="input-username-admin">Nombre de usuario</label>
-                            <input type="text" id="input-username-admin" placeholder="ej: juan_perez">
-                            <div style="display:flex; gap:8px; margin-top:10px;">
-                                <button type="submit" data-valor="true" class="btn-primary" style="flex:1;">Dar admin</button>
-                                <button type="submit" data-valor="false" style="flex:1;">Quitar admin</button>
-                            </div>
-                            <div class="form-msg" id="msg-admin"></div>
-                        </form>
-                    </div>
-
-                    <div class="admin-panel-box" style="margin-top:12px;">
-                        <p class="ayuda">Fijá tu propio saldo de petoCoins (solo vos, solo admin). Esto PISA el saldo actual, no lo suma.</p>
-                        <form id="form-fijar-coins">
-                            <label for="input-monto-fijar">Nuevo saldo</label>
-                            <div style="display:flex; gap:8px;">
-                                <input type="number" id="input-monto-fijar" min="0" step="1" placeholder="ej: 5000" value="${perfil.coins ?? 0}" style="flex:1; background:var(--bg-card); border:1px solid var(--border-color); border-radius:6px; padding:10px; color:var(--text-white); font-family:'Rajdhani', sans-serif; font-size:0.95rem;">
-                                <button type="submit" class="btn-primary">Fijar</button>
-                            </div>
-                            <div class="form-msg" id="msg-fijar-coins"></div>
-                        </form>
-                    </div>
-                </div>
-            ` : ''}
-            </div>
-            ${sidebarHTML}
-            </div>
-        `;
-
-        const btnMochila = document.getElementById('btn-mochila');
-        const panelMochila = document.getElementById('panel-mochila');
-        btnMochila.addEventListener('click', () => {
-            panelMochila.classList.toggle('activo');
-        });
-
-        // Comentarios que este usuario dejó en el foro (se suscribe una
-        // sola vez por render; actualiza solo su propio contenedor, sin
-        // volver a dibujar el resto del perfil).
-        escucharComentariosForoDelPerfil(perfil.uid);
-
-        if (mostrarPestanas) {
-            const tabBtns = contenedor.querySelectorAll('.tab-btn');
-            tabBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    tabBtns.forEach(b => b.classList.remove('activa'));
-                    btn.classList.add('activa');
-                    contenedor.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('activa'));
-                    document.getElementById(btn.dataset.tab).classList.add('activa');
-                });
-            });
-
-            const formAdmin = document.getElementById('form-admin');
-            const msgAdmin = document.getElementById('msg-admin');
-            formAdmin.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const submitter = e.submitter;
-                const valor = submitter ? submitter.dataset.valor === 'true' : true;
-                const username = document.getElementById('input-username-admin').value;
-
-                msgAdmin.textContent = 'Procesando...';
-                msgAdmin.className = 'form-msg';
-                try {
-                    await otorgarAdmin(username, valor);
-                    msgAdmin.textContent = valor ? '¡Listo, ahora es admin!' : 'Listo, ya no es admin.';
-                    msgAdmin.className = 'form-msg text-green-400';
-                } catch (error) {
-                    console.error(error);
-                    msgAdmin.textContent = 'No se pudo: ' + error.message;
-                    msgAdmin.className = 'form-msg text-red-400';
-                }
-            });
-
-            const formFijarCoins = document.getElementById('form-fijar-coins');
-            const msgFijarCoins = document.getElementById('msg-fijar-coins');
-            formFijarCoins.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const monto = document.getElementById('input-monto-fijar').value;
-
-                msgFijarCoins.textContent = 'Guardando...';
-                msgFijarCoins.className = 'form-msg';
-                try {
-                    await fijarMisCoins(monto);
-                    msgFijarCoins.textContent = '¡Listo! Recargando...';
-                    msgFijarCoins.className = 'form-msg text-green-400';
-                    setTimeout(() => window.location.reload(), 1000);
-                } catch (error) {
-                    console.error(error);
-                    msgFijarCoins.textContent = 'No se pudo: ' + error.message;
-                    msgFijarCoins.className = 'form-msg text-red-400';
-                }
-            });
-        }
-
-        if (viewerEsAdmin && !esDueno) {
-            const btnBanear = document.getElementById('btn-banear');
-            btnBanear.addEventListener('click', async () => {
-                const nuevoValor = !perfil.banned;
-                const confirmMsg = nuevoValor
-                    ? `¿Banear a ${perfil.username}? No va a poder publicar en el foro.`
-                    : `¿Desbanear a ${perfil.username}?`;
-                if (!confirm(confirmMsg)) return;
-                try {
-                    await banearUsuario(perfil.uid, nuevoValor);
-                    window.location.reload();
-                } catch (error) {
-                    console.error(error);
-                    alert('No se pudo: ' + error.message);
-                }
-            });
-        }
-
-        if (viewerUser && !esDueno) {
-            const formDonar = document.getElementById('form-donar');
-            const msgDonar = document.getElementById('msg-donar');
-            if (formDonar) {
-                formDonar.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const monto = document.getElementById('input-monto-donar').value;
-
-                    msgDonar.textContent = 'Procesando...';
-                    msgDonar.className = 'form-msg';
-                    try {
-                        await donarCoins(perfil.uid, monto);
-                        msgDonar.textContent = `¡Le donaste ${monto} petoCoins a ${perfil.username}!`;
-                        msgDonar.className = 'form-msg text-green-400';
-                        formDonar.reset();
-                    } catch (error) {
-                        console.error(error);
-                        msgDonar.textContent = 'No se pudo donar: ' + error.message;
-                        msgDonar.className = 'form-msg text-red-400';
-                    }
-                });
-            }
-
-            const formRegalar = document.getElementById('form-regalar');
-            const msgRegalar = document.getElementById('msg-regalar');
-            if (formRegalar) {
-                formRegalar.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const productoId = document.getElementById('input-producto-regalar').value;
-                    const producto = PRODUCTOS.find(p => p.id === productoId);
-                    if (!producto) return;
-
-                    msgRegalar.textContent = 'Procesando...';
-                    msgRegalar.className = 'form-msg';
-                    try {
-                        await regalarProducto(perfil.uid, producto);
-                        msgRegalar.textContent = `¡Le regalaste "${producto.nombre}" a ${perfil.username}!`;
-                        msgRegalar.className = 'form-msg text-green-400';
-                    } catch (error) {
-                        console.error(error);
-                        msgRegalar.textContent = 'No se pudo regalar: ' + error.message;
-                        msgRegalar.className = 'form-msg text-red-400';
-                    }
-                });
-            }
-        }
-
-        if (esDueno) {
-            const btnEditar = document.getElementById('btn-editar-perfil');
-            const formEditar = document.getElementById('form-editar-perfil');
-            const msg = document.getElementById('msg-editar-perfil');
-
-            btnEditar.addEventListener('click', () => {
-                formEditar.classList.toggle('activo');
-            });
-
-            formEditar.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const bio = document.getElementById('input-bio').value;
-                const photoURL = document.getElementById('input-foto').value;
-
-                msg.textContent = 'Guardando...';
-                msg.className = 'form-msg';
-
-                try {
-                    await actualizarPerfil(perfil.uid, { bio, photoURL });
-                    msg.textContent = '¡Perfil actualizado! Recargando...';
-                    msg.className = 'form-msg text-green-400';
-                    setTimeout(() => window.location.reload(), 1000);
-                } catch (error) {
-                    console.error(error);
-                    msg.textContent = 'No se pudo guardar: ' + error.message;
-                    msg.className = 'form-msg text-red-400';
-                }
-            });
-
-            // Panel "🎨 Personalizar" (color y banner comprados en la tienda)
-            const btnPersonalizar = document.getElementById('btn-personalizar');
-            const panelPersonalizar = document.getElementById('panel-personalizar');
-            const msgPersonalizar = document.getElementById('msg-personalizar');
-
-            btnPersonalizar.addEventListener('click', () => {
-                panelPersonalizar.classList.toggle('activo');
-            });
-
-            const btnGuardarColor = document.getElementById('btn-guardar-color');
-            if (btnGuardarColor) {
-                btnGuardarColor.addEventListener('click', async () => {
-                    const color = document.getElementById('input-color-perfil').value;
-                    msgPersonalizar.textContent = 'Guardando...';
-                    msgPersonalizar.className = 'form-msg';
-                    try {
-                        await actualizarColorPerfil(perfil.uid, color);
-                        msgPersonalizar.textContent = '¡Listo! Recargando...';
-                        msgPersonalizar.className = 'form-msg text-green-400';
-                        setTimeout(() => window.location.reload(), 800);
-                    } catch (error) {
-                        console.error(error);
-                        msgPersonalizar.textContent = 'No se pudo: ' + error.message;
-                        msgPersonalizar.className = 'form-msg text-red-400';
-                    }
-                });
-            }
-
-            const marcoOpciones = document.querySelectorAll('.marco-opcion');
-            marcoOpciones.forEach(btn => {
-                btn.addEventListener('click', async () => {
-                    const marcoId = btn.dataset.marcoId;
-                    msgPersonalizar.textContent = 'Guardando...';
-                    msgPersonalizar.className = 'form-msg';
-                    try {
-                        await actualizarMarcoPerfil(perfil.uid, marcoId);
-                        msgPersonalizar.textContent = '¡Listo! Recargando...';
-                        msgPersonalizar.className = 'form-msg text-green-400';
-                        setTimeout(() => window.location.reload(), 500);
-                    } catch (error) {
-                        console.error(error);
-                        msgPersonalizar.textContent = 'No se pudo: ' + error.message;
-                        msgPersonalizar.className = 'form-msg text-red-400';
-                    }
-                });
-            });
-
-            const btnGuardarBannerColor = document.getElementById('btn-guardar-banner-color');
-            if (btnGuardarBannerColor) {
-                btnGuardarBannerColor.addEventListener('click', async () => {
-                    const c1 = document.getElementById('input-banner-1').value;
-                    const c2 = document.getElementById('input-banner-2').value;
-                    msgPersonalizar.textContent = 'Guardando...';
-                    msgPersonalizar.className = 'form-msg';
-                    try {
-                        await actualizarBannerColorPerfil(perfil.uid, c1, c2);
-                        msgPersonalizar.textContent = '¡Listo! Recargando...';
-                        msgPersonalizar.className = 'form-msg text-green-400';
-                        setTimeout(() => window.location.reload(), 800);
-                    } catch (error) {
-                        console.error(error);
-                        msgPersonalizar.textContent = 'No se pudo: ' + error.message;
-                        msgPersonalizar.className = 'form-msg text-red-400';
-                    }
-                });
-            }
-
-            const btnGuardarBannerImagen = document.getElementById('btn-guardar-banner-imagen');
-            if (btnGuardarBannerImagen) {
-                btnGuardarBannerImagen.addEventListener('click', async () => {
-                    const url = document.getElementById('input-banner-imagen').value;
-                    msgPersonalizar.textContent = 'Guardando...';
-                    msgPersonalizar.className = 'form-msg';
-                    try {
-                        await actualizarBannerImagenPerfil(perfil.uid, url);
-                        msgPersonalizar.textContent = '¡Listo! Recargando...';
-                        msgPersonalizar.className = 'form-msg text-green-400';
-                        setTimeout(() => window.location.reload(), 800);
-                    } catch (error) {
-                        console.error(error);
-                        msgPersonalizar.textContent = 'No se pudo: ' + error.message;
-                        msgPersonalizar.className = 'form-msg text-red-400';
-                    }
-                });
-            }
-
-            // Tabs "🎨 Colores" / "🖼️ Imagen o GIF" (solo cambian qué se ve,
-            // no guardan nada hasta que se aprieta el botón correspondiente)
-            const bannerTabBtns = document.querySelectorAll('.banner-tab-btn');
-            bannerTabBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    bannerTabBtns.forEach(b => b.classList.remove('activa'));
-                    btn.classList.add('activa');
-                    const panelColor = document.getElementById('banner-panel-color');
-                    const panelImagen = document.getElementById('banner-panel-imagen');
-                    if (btn.dataset.tipoBanner === 'imagen') {
-                        panelColor.classList.remove('activa');
-                        panelImagen.classList.add('activa');
-                    } else {
-                        panelImagen.classList.remove('activa');
-                        panelColor.classList.add('activa');
-                    }
-                });
-            });
-
-            // Botón "✏️ Editar mis redes" (sidebar, debajo del Top Petocoins)
-            const btnEditarRedes = document.getElementById('btn-editar-redes');
-            const formEditarRedes = document.getElementById('form-editar-redes');
-            if (btnEditarRedes && formEditarRedes) {
-                btnEditarRedes.addEventListener('click', () => {
-                    formEditarRedes.classList.toggle('activo');
-                });
-
-                formEditarRedes.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const msgRedes = document.getElementById('msg-editar-redes');
-                    const nuevasRedes = {};
-                    REDES_CONFIG.forEach(r => {
-                        const input = document.getElementById(`input-red-${r.id}`);
-                        if (input) nuevasRedes[r.id] = input.value;
-                    });
-
-                    msgRedes.textContent = 'Guardando...';
-                    msgRedes.className = 'form-msg';
-                    try {
-                        await actualizarRedesPerfil(perfil.uid, nuevasRedes);
-                        msgRedes.textContent = '¡Listo! Recargando...';
-                        msgRedes.className = 'form-msg text-green-400';
-                        setTimeout(() => window.location.reload(), 800);
-                    } catch (error) {
-                        console.error(error);
-                        msgRedes.textContent = 'No se pudo: ' + error.message;
-                        msgRedes.className = 'form-msg text-red-400';
-                    }
-                });
-            }
-        }
-    }
-
-    // --- 💬 Comentarios que este usuario dejó en el foro (subscripción en
-    // tiempo real; solo actualiza su propio contenedor para no perder el
-    // estado del resto del perfil, como paneles abiertos o formularios). ---
-    function escucharComentariosForoDelPerfil(uid) {
-        const cont = document.getElementById('comentarios-foro-lista');
-        if (!cont) return;
-
-        const comentariosQuery = query(collection(db, 'opinions'), where('authorUid', '==', uid));
-
-        onSnapshot(comentariosQuery, (snapshot) => {
-            if (snapshot.empty) {
-                cont.innerHTML = '<p class="redes-vacio">Este usuario todavía no dejó comentarios en el foro.</p>';
-                return;
-            }
-
-            const comentarios = snapshot.docs
-                .map(d => d.data())
-                .sort((a, b) => {
-                    const ta = a.timestamp && a.timestamp.toMillis ? a.timestamp.toMillis() : 0;
-                    const tb = b.timestamp && b.timestamp.toMillis ? b.timestamp.toMillis() : 0;
-                    return tb - ta;
-                });
-
-            cont.innerHTML = comentarios.map(data => {
-                const texto = data.text || '';
-                const fecha = (data.timestamp && data.timestamp.toDate) ? data.timestamp.toDate().toLocaleString('es-AR') : 'Reciente';
-                const likes = data.likesCount || 0;
-                const dislikes = data.dislikesCount || 0;
-                const petopes = data.petopeCount || 0;
-
-                return `
-                    <div class="comentario-foro-item">
-                        <div class="comentario-foro-fecha">${fecha}</div>
-                        <div class="comentario-foro-texto">${escapeHTML(texto)}</div>
-                        <div class="comentario-foro-footer">
-                            <span>👍 ${likes}</span>
-                            <span>👎 ${dislikes}</span>
-                            <span><img src="/petocoin.png" alt="petope" style="width:12px; vertical-align:-1px;"> ${petopes}</span>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }, (error) => {
-            console.error('Error al cargar comentarios del foro:', error);
-            cont.innerHTML = '<p class="redes-vacio">No se pudieron cargar los comentarios.</p>';
-        });
-    }
- 
-    function escapeHTML(str) {
-        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
-        return String(str).replace(/[&<>'"]/g, tag => map[tag] || tag);
-    }
- 
-    function escapeAttr(str) {
-        return String(str).replace(/"/g, '&quot;');
-    }
- 
-    iniciar();
-</script>
- 
-</body>
-</html>
+        }).join('');
+    }, (error) => {
+        console.error("Error al cargar comentarios del foro:", error);
+        contenedor.innerHTML = '<p class="forum-comments-empty">No se pudieron cargar los comentarios del foro.</p>';
+    });
+}

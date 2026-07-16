@@ -1134,6 +1134,8 @@
                 let cDate = 'Reciente';
                 if (data.timestamp && data.timestamp.toDate) cDate = data.timestamp.toDate().toLocaleString();
                 const linkPerfilComentario = `/${encodeURIComponent(cAuthor.toLowerCase())}`;
+                const esMiComentario = !!(uidActual && data.authorUid === uidActual);
+                const puedeBorrarComentario = soyAdminActual || esMiComentario;
 
                 return `
                     <div class="comment-item">
@@ -1144,7 +1146,7 @@
                             </div>
                             <div style="display:flex; align-items:center; gap:8px;">
                                 <span class="comment-date">${cDate}</span>
-                                ${soyAdminActual ? `<button type="button" class="btn-borrar-comentario" data-opinion-id="${opinionId}" data-comment-id="${id}" title="Borrar comentario">✕</button>` : ''}
+                                ${puedeBorrarComentario ? `<button type="button" class="btn-borrar-comentario" data-opinion-id="${opinionId}" data-comment-id="${id}" title="Borrar comentario">✕</button>` : ''}
                             </div>
                         </div>
                         <div class="comment-text">${escapeHTML(cText)}</div>

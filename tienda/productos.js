@@ -74,6 +74,11 @@
 //                                  perfil, no acá). Sin este producto,
 //                                  el banner igual se ve, pero con un
 //                                  degradé de colores al azar fijo.
+//     - 'musica_perfil'         -> desbloquea poner un link de música
+//                                  (YouTube o un archivo .mp3/.ogg/.wav)
+//                                  que se reproduce de fondo al entrar al
+//                                  perfil (se elige en la página de
+//                                  perfil, no acá)
 //     - 'sticker_sorpresa'      -> se muestra un contador en el perfil
 //   Podés cambiarles nombre/descripcion/precio/emoji libremente, pero
 //   si les cambiás el "id" hay que actualizar también 404.html para
@@ -174,6 +179,15 @@ export const PRODUCTOS = [
         clase: 'neon'
     },
 
+    {
+        id: 'musica_perfil',
+        nombre: 'Música de perfil',
+        descripcion: 'Poné el link de una canción (YouTube o un link directo a un .mp3/.ogg/.wav) para que suene de fondo cuando alguien entre a tu perfil.',
+        precio: 12000,
+        emoji: '🎵',
+        tipo: 'unico',
+        categoria: 'musica'
+    },
     {
         id: 'sticker_sorpresa',
         nombre: 'Sticker sorpresa',

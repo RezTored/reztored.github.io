@@ -212,16 +212,6 @@ loading="lazy">
         <div class="flex flex-col gap-4 border-l border-gray-800 pl-5">
             <div class="relative">
                 <span class="absolute -left-[25px] top-1.5 w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
-                <p class="text-xs text-gray-500 mb-0.5">15/07/2026</p>
-                <p class="text-gray-300 text-sm">Añadi comentarios, mejore los perfiles y solucione bugs.</p>
-            </div>
-            <div class="relative">
-                <span class="absolute -left-[25px] top-1.5 w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
-                <p class="text-xs text-gray-500 mb-0.5">15/07/2026</p>
-                <p class="text-gray-300 text-sm">Añadi más GAMBLING y petocoins.</p>
-            </div>
-            <div class="relative">
-                <span class="absolute -left-[25px] top-1.5 w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
                 <p class="text-xs text-gray-500 mb-0.5">14/07/2026</p>
                 <p class="text-gray-300 text-sm">Añadi GAMBLING y petocoins.</p>
             </div>
@@ -465,7 +455,14 @@ function textoNotificacion(noti) {
         return `🪙 <strong>${escapeHTMLNoti(noti.deUsername || 'Alguien')}</strong> te donó <strong>${(noti.monto || 0).toLocaleString('es-AR')}</strong> petoCoins`;
     }
     if (noti.tipo === 'regalo') {
-        return `${noti.productoEmoji || '🎁'} <strong>${escapeHTMLNoti(noti.deUsername || 'Alguien')}</strong> te regaló <strong>${escapeHTMLNoti(noti.productoNombre || 'un producto')}</strong>`;
+        let texto = `${noti.productoEmoji || '🎁'} <strong>${escapeHTMLNoti(noti.deUsername || 'Alguien')}</strong> te regaló <strong>${escapeHTMLNoti(noti.productoNombre || 'un producto')}</strong>`;
+        if (noti.mensaje) {
+            texto += `<br><span class="text-gray-400 italic">"${escapeHTMLNoti(noti.mensaje)}"</span>`;
+        }
+        return texto;
+    }
+    if (noti.tipo === 'like') {
+        return `👍 <strong>${escapeHTMLNoti(noti.deUsername || 'Alguien')}</strong> le dio like a tu publicación`;
     }
     return 'Nueva notificación';
 }
