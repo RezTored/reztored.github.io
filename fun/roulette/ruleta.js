@@ -162,6 +162,18 @@ function calcularMultiplicador(res) {
     if (res[1] === res[4] && res[4] === res[7]) mult += getP3(res[1]);
     if (res[2] === res[5] && res[5] === res[8]) mult += getP3(res[2]);
 
+    // Diagonales: era el mismo bug que el de las columnas. Si te salían
+    // 3 iguales en diagonal (de arriba-izquierda a abajo-derecha, o de
+    // arriba-derecha a abajo-izquierda) el tablero se veía como una
+    // línea ganadora perfecta pero no se contaba, y el juego decía
+    // "Perdiste" igual. Ahora se pagan también las 2 diagonales.
+    // Si el símbolo del centro (res[4]) hace que las DOS diagonales
+    // ganen a la vez (ej: O X O / X O X / O X O), cada diagonal suma
+    // su propio pago acá abajo, así que automáticamente se cobra el
+    // doble (como si fueran 2 líneas ganadas), sin ningún caso especial.
+    if (res[0] === res[4] && res[4] === res[8]) mult += getP3(res[0]);
+    if (res[2] === res[4] && res[4] === res[6]) mult += getP3(res[2]);
+
     if (res.every(s => s === res[0])) {
         // Antes era getP5(res[0]) * 5. Combinado con el jackpot fácil y
         // sin ponderar, esto hacía que el multiplicador promedio pagado

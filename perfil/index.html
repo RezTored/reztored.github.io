@@ -32,7 +32,7 @@
 
         /* Banner Masivo */
         .profile-banner {
-            height: 450px;
+            height: 650px;
             background-size: cover;
             background-position: center;
             background-color: #2c2c35;
@@ -84,6 +84,9 @@
             justify-content: space-between;
             align-items: flex-end;
             margin-bottom: 40px;
+            position: relative;
+            padding-left: 210px; /* deja espacio a la izquierda para el avatar */
+            min-height: 160px;
         }
 
         .user-identity {
@@ -93,6 +96,9 @@
         }
 
         .avatar {
+            position: absolute;
+            left: 0;
+            bottom: -50px; /* la foto queda más abajo, sobresaliendo del banner */
             width: 180px;
             height: 180px;
             border-radius: 15px;
@@ -100,6 +106,7 @@
             box-shadow: 0 0 25px rgba(0,0,0,0.6);
             background-color: var(--panel-dark);
             object-fit: cover;
+            z-index: 3;
         }
 
         .user-titles h1 {
@@ -210,6 +217,58 @@
         .leaderboard-name { flex-grow: 1; }
         .leaderboard-coins { color: #ffd700; font-weight: bold; }
 
+        /* Comentarios del Foro en el perfil */
+        .forum-comments-section {
+            margin-top: 30px;
+        }
+
+        .forum-comments-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .forum-comment-card {
+            background-color: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 15px 18px;
+        }
+
+        .forum-comment-date {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .forum-comment-text {
+            color: #e0e0e0;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .forum-comment-footer {
+            display: flex;
+            gap: 16px;
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .forum-comments-empty {
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        .forum-comments-viewall {
+            display: inline-block;
+            margin-top: 16px;
+            color: var(--user-theme-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .forum-comments-viewall:hover { text-decoration: underline; }
+
         /* --- MODALES (Formularios flotantes) --- */
         .modal {
             display: none; /* Oculto por defecto */
@@ -285,7 +344,20 @@
 
         @media (max-width: 800px) {
             .custom-layout { grid-template-columns: 1fr; }
-            .profile-header { flex-direction: column; align-items: flex-start; gap: 20px; }
+            .profile-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 20px;
+                padding-left: 0;
+                padding-top: 90px;
+            }
+            .avatar {
+                width: 130px;
+                height: 130px;
+                left: 20px;
+                bottom: auto;
+                top: -65px;
+            }
         }
     </style>
 </head>
@@ -332,6 +404,14 @@
                     </ul>
                 </div>
             </div>
+        </div>
+
+        <div class="custom-box forum-comments-section">
+            <h3>💬 Comentarios en el Foro</h3>
+            <div id="userForumComments" class="forum-comments-list">
+                <p class="forum-comments-empty">Cargando comentarios...</p>
+            </div>
+            <a href="/opinions" class="forum-comments-viewall">Ver el foro completo →</a>
         </div>
     </div>
 </div>
@@ -404,6 +484,6 @@
     </div>
 </div>
 
-<script type="module" src="app.js"></script>
+<script type="module" src="profile.js"></script>
 </body>
 </html>

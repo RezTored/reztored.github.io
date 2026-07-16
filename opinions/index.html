@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Opiniones</title>
+    <title>Foro</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -351,9 +351,14 @@
         /* Footer de la card: botón de like */
         .opinion-footer {
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
             border-top: 1px solid rgba(255, 255, 255, 0.03);
             padding-top: 8px;
+        }
+
+        .opinion-reactions {
+            display: flex;
+            gap: 8px;
         }
 
         .btn-like {
@@ -422,6 +427,120 @@
 
         .btn-like.petope-dado {
             cursor: default;
+        }
+
+        /* --- COMENTARIOS DE CADA PUBLICACIÓN --- */
+        .btn-toggle-comments {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: none;
+            border: none;
+            padding: 4px 2px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            cursor: pointer;
+            text-transform: none;
+        }
+
+        .btn-toggle-comments:hover {
+            color: var(--text-white);
+            background: none;
+        }
+
+        .comments-panel {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .comment-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 10px;
+        }
+
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .comment-avatar {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
+        }
+
+        .comment-author {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--text-white);
+            font-weight: 700;
+            font-size: 0.7rem;
+            letter-spacing: 0.5px;
+        }
+
+        .comment-date {
+            color: var(--text-muted);
+            font-size: 0.7rem;
+        }
+
+        .comment-text {
+            font-size: 0.85rem;
+            color: var(--text-main);
+            white-space: pre-line;
+            letter-spacing: 0.3px;
+        }
+
+        .no-comments {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-style: italic;
+            padding: 4px 0;
+        }
+
+        .comment-login-hint {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .comment-form {
+            display: flex;
+            gap: 6px;
+            align-items: flex-start;
+        }
+
+        .comment-form textarea {
+            flex-grow: 1;
+            min-height: 36px;
+            margin-bottom: 0;
+            padding: 8px;
+            font-size: 0.85rem;
+        }
+
+        .comment-form button {
+            padding: 8px 14px;
+            font-size: 0.7rem;
+            align-self: stretch;
+        }
+
+        .btn-borrar-comentario {
+            background: #3a1d1d;
+            border: 1px solid #5c2b2b;
+            color: #ff5f56;
+            padding: 2px 7px;
+            font-size: 0.7rem;
+            line-height: 1;
+            border-radius: 4px;
+            cursor: pointer;
         }
 
         /* Badge de saldo de petoCoins en la barra de estado */
@@ -603,7 +722,7 @@
                 <span class="dot minimize"></span>
                 <span class="dot maximize"></span>
             </div>
-            <div class="window-title">Opiniones</div>
+            <div class="window-title">Foro</div>
             <a href="/" class="window-home-btn" aria-label="Volver al inicio" title="Volver al inicio">
                 <img src="/lol.png" alt="Inicio">
             </a>
@@ -726,7 +845,9 @@
         addDoc,
         query,
         orderBy,
-        onSnapshot
+        onSnapshot,
+        doc,
+        deleteDoc
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     let modoLogin = true;
@@ -961,6 +1082,94 @@
     // (por ej. al loguearse/desloguearse) sin pedirle datos de nuevo a Firestore.
     let ultimasOpiniones = [];
 
+    // --- ESTADO DE LOS COMENTARIOS DE CADA PUBLICACIÓN ---
+    // comentariosAbiertos: qué publicaciones tienen el panel de comentarios desplegado.
+    // comentariosCache: último snapshot de comentarios por publicación (opinionId -> [{id, data}]).
+    // comentariosUnsub: función para dejar de escuchar los comentarios de una publicación.
+    const comentariosAbiertos = new Set();
+    const comentariosCache = new Map();
+    const comentariosUnsub = new Map();
+
+    function toggleComentarios(opinionId) {
+        if (comentariosAbiertos.has(opinionId)) {
+            comentariosAbiertos.delete(opinionId);
+        } else {
+            comentariosAbiertos.add(opinionId);
+
+            // Solo nos suscribimos la primera vez que se abre; la suscripción
+            // queda viva para que los comentarios se actualicen en tiempo real.
+            if (!comentariosUnsub.has(opinionId)) {
+                const comentariosQuery = query(
+                    collection(db, 'opinions', opinionId, 'comments'),
+                    orderBy('timestamp', 'asc')
+                );
+                const unsub = onSnapshot(comentariosQuery, (snap) => {
+                    comentariosCache.set(opinionId, snap.docs.map(d => ({ id: d.id, data: d.data() })));
+                    renderizarFeedActual();
+                }, (error) => {
+                    console.error('Error al leer comentarios:', error);
+                });
+                comentariosUnsub.set(opinionId, unsub);
+            }
+        }
+        renderizarFeedActual();
+    }
+
+    // Genera el HTML del panel de comentarios de una publicación (vacío si está cerrado).
+    function renderizarComentarios(opinionId) {
+        if (!comentariosAbiertos.has(opinionId)) return '';
+
+        const lista = comentariosCache.get(opinionId);
+
+        let itemsHTML = '';
+        if (!lista) {
+            itemsHTML = '<p class="no-comments">Cargando comentarios...</p>';
+        } else if (lista.length === 0) {
+            itemsHTML = '<p class="no-comments">Todavía no hay comentarios. ¡Sé el primero!</p>';
+        } else {
+            itemsHTML = lista.map(({ id, data }) => {
+                const cAuthor = data.author || 'Anon';
+                const cAvatar = data.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + encodeURIComponent(cAuthor);
+                const cText = data.text || '';
+                let cDate = 'Reciente';
+                if (data.timestamp && data.timestamp.toDate) cDate = data.timestamp.toDate().toLocaleString();
+                const linkPerfilComentario = `/${encodeURIComponent(cAuthor.toLowerCase())}`;
+
+                return `
+                    <div class="comment-item">
+                        <div class="comment-header">
+                            <div class="author-meta">
+                                <img class="comment-avatar" src="${cAvatar}" alt="avatar">
+                                <a href="${linkPerfilComentario}" class="comment-author" style="text-decoration:none;">${escapeHTML(cAuthor.toUpperCase())}</a>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span class="comment-date">${cDate}</span>
+                                ${soyAdminActual ? `<button type="button" class="btn-borrar-comentario" data-opinion-id="${opinionId}" data-comment-id="${id}" title="Borrar comentario">✕</button>` : ''}
+                            </div>
+                        </div>
+                        <div class="comment-text">${escapeHTML(cText)}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        const formHTML = uidActual
+            ? `
+                <form class="comment-form" data-opinion-id="${opinionId}">
+                    <textarea placeholder="Escribí un comentario..." required></textarea>
+                    <button type="submit">Enviar</button>
+                </form>
+            `
+            : `<p class="comment-login-hint">Iniciá sesión para comentar.</p>`;
+
+        return `
+            <div class="comments-panel" data-comments-for="${opinionId}">
+                ${itemsHTML}
+                ${formHTML}
+            </div>
+        `;
+    }
+
     function renderizarFeedActual() {
         const container = document.getElementById('opinions-container');
 
@@ -1021,17 +1230,23 @@
                     </div>
                     <div class="opinion-body">${escapeHTML(text)}</div>
                     <div class="opinion-footer">
-                        <button type="button" class="btn-reaccion btn-reaccion-like ${yaLikeado ? 'activo-like' : ''}" data-id="${id}" title="${tituloLike}" ${reaccionDeshabilitada ? 'disabled' : ''}>
-                            👍 <span>${likesCount}</span>
+                        <button type="button" class="btn-toggle-comments" data-id="${id}">
+                            💬 ${comentariosAbiertos.has(id) ? 'Ocultar comentarios' : 'Comentarios'}${comentariosCache.has(id) ? ` (${comentariosCache.get(id).length})` : ''}
                         </button>
-                        <button type="button" class="btn-reaccion btn-reaccion-dislike ${yaDisLikeado ? 'activo-dislike' : ''}" data-id="${id}" title="${tituloDislike}" ${reaccionDeshabilitada ? 'disabled' : ''}>
-                            👎 <span>${dislikesCount}</span>
-                        </button>
-                        <button type="button" class="btn-like ${yaLePeteope ? 'petope-dado' : ''}" data-id="${id}" title="${tituloPetope}" ${petopeDeshabilitado ? 'disabled' : ''}>
-                            <img src="/petocoin.png" alt="petope">
-                            <span>${petopeCount}</span>
-                        </button>
+                        <div class="opinion-reactions">
+                            <button type="button" class="btn-reaccion btn-reaccion-like ${yaLikeado ? 'activo-like' : ''}" data-id="${id}" title="${tituloLike}" ${reaccionDeshabilitada ? 'disabled' : ''}>
+                                👍 <span>${likesCount}</span>
+                            </button>
+                            <button type="button" class="btn-reaccion btn-reaccion-dislike ${yaDisLikeado ? 'activo-dislike' : ''}" data-id="${id}" title="${tituloDislike}" ${reaccionDeshabilitada ? 'disabled' : ''}>
+                                👎 <span>${dislikesCount}</span>
+                            </button>
+                            <button type="button" class="btn-like ${yaLePeteope ? 'petope-dado' : ''}" data-id="${id}" title="${tituloPetope}" ${petopeDeshabilitado ? 'disabled' : ''}>
+                                <img src="/petocoin.png" alt="petope">
+                                <span>${petopeCount}</span>
+                            </button>
+                        </div>
                     </div>
+                    ${renderizarComentarios(id)}
                 </div>
             `;
         });
@@ -1096,6 +1311,63 @@
                     console.error(error);
                     alert('No se pudo procesar el Petope: ' + error.message);
                     btn.disabled = false;
+                }
+            });
+        });
+
+        // Botón para abrir/cerrar el panel de comentarios de una publicación.
+        container.querySelectorAll('.btn-toggle-comments').forEach(btn => {
+            btn.addEventListener('click', () => toggleComentarios(btn.dataset.id));
+        });
+
+        // Formulario para publicar un nuevo comentario dentro de una publicación.
+        container.querySelectorAll('.comment-form').forEach(form => {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const opinionId = form.dataset.opinionId;
+                const textarea = form.querySelector('textarea');
+                const text = textarea.value.trim();
+                if (!text) return;
+
+                const currentFirebaseUser = auth.currentUser;
+                if (!currentFirebaseUser) {
+                    alert('No has iniciado sesión.');
+                    return;
+                }
+
+                let displayName = currentFirebaseUser.displayName || currentFirebaseUser.email.split('@')[0];
+                if (displayName.length > 12) displayName = displayName.substring(0, 12);
+
+                const submitBtn = form.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+
+                try {
+                    await addDoc(collection(db, 'opinions', opinionId, 'comments'), {
+                        author: displayName,
+                        authorUid: currentFirebaseUser.uid,
+                        avatar: currentFirebaseUser.photoURL || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + encodeURIComponent(displayName),
+                        text: text,
+                        timestamp: new Date()
+                    });
+                    textarea.value = '';
+                } catch (error) {
+                    console.error('Error al publicar comentario:', error);
+                    alert('No se pudo publicar el comentario: ' + error.message);
+                } finally {
+                    submitBtn.disabled = false;
+                }
+            });
+        });
+
+        // Botón de borrar comentario (solo visible para admins).
+        container.querySelectorAll('.btn-borrar-comentario').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (!confirm('¿Borrar este comentario? No se puede deshacer.')) return;
+                try {
+                    await deleteDoc(doc(db, 'opinions', btn.dataset.opinionId, 'comments', btn.dataset.commentId));
+                } catch (error) {
+                    console.error(error);
+                    alert('No se pudo borrar el comentario: ' + error.message);
                 }
             });
         });

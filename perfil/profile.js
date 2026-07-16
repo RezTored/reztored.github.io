@@ -10,7 +10,7 @@ import {
 } from './reztored-auth.js';
 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { doc, updateDoc, onSnapshot, collection, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const urlParams = new URLSearchParams(window.location.search);
 const profileId = urlParams.get('id');
@@ -24,6 +24,7 @@ async function init() {
     }
     await cargarPerfil();
     escucharSesion();
+    escucharComentariosForo();
 }
 
 async function cargarPerfil() {
@@ -115,3 +116,57 @@ document.getElementById('adminSaveBtn').onclick = async () => {
 };
 
 init();
+
+// --- COMENTARIOS DEL FORO EN EL PERFIL ---
+
+function escapeHTML(str) {
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
+    return String(str).replace(/[&<>'"]/g, tag => map[tag] || tag);
+}
+
+function escucharComentariosForo() {
+    const contenedor = document.getElementById('userForumComments');
+    if (!contenedor) return;
+
+    // Filtramos por authorUid; el orden lo hacemos en el cliente para
+    // no depender de un índice compuesto en Firestore.
+    const comentariosQuery = query(collection(db, 'opinions'), where('authorUid', '==', profileId));
+
+    onSnapshot(comentariosQuery, (snapshot) => {
+        if (snapshot.empty) {
+            contenedor.innerHTML = '<p class="forum-comments-empty">Este usuario todavía no dejó comentarios en el foro.</p>';
+            return;
+        }
+
+        const comentarios = snapshot.docs
+            .map(d => d.data())
+            .sort((a, b) => {
+                const ta = a.timestamp && a.timestamp.toMillis ? a.timestamp.toMillis() : 0;
+                const tb = b.timestamp && b.timestamp.toMillis ? b.timestamp.toMillis() : 0;
+                return tb - ta;
+            });
+
+        contenedor.innerHTML = comentarios.map(data => {
+            const texto = data.text || '';
+            const fecha = (data.timestamp && data.timestamp.toDate) ? data.timestamp.toDate().toLocaleString() : 'Reciente';
+            const likes = data.likesCount || 0;
+            const dislikes = data.dislikesCount || 0;
+            const petopes = data.petopeCount || 0;
+
+            return `
+                <div class="forum-comment-card">
+                    <div class="forum-comment-date">${fecha}</div>
+                    <div class="forum-comment-text">${escapeHTML(texto)}</div>
+                    <div class="forum-comment-footer">
+                        <span>👍 ${likes}</span>
+                        <span>👎 ${dislikes}</span>
+                        <span><img src="/petocoin.png" alt="petope" style="width:14px; vertical-align:-2px;"> ${petopes}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }, (error) => {
+        console.error("Error al cargar comentarios del foro:", error);
+        contenedor.innerHTML = '<p class="forum-comments-empty">No se pudieron cargar los comentarios del foro.</p>';
+    });
+}
