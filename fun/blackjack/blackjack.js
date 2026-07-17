@@ -1,7 +1,7 @@
 // Proyecto/fun/blackjack/blackjack.js
 
 import { db, auth } from '../../reztored-auth.js';
-import { doc, runTransaction, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { doc, runTransaction, getDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const suits = ["♠", "♥", "♦", "♣"];
 const values = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
@@ -109,10 +109,13 @@ async function pagarPremioFirebase(apuesta, multiplicador) {
         
         const saldoActual = userSnap.data().coins || 0;
         const ganancia = Math.floor(apuesta * multiplicador);
+        // XP de nivel: solo cuenta si fue una victoria real (mult > 1),
+        // un empate (mult === 1) devuelve la apuesta pero no suma XP.
+        const gananciaNeta = multiplicador > 1 ? (ganancia - apuesta) : 0;
 
         // Sumamos la ganancia (la apuesta inicial ya se había descontado)
         const nuevoSaldo = saldoActual + ganancia;
-        tx.update(userRef, { coins: nuevoSaldo });
+        tx.update(userRef, { coins: nuevoSaldo, xpJuegos: increment(gananciaNeta) });
         return nuevoSaldo;
     });
 }

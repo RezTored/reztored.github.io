@@ -1,5 +1,5 @@
 import { db, auth } from '../reztored-auth.js';
-import { doc, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { doc, runTransaction, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const SIMBOLOS = ['🍒', '🍋', '💎', '🔔', '⭐', '🍀', '7️⃣'];
 
@@ -43,9 +43,13 @@ export async function girarRuleta(apuesta) {
         if (res.every(s => s === res[0])) mult += 7;
 
         const ganancia = apuestaValida * mult;
-        
-        // 4. Actualización
-        tx.update(userRef, { coins: saldo - apuestaValida + ganancia });
+        const gananciaNeta = Math.max(0, ganancia - apuestaValida);
+
+        // 4. Actualización (xpJuegos = XP de nivel, solo sube si ganaste apuesta)
+        tx.update(userRef, {
+            coins: saldo - apuestaValida + ganancia,
+            xpJuegos: increment(gananciaNeta)
+        });
 
         return { resultado: res, ganancia, multiplicador: mult };
     });

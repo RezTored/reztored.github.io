@@ -1429,9 +1429,14 @@
         const tagAdminHTML = perfil.isAdmin ? `<span class="tag-admin">ADMIN</span>` : '';
         const avisoBaneadoHTML = perfil.banned ? `<div class="aviso-baneado">🚫 Este usuario está baneado.</div>` : '';
 
-        // --- Nivel estilo Steam: se calcula al vuelo a partir del saldo
-        // de petoCoins de ESTE perfil (no del que está mirando). ---
-        const nivelInfo = calcularNivel(perfil.coins ?? 0);
+        // --- Nivel estilo Steam ---
+        // El nivel de esta página (404.html, la que se ve al visitar el
+        // perfil de un usuario por su /username) ya NO se calcula con el
+        // saldo de petoCoins, sino con "xpJuegos": XP que se gana
+        // ganando apuestas (ruleta, blackjack, minas, truco, poker) o
+        // completando trabajos de Petoworks. El perfil propio (perfil/)
+        // sigue mostrando el nivel viejo basado en coins, sin tocar.
+        const nivelInfo = calcularNivel(perfil.xpJuegos ?? 0);
         const nivelColor = colorNivel(nivelInfo.nivel);
         const nivelRango = rangoNivel(nivelInfo.nivel);
         const nivelXpDentro = nivelInfo.coins - nivelInfo.coinsNivelActual;

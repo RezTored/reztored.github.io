@@ -11,7 +11,7 @@
 // cada una que aciertes.
 
 import { db, auth } from '../../reztored-auth.js';
-import { doc, runTransaction, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { doc, runTransaction, getDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const TOTAL_CASILLAS = 25; // grilla 5x5
 const VENTAJA_CASA = 0.97; // igual que en los otros juegos: un ligero margen a favor de la casa
@@ -96,9 +96,10 @@ async function pagarPremioFirebase(apuesta, multiplicador) {
 
         const saldoActual = userSnap.data().coins || 0;
         const ganancia = Math.floor(apuesta * multiplicador);
+        const gananciaNeta = Math.max(0, ganancia - apuesta);
 
         const nuevoSaldo = saldoActual + ganancia;
-        tx.update(userRef, { coins: nuevoSaldo });
+        tx.update(userRef, { coins: nuevoSaldo, xpJuegos: increment(gananciaNeta) });
         return { nuevoSaldo, ganancia };
     });
 }

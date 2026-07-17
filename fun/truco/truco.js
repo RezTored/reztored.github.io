@@ -632,7 +632,9 @@ async function pagarSiTerminoJuego(code) {
             if (sala2.status === 'closed') return; // ya se pagó
 
             const userRef = doc(db, 'users', user.uid);
-            tx.update(userRef, { coins: increment(sala2.apuesta * 2) });
+            // Cobra el doble de su apuesta (la propia + la del rival); la
+            // ganancia neta (lo que ganó de más) es xp de nivel.
+            tx.update(userRef, { coins: increment(sala2.apuesta * 2), xpJuegos: increment(sala2.apuesta) });
             tx.update(salaRef, { status: 'closed' });
         });
     } catch { /* concurrencia: si ya se pagó, no pasa nada */ }

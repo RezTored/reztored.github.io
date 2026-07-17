@@ -78,6 +78,7 @@ export async function crearSala({ smallBlind = 10, bigBlind = 20, buyIn = 500 })
                 username: userSnap.data()?.username || user.displayName || 'jugador',
                 photoURL: userSnap.data()?.photoURL || user.photoURL || '',
                 tableChips: buyIn,
+                buyIn,
                 status: 'sitout',
                 currentBet: 0,
                 totalBetHand: 0,
@@ -125,6 +126,7 @@ export async function unirseSala(code, buyIn = 500) {
             username: userSnap.data()?.username || user.displayName || 'jugador',
             photoURL: userSnap.data()?.photoURL || user.photoURL || '',
             tableChips: buyIn,
+            buyIn,
             status: 'sitout',
             currentBet: 0,
             totalBetHand: 0,
@@ -155,8 +157,11 @@ export async function salirDeMesa(code) {
         const jugador = sala.players.find(p => p.uid === user.uid);
         if (!jugador) return;
 
+        // XP de nivel: solo lo que ganó de más sobre lo que puso (buyIn).
+        const gananciaNeta = Math.max(0, jugador.tableChips - (jugador.buyIn || 0));
+
         const userRef = doc(db, 'users', user.uid);
-        tx.update(userRef, { coins: increment(jugador.tableChips) });
+        tx.update(userRef, { coins: increment(jugador.tableChips), xpJuegos: increment(gananciaNeta) });
 
         const restantes = sala.players.filter(p => p.uid !== user.uid);
         if (restantes.length === 0) {

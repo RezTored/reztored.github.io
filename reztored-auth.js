@@ -543,7 +543,8 @@ export async function ganarPetoworks(cantidadCruda) {
 
         tx.update(userRef, {
             coins: nuevoSaldo,
-            petoworksHoy: { fecha: hoy, ganado: nuevoGanadoHoy }
+            petoworksHoy: { fecha: hoy, ganado: nuevoGanadoHoy },
+            xpJuegos: increment(acreditado)
         });
 
         return {
