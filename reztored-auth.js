@@ -81,6 +81,7 @@ export {
 // Agregá acá cualquier carpeta nueva que crees en el repo.
 export const RESERVED_USERNAMES = [
     'opinions', 'info', 'fun', 'perfil', 'profile', 'admin',
+    'comprar-petocoins', 'tienda', 'contact',
     'login', 'signup', 'register', 'api', 'assets', 'css', 'js',
     'images', 'img', 'static', 'www', 'mail', 'null', 'undefined',
     '404', 'index', 'home', 'about', 'help', 'support', 'terms',
@@ -107,6 +108,63 @@ export const COINS_POR_LIKE = 10;   // cuántas coins gana el AUTOR cuando le li
 // documento del usuario (campo "petoworksHoy") y se resetea solo
 // cuando cambia la fecha.
 export const PETOWORKS_LIMITE_DIARIO = 2000;
+
+// --- SISTEMA DE NIVELES (estilo Steam) ---
+// No hace falta guardar nada nuevo en Firestore: el nivel de una
+// cuenta se calcula al vuelo a partir de sus petoCoins ACTUALES. Cada
+// nivel pide más coins que el anterior (como en Steam, donde subir de
+// nivel se pone cada vez más difícil).
+//
+// NIVEL_BASE controla qué tan rápido se sube: subí este número para
+// que los niveles cuesten más, bajalo para que sean más fáciles de
+// conseguir. La fórmula es: coins necesarias para el nivel N =
+// NIVEL_BASE * N².
+export const NIVEL_BASE = 120;
+
+/** Cuántas petoCoins hacen falta (en total, no por separado) para llegar al nivel dado. */
+export function coinsParaNivel(nivel) {
+    if (nivel <= 0) return 0;
+    return Math.round(NIVEL_BASE * nivel * nivel);
+}
+
+/**
+ * Calcula el nivel de una cuenta a partir de su saldo de petoCoins.
+ * Devuelve un objeto con todo lo que hace falta para pintar una
+ * insignia de nivel + barra de progreso estilo Steam:
+ *   - nivel: el nivel actual (número entero, arranca en 0)
+ *   - coins: el saldo usado para el cálculo
+ *   - coinsNivelActual / coinsNivelSiguiente: el "piso" y el "techo"
+ *     de coins del nivel actual
+ *   - coinsFaltantes: cuántas coins más hacen falta para el próximo nivel
+ *   - progreso: de 0 a 1, cuánto se avanzó dentro del nivel actual
+ */
+export function calcularNivel(coins) {
+    const saldo = Math.max(0, Math.floor(Number(coins) || 0));
+    let nivel = 0;
+    while (coinsParaNivel(nivel + 1) <= saldo) nivel++;
+
+    const coinsNivelActual = coinsParaNivel(nivel);
+    const coinsNivelSiguiente = coinsParaNivel(nivel + 1);
+    const rango = coinsNivelSiguiente - coinsNivelActual;
+
+    return {
+        nivel,
+        coins: saldo,
+        coinsNivelActual,
+        coinsNivelSiguiente,
+        coinsFaltantes: Math.max(0, coinsNivelSiguiente - saldo),
+        progreso: rango > 0 ? Math.min(1, (saldo - coinsNivelActual) / rango) : 1
+    };
+}
+
+/** Color de la insignia de nivel, como las "bandas" de color de los niveles de Steam. */
+export function colorNivel(nivel) {
+    if (nivel >= 50) return '#b9f2ff'; // diamante
+    if (nivel >= 30) return '#ffd700'; // oro
+    if (nivel >= 15) return '#c0c0c0'; // plata
+    if (nivel >= 5) return '#cd7f32';  // bronce
+    return '#8b5cf6'; // violeta (nivel inicial, es el mismo tono por defecto del sitio)
+}
 
 // Formato permitido: 3 a 20 caracteres, minúsculas, números y guión bajo
 const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/;

@@ -6,7 +6,9 @@ import {
     esAdmin, 
     actualizarColorPerfil, 
     actualizarBannerImagenPerfil, 
-    actualizarMarcoPerfil 
+    actualizarMarcoPerfil,
+    calcularNivel,
+    colorNivel
 } from './reztored-auth.js';
 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -27,6 +29,28 @@ async function init() {
     escucharComentariosForo();
 }
 
+// --- SISTEMA DE NIVELES (estilo Steam) ---
+// El nivel se calcula solo a partir del saldo de petoCoins (ver
+// calcularNivel/colorNivel en reztored-auth.js), no hace falta guardar
+// nada nuevo en Firestore.
+function renderNivel(coins) {
+    const info = calcularNivel(coins);
+    const color = colorNivel(info.nivel);
+
+    document.getElementById('userLevelNumber').textContent = info.nivel;
+    document.getElementById('profileContainer').style.setProperty('--level-color', color);
+
+    const fill = document.getElementById('levelProgressFill');
+    if (fill) fill.style.width = `${Math.round(info.progreso * 100)}%`;
+
+    const texto = document.getElementById('levelProgressText');
+    if (texto) {
+        texto.textContent = info.coinsNivelSiguiente > info.coinsNivelActual
+            ? `🪙 ${info.coins.toLocaleString('es-AR')} / ${info.coinsNivelSiguiente.toLocaleString('es-AR')} petoCoins para el nivel ${info.nivel + 1}`
+            : `🪙 ${info.coins.toLocaleString('es-AR')} petoCoins`;
+    }
+}
+
 async function cargarPerfil() {
     try {
         const userData = await obtenerPerfilPorUid(profileId);
@@ -37,6 +61,7 @@ async function cargarPerfil() {
             document.getElementById('userBio').textContent = userData.bio || 'Este usuario aún no ha escrito su biografía.';
             document.getElementById('userCoins').textContent = userData.coins || 0;
             document.getElementById('userBadge').textContent = userData.isAdmin ? '🛡️ Administrador' : 'Miembro';
+            renderNivel(userData.coins || 0);
             
             if (userData.photoURL) document.getElementById('userAvatar').src = userData.photoURL;
             if (userData.bannerImageURL) document.getElementById('userBanner').style.backgroundImage = `url('${userData.bannerImageURL}')`;
