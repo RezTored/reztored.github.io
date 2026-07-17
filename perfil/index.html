@@ -141,37 +141,85 @@
             font-size: 0.9rem;
         }
 
-        /* Insignia de nivel estilo Steam */
-        .level-badge {
-            display: inline-flex;
+        /* --- PANEL DE NIVEL ESTILO STEAM (a la derecha del header) --- */
+        .level-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 10px;
+        }
+
+        .level-panel-label {
+            display: flex;
             align-items: center;
-            gap: 6px;
-            background-color: rgba(0, 0, 0, 0.35);
-            color: #fff;
-            border: 2px solid var(--level-color, var(--user-theme-color));
-            padding: 5px 12px;
-            border-radius: 6px;
+            gap: 10px;
+            font-size: 1.3rem;
             font-weight: 700;
-            font-size: 0.9rem;
-            box-shadow: 0 0 12px -2px var(--level-color, var(--user-theme-color));
+            color: var(--text-light);
         }
 
-        .level-badge .level-number {
+        /* Círculo grande con el número de nivel, bien visible */
+        .level-circle {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            font-weight: 800;
             color: var(--level-color, var(--user-theme-color));
-            font-size: 1.05rem;
+            border: 3px solid var(--level-color, var(--user-theme-color));
+            background: rgba(0, 0, 0, 0.35);
+            box-shadow: 0 0 14px -2px var(--level-color, var(--user-theme-color));
+            flex-shrink: 0;
         }
 
-        .level-progress-wrap {
-            margin-top: 14px;
-            max-width: 420px;
+        /* Tarjeta de insignia/rango debajo del número de nivel */
+        .level-showcase-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 10px 16px;
+            min-width: 200px;
+        }
+
+        .level-showcase-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background: radial-gradient(circle at 35% 30%, #fff8, transparent 60%),
+                        var(--level-color, var(--user-theme-color));
+            box-shadow: 0 0 10px -1px var(--level-color, var(--user-theme-color));
+        }
+
+        .level-showcase-info {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.3;
+        }
+
+        .level-showcase-rank {
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .level-showcase-xp {
+            font-size: 0.85rem;
+            color: var(--text-muted);
         }
 
         .level-progress-bar {
-            height: 10px;
+            height: 6px;
+            width: 100%;
             border-radius: 6px;
             background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.08);
             overflow: hidden;
+            margin-top: 6px;
         }
 
         .level-progress-fill {
@@ -181,15 +229,10 @@
             transition: width 0.6s ease;
         }
 
-        .level-progress-text {
-            margin-top: 6px;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
-
         .user-actions {
             display: flex;
             gap: 10px;
+            margin-top: 4px;
         }
 
         .btn-mochila, .btn-admin {
@@ -404,6 +447,14 @@
                 bottom: auto;
                 top: -65px;
             }
+            .level-panel {
+                align-items: flex-start;
+                width: 100%;
+            }
+            .level-showcase-card {
+                width: 100%;
+                box-sizing: border-box;
+            }
         }
     </style>
 </head>
@@ -425,21 +476,32 @@
                     <h1 id="userName">Cargando...</h1>
                     <div class="badges-container">
                         <span class="user-badge" id="userBadge">Miembro</span>
-                        <span class="level-badge" id="userLevelBadge" title="Tu nivel sube a medida que juntás petoCoins">🎮 Nivel <span class="level-number" id="userLevelNumber">0</span></span>
                         <span class="rank-badge">🏆 Rank #<span id="userRank">--</span> | 🪙 <span id="userCoins">0</span> Petocoins</span>
-                    </div>
-                    <div class="level-progress-wrap">
-                        <div class="level-progress-bar">
-                            <div class="level-progress-fill" id="levelProgressFill"></div>
-                        </div>
-                        <div class="level-progress-text" id="levelProgressText">Calculando nivel...</div>
                     </div>
                 </div>
             </div>
-            
-            <div class="user-actions">
-                <button id="mochilaBtn" class="btn-mochila hidden">🎒 Mi Mochila</button>
-                <button id="adminBtn" class="btn-admin hidden">⚙️ Panel Admin</button>
+
+            <div class="level-panel">
+                <div class="level-panel-label">
+                    Nivel
+                    <span class="level-circle" id="userLevelNumber" title="Tu nivel sube a medida que juntás petoCoins">0</span>
+                </div>
+
+                <div class="level-showcase-card">
+                    <span class="level-showcase-icon" id="levelShowcaseIcon"></span>
+                    <div class="level-showcase-info">
+                        <span class="level-showcase-rank" id="levelShowcaseRank">Novato</span>
+                        <span class="level-showcase-xp" id="levelProgressText">Calculando nivel...</span>
+                        <div class="level-progress-bar">
+                            <div class="level-progress-fill" id="levelProgressFill"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="user-actions">
+                    <button id="mochilaBtn" class="btn-mochila hidden">🎒 Mi Mochila</button>
+                    <button id="adminBtn" class="btn-admin hidden">⚙️ Panel Admin</button>
+                </div>
             </div>
         </div>
 

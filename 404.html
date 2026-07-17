@@ -89,6 +89,7 @@
         .perfil-header {
             display: flex;
             align-items: flex-end;
+            flex-wrap: wrap;
             gap: 18px;
             padding: 0 24px;
             margin-top: -56px;
@@ -203,6 +204,105 @@
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 1px;
+        }
+
+        /* --- Nivel estilo Steam (arriba a la derecha del header, al
+           lado del avatar y el nombre) --- */
+        .nivel-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+            margin-left: auto;
+            padding-bottom: 4px;
+        }
+
+        .nivel-etiqueta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-white);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nivel-circulo {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            background: var(--bg-header);
+            flex-shrink: 0;
+        }
+
+        .nivel-tarjeta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--bg-header);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 12px;
+            min-width: 190px;
+        }
+
+        .nivel-icono {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background: radial-gradient(circle at 35% 30%, #fff8, transparent 60%), var(--nivel-color, var(--primary));
+        }
+
+        .nivel-info {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.3;
+            min-width: 0;
+        }
+
+        .nivel-rango {
+            font-weight: 700;
+            color: var(--text-white);
+            font-size: 0.85rem;
+        }
+
+        .nivel-xp {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .nivel-barra {
+            height: 5px;
+            width: 100%;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .nivel-barra-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--nivel-color, var(--primary));
+        }
+
+        @media (max-width: 700px) {
+            .nivel-panel {
+                align-items: flex-start;
+                margin-left: 0;
+                width: 100%;
+                margin-top: 14px;
+            }
+            .nivel-tarjeta { width: 100%; box-sizing: border-box; }
         }
 
         .aviso-baneado {
@@ -836,7 +936,10 @@
         donarCoins,
         regalarProducto,
         fijarMisCoins,
-        RESERVED_USERNAMES
+        RESERVED_USERNAMES,
+        calcularNivel,
+        colorNivel,
+        rangoNivel
     } from '/reztored-auth.js';
     import { PRODUCTOS } from '/tienda/productos.js';
  
@@ -1326,6 +1429,32 @@
         const tagAdminHTML = perfil.isAdmin ? `<span class="tag-admin">ADMIN</span>` : '';
         const avisoBaneadoHTML = perfil.banned ? `<div class="aviso-baneado">🚫 Este usuario está baneado.</div>` : '';
 
+        // --- Nivel estilo Steam: se calcula al vuelo a partir del saldo
+        // de petoCoins de ESTE perfil (no del que está mirando). ---
+        const nivelInfo = calcularNivel(perfil.coins ?? 0);
+        const nivelColor = colorNivel(nivelInfo.nivel);
+        const nivelRango = rangoNivel(nivelInfo.nivel);
+        const nivelXpDentro = nivelInfo.coins - nivelInfo.coinsNivelActual;
+        const nivelXpTexto = nivelInfo.coinsNivelSiguiente > nivelInfo.coinsNivelActual
+            ? `${nivelXpDentro.toLocaleString('es-AR')} XP · faltan ${nivelInfo.coinsFaltantes.toLocaleString('es-AR')} para el nivel ${nivelInfo.nivel + 1}`
+            : `${nivelInfo.coins.toLocaleString('es-AR')} XP`;
+        const nivelPanelHTML = `
+            <div class="nivel-panel" style="--nivel-color:${nivelColor};">
+                <div class="nivel-etiqueta">
+                    Nivel
+                    <span class="nivel-circulo" style="border:3px solid ${nivelColor}; color:${nivelColor}; box-shadow:0 0 12px -2px ${nivelColor};">${nivelInfo.nivel}</span>
+                </div>
+                <div class="nivel-tarjeta">
+                    <span class="nivel-icono"></span>
+                    <div class="nivel-info">
+                        <span class="nivel-rango">${nivelRango}</span>
+                        <span class="nivel-xp">${nivelXpTexto}</span>
+                        <div class="nivel-barra"><div class="nivel-barra-fill" style="width:${Math.round(nivelInfo.progreso * 100)}%;"></div></div>
+                    </div>
+                </div>
+            </div>
+        `;
+
         // --- Cosméticos comprados en la tienda (users/{uid}.inventario) ---
         const inventario = perfil.inventario || {};
         const tieneColorPerso = !!inventario['color_personalizado'];
@@ -1533,6 +1662,7 @@
                     <div class="perfil-username"${usernameStyle}>${escapeHTML(perfil.username)}${tagAdminHTML}${tagsInsigniasHTML}</div>
                     <div class="perfil-fecha">Miembro desde ${formatearFecha(perfil.createdAt)}</div>
                 </div>
+                ${nivelPanelHTML}
             </div>
 
             <div class="perfil-inner">

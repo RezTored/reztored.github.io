@@ -166,6 +166,15 @@ export function colorNivel(nivel) {
     return '#8b5cf6'; // violeta (nivel inicial, es el mismo tono por defecto del sitio)
 }
 
+/** Nombre del rango/insignia de la cuenta según su nivel (misma banda que colorNivel). */
+export function rangoNivel(nivel) {
+    if (nivel >= 50) return 'Diamante';
+    if (nivel >= 30) return 'Oro';
+    if (nivel >= 15) return 'Plata';
+    if (nivel >= 5) return 'Bronce';
+    return 'Novato';
+}
+
 // Formato permitido: 3 a 20 caracteres, minúsculas, números y guión bajo
 const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/;
 

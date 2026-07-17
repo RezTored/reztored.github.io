@@ -8,7 +8,8 @@ import {
     actualizarBannerImagenPerfil, 
     actualizarMarcoPerfil,
     calcularNivel,
-    colorNivel
+    colorNivel,
+    rangoNivel
 } from './reztored-auth.js';
 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -36,18 +37,28 @@ async function init() {
 function renderNivel(coins) {
     const info = calcularNivel(coins);
     const color = colorNivel(info.nivel);
+    const rango = rangoNivel(info.nivel);
 
-    document.getElementById('userLevelNumber').textContent = info.nivel;
+    const numeroEl = document.getElementById('userLevelNumber');
+    if (numeroEl) numeroEl.textContent = info.nivel;
+
     document.getElementById('profileContainer').style.setProperty('--level-color', color);
+
+    const rangoEl = document.getElementById('levelShowcaseRank');
+    if (rangoEl) rangoEl.textContent = rango;
 
     const fill = document.getElementById('levelProgressFill');
     if (fill) fill.style.width = `${Math.round(info.progreso * 100)}%`;
 
+    // XP dentro del nivel actual (no el saldo total), para que se parezca
+    // a la tarjeta de insignia de Steam ("300 XP") en vez de mostrar el
+    // saldo completo de petoCoins de la cuenta.
+    const xpDentroDelNivel = info.coins - info.coinsNivelActual;
     const texto = document.getElementById('levelProgressText');
     if (texto) {
         texto.textContent = info.coinsNivelSiguiente > info.coinsNivelActual
-            ? `🪙 ${info.coins.toLocaleString('es-AR')} / ${info.coinsNivelSiguiente.toLocaleString('es-AR')} petoCoins para el nivel ${info.nivel + 1}`
-            : `🪙 ${info.coins.toLocaleString('es-AR')} petoCoins`;
+            ? `${xpDentroDelNivel.toLocaleString('es-AR')} XP · faltan ${info.coinsFaltantes.toLocaleString('es-AR')} para el nivel ${info.nivel + 1}`
+            : `${info.coins.toLocaleString('es-AR')} XP`;
     }
 }
 
