@@ -1,0 +1,2016 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil</title>
+ 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+ 
+    <style>
+        :root {
+            --bg-page: #121214;
+            --bg-card: #1e1e22;
+            --bg-header: #18181c;
+            --border-color: #2d2d34;
+            --text-main: #e1e1e6;
+            --text-muted: #8e8e93;
+            --text-white: #ffffff;
+            --accent-red: #ff5f56;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+        }
+ 
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+        body {
+            background: var(--bg-page);
+            font-family: 'Rajdhani', sans-serif;
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+
+        /* La página de perfil ocupa TODO el ancho de la pantalla (nada
+           de tarjeta angosta centrada tipo ventana de Mac). */
+        .app-window {
+            width: 100%;
+            min-height: 100vh;
+            background: var(--bg-page);
+        }
+
+        .window-header {
+            background: var(--bg-header);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            transition: border-color 0.4s ease;
+        }
+
+        .window-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .window-home-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+            opacity: 0.85;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        .window-home-btn:hover {
+            opacity: 1;
+            transform: scale(1.04);
+        }
+        .window-home-btn img {
+            height: 26px;
+            width: auto;
+            display: block;
+        }
+
+        .window-content { padding: 0; }
+ 
+        /* Fila de identidad: foto de perfil a la IZQUIERDA, superpuesta
+           al banner, con el nombre/fecha al lado (estilo Discord/Twitter
+           en vez de la tarjeta chica y centrada de antes). */
+        .perfil-header {
+            display: flex;
+            align-items: flex-end;
+            gap: 18px;
+            padding: 0 24px;
+            margin-top: -56px;
+            position: relative;
+            z-index: 5;
+        }
+        @media (min-width: 700px) {
+            .perfil-header { margin-top: -84px; gap: 28px; padding: 0 40px; }
+        }
+
+        .perfil-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 4px solid var(--bg-page);
+            display: block;
+            object-fit: cover;
+            background: var(--bg-header);
+            flex-shrink: 0;
+        }
+        @media (min-width: 700px) {
+            .perfil-avatar { width: 168px; height: 168px; border-width: 5px; }
+        }
+
+        .perfil-identidad {
+            padding-bottom: 8px;
+            min-width: 0;
+        }
+
+        .perfil-username {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.25rem;
+            color: var(--text-white);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            overflow-wrap: anywhere;
+        }
+        @media (min-width: 700px) {
+            .perfil-username { font-size: 2rem; }
+        }
+ 
+        .perfil-fecha {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        /* Ancho de lectura para todo el contenido de texto (bio, tienda,
+           formularios, etc). El banner queda afuera de esto para que
+           bleedee de punta a punta de la pantalla. */
+        .perfil-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 28px 24px 50px;
+        }
+        @media (min-width: 700px) {
+            .perfil-inner { padding: 28px 40px 60px; }
+        }
+ 
+        .perfil-bio {
+            background: var(--bg-header);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--text-main);
+            white-space: pre-line;
+            margin-bottom: 20px;
+            min-height: 40px;
+        }
+ 
+        .perfil-bio.vacia { color: var(--text-muted); font-style: italic; }
+
+        /* Tag "ADMIN" al lado del nombre de usuario */
+        .tag-admin {
+            display: inline-block;
+            background: var(--primary);
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.6rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            padding: 3px 7px;
+            border-radius: 4px;
+            vertical-align: middle;
+            margin-left: 8px;
+        }
+
+        .perfil-coins {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-header);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin: 0 0 16px;
+        }
+
+        .perfil-coins img { width: 24px; height: 24px; display: block; }
+
+        .perfil-coins .monto {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-white);
+        }
+
+        .perfil-coins .etiqueta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .aviso-baneado {
+            background: #3a1d1d;
+            border: 1px solid #5c2b2b;
+            color: #ff9b93;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .btn-danger { background: #7a1f1f; border-color: #a33; }
+        .btn-danger:hover { background: #931f1f; border-color: #c44; }
+
+        /* Pestañas del panel (Perfil / Administrador) */
+        .tabs-perfil {
+            display: flex;
+            gap: 8px;
+            margin: 18px 0 14px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            border-radius: 0;
+            padding: 8px 4px;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+        .tab-btn.activa { color: var(--text-white); border-bottom-color: var(--primary); }
+        .tab-panel { display: none; }
+        .tab-panel.activa { display: block; }
+
+        .admin-panel-box {
+            background: var(--bg-header);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px;
+        }
+        .admin-panel-box p.ayuda { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; }
+
+        .donar-box {
+            background: var(--bg-header);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px;
+            margin-top: 8px;
+        }
+        .donar-box p.ayuda { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; }
+        .donar-box .fila { display: flex; gap: 8px; }
+        .donar-box input[type="number"], .donar-box select {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            color: var(--text-white);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.95rem;
+            outline: none;
+        }
+        .donar-box select { min-width: 0; }
+        .donar-box input[type="text"] {
+            width: 100%;
+            box-sizing: border-box;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            color: var(--text-white);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        /* --- LAYOUT CON SIDEBAR (contenido principal + Top Petocoins/Redes) --- */
+        .perfil-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+            margin-top: 8px;
+        }
+        @media (min-width: 860px) {
+            .perfil-grid { grid-template-columns: 2fr 1fr; align-items: start; }
+        }
+
+        .sidebar-box {
+            background: var(--bg-header);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .sidebar-box:last-child { margin-bottom: 0; }
+        .sidebar-box h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--text-white);
+            margin-bottom: 12px;
+        }
+
+        /* Top Petocoins */
+        .leaderboard-list { list-style: none; }
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.85rem;
+        }
+        .leaderboard-item:last-child { border-bottom: none; }
+        .leaderboard-item.leaderboard-item-actual { color: var(--primary, #4f46e5); }
+        .leaderboard-rank { font-weight: 700; color: var(--text-muted); width: 26px; flex-shrink: 0; }
+        .leaderboard-item.leaderboard-item-actual .leaderboard-rank { color: var(--primary, #4f46e5); }
+        .leaderboard-name {
+            flex-grow: 1;
+            color: var(--text-main);
+            text-decoration: none;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .leaderboard-name:hover { text-decoration: underline; }
+        .leaderboard-coins { color: #ffd700; font-weight: 700; font-size: 0.8rem; white-space: nowrap; }
+
+        /* Redes sociales */
+        .redes-grid { display: flex; flex-direction: column; gap: 8px; }
+        .red-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            text-decoration: none;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+        .red-link:hover { border-color: var(--primary, #4f46e5); transform: translateX(2px); }
+        .red-emoji { font-size: 1rem; }
+        .redes-vacio { color: var(--text-muted); font-size: 0.8rem; font-style: italic; }
+        .edit-form .redes-grid-inputs { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+        .edit-form .redes-grid-inputs label { margin-bottom: 0; }
+        .edit-form .redes-grid-inputs input { margin-bottom: 0; }
+
+ 
+        .no-encontrado {
+            text-align: center;
+            padding: 80px 24px;
+        }
+ 
+        .no-encontrado p {
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+ 
+        a.btn-link, button {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            background: #2d2d34;
+            color: var(--text-white);
+            border: 1px solid var(--border-color);
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            text-transform: uppercase;
+            transition: background 0.2s, border-color 0.2s;
+        }
+ 
+        a.btn-link:hover, button:hover { background: #3e3e46; border-color: #5d5d66; }
+ 
+        .btn-primary { background: var(--primary); border-color: var(--primary); }
+        .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+ 
+        .acciones-perfil { display: flex; justify-content: flex-start; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+ 
+        .edit-form { display: none; margin-top: 16px; }
+        .edit-form.activo { display: block; }
+ 
+        .edit-form label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+ 
+        .edit-form textarea, .edit-form input {
+            width: 100%;
+            background: var(--bg-header);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            color: var(--text-white);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.95rem;
+            outline: none;
+            margin-bottom: 14px;
+            resize: none;
+        }
+ 
+        .edit-form textarea { min-height: 70px; }
+ 
+        .form-msg { font-size: 0.85rem; text-align: center; margin-top: 8px; min-height: 1.2em; }
+        .text-green-400 { color: #27c93f; }
+        .text-red-400 { color: #ff5f56; }
+ 
+        .cargando { text-align: center; color: var(--text-muted); padding: 60px 24px; }
+
+        /* --- COSMÉTICOS DE LA TIENDA --- */
+
+        /* Banner grande, de punta a punta de la pantalla (no una
+           franjita adentro de una tarjeta chica). */
+        .perfil-banner {
+            width: 100%;
+            height: 200px;
+            background-color: var(--bg-header);
+            background-size: cover;
+            background-position: center;
+        }
+        @media (min-width: 700px) {
+            .perfil-banner { height: 320px; }
+        }
+        @media (min-width: 1200px) {
+            .perfil-banner { height: 420px; }
+        }
+
+        /* Tabs "🎨 Colores" / "🖼️ Imagen o GIF" dentro de "Personalizar" */
+        .banner-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        .banner-tab-btn {
+            flex: 1;
+            font-size: 0.72rem;
+            padding: 8px 6px;
+        }
+        .banner-tab-btn.activa {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        .banner-tab-panel { display: none; }
+        .banner-tab-panel.activa { display: block; }
+
+        /* --- MARCOS DE PERFIL (comprables en la tienda, categoria:'marco') ---
+           Cada producto categoria:'marco' tiene un campo "clase" que
+           arma la clase CSS de acá abajo como "avatar-<clase>". Si se
+           agrega un marco nuevo en tienda/productos.js, hay que
+           agregarle también su CSS acá. */
+        .avatar-dorado {
+            border-color: #ffd700 !important;
+            box-shadow: 0 0 18px rgba(255, 215, 0, 0.55);
+        }
+        .avatar-plata {
+            border-color: #c9ccd6 !important;
+            box-shadow: 0 0 16px rgba(201, 204, 214, 0.55);
+        }
+        .avatar-fuego {
+            border: 3px solid #ff7a1a !important;
+            animation: marco-fuego 1.6s ease-in-out infinite;
+        }
+        @keyframes marco-fuego {
+            0%, 100% { box-shadow: 0 0 14px rgba(255, 122, 26, 0.55), 0 0 26px rgba(255, 42, 0, 0.25); }
+            50% { box-shadow: 0 0 26px rgba(255, 160, 60, 0.9), 0 0 42px rgba(255, 42, 0, 0.5); }
+        }
+        .avatar-hielo {
+            border: 3px solid #7dd3fc !important;
+            animation: marco-hielo 2.4s ease-in-out infinite;
+        }
+        @keyframes marco-hielo {
+            0%, 100% { box-shadow: 0 0 14px rgba(125, 211, 252, 0.55), 0 0 26px rgba(56, 189, 248, 0.25); }
+            50% { box-shadow: 0 0 26px rgba(186, 230, 253, 0.9), 0 0 42px rgba(56, 189, 248, 0.5); }
+        }
+        .avatar-neon {
+            border: 3px solid #d946ef !important;
+            animation: marco-neon 2.4s linear infinite;
+        }
+        @keyframes marco-neon {
+            0%   { box-shadow: 0 0 16px #d946ef, 0 0 28px #6366f1; }
+            33%  { box-shadow: 0 0 16px #6366f1, 0 0 28px #22d3ee; }
+            66%  { box-shadow: 0 0 16px #22d3ee, 0 0 28px #d946ef; }
+            100% { box-shadow: 0 0 16px #d946ef, 0 0 28px #6366f1; }
+        }
+
+        /* Selector de marco dentro de "🎨 Personalizar" */
+        .marcos-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        .marco-opcion {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            background: none;
+            border: none;
+            padding: 4px;
+        }
+        .marco-opcion img, .marco-opcion .marco-vacio {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            object-fit: cover;
+            background: var(--bg-card);
+            display: block;
+        }
+        .marco-opcion .marco-vacio {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            color: var(--text-muted);
+        }
+        .marco-opcion span {
+            font-size: 0.62rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            max-width: 64px;
+            text-align: center;
+        }
+        .marco-opcion.seleccionado img, .marco-opcion.seleccionado .marco-vacio {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+        .marco-opcion.seleccionado span { color: var(--text-white); font-weight: 700; }
+
+        /* --- 🎒 MOCHILA (inventario de items comprados) --- */
+        .panel-colapsable { display: none; margin-top: 16px; }
+        .panel-colapsable.activo { display: block; }
+        .mochila-box {
+            background: var(--bg-header);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px;
+        }
+        .mochila-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+            gap: 10px;
+        }
+        .mochila-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 6px;
+            text-align: center;
+        }
+        .mochila-item .mochila-emoji { font-size: 1.6rem; margin-bottom: 4px; }
+        .mochila-item .mochila-nombre { font-size: 0.68rem; color: var(--text-main); line-height: 1.2; }
+        .mochila-item .mochila-cant { font-size: 0.62rem; color: var(--text-muted); margin-top: 2px; }
+        .mochila-vacia { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 10px 0; }
+
+        /* Insignias junto al nombre de usuario */
+        .tag-vip {
+            display: inline-block;
+            background: linear-gradient(135deg, #ffd700, #ff9f1c);
+            color: #1a1300;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.6rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            padding: 3px 7px;
+            border-radius: 4px;
+            vertical-align: middle;
+            margin-left: 6px;
+        }
+        .tag-titulo {
+            display: inline-block;
+            background: #2d2d34;
+            border: 1px solid #ffd700;
+            color: #ffd700;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.6rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            padding: 3px 7px;
+            border-radius: 4px;
+            vertical-align: middle;
+            margin-left: 6px;
+        }
+
+        .stickers-line {
+            text-align: left;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin: -6px 0 16px;
+        }
+
+        /* Panel "Personalizar mi perfil" (color_personalizado / banner_personalizado) */
+        .personalizar-box {
+            background: var(--bg-header);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px;
+        }
+        .personalizar-box label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .fila-color {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .fila-color input[type="color"] {
+            width: 44px;
+            height: 36px;
+            padding: 2px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-card);
+            cursor: pointer;
+        }
+        .fila-color button { flex: 1; }
+        .bloqueado-nota {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+            line-height: 1.4;
+        }
+        .bloqueado-nota a { color: var(--primary); }
+
+        /* --- 🎵 Reproductor de música del perfil (estilo Spotify, barra fija abajo) --- */
+        #reproductor-musica-perfil {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: #0a0a0c;
+            border-top: 1px solid var(--border-color);
+            padding: 8px 16px;
+            height: 56px;
+            box-sizing: border-box;
+        }
+
+        /* Empuja el contenido de la página para que la barra no lo tape */
+        body.rmp-activo .app-window { padding-bottom: 56px; }
+
+        /* --- Carátula + título/artista (izquierda) --- */
+        #reproductor-musica-perfil .rmp-track {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            width: 180px;
+            flex-shrink: 0;
+        }
+        #reproductor-musica-perfil .rmp-caratula {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--bg-header);
+            flex-shrink: 0;
+            border: 1px solid var(--border-color);
+        }
+        #reproductor-musica-perfil.rmp-sonando .rmp-caratula {
+            animation: rmp-girar 8s linear infinite;
+        }
+        @keyframes rmp-girar { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        #reproductor-musica-perfil .rmp-textos { min-width: 0; }
+        #reproductor-musica-perfil .rmp-nombre {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-white);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #reproductor-musica-perfil .rmp-artista {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* --- Controles + barra de progreso (centro) --- */
+        #reproductor-musica-perfil .rmp-centro {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            min-width: 0;
+            max-width: 620px;
+            margin: 0 auto;
+        }
+        #reproductor-musica-perfil .rmp-btn-play {
+            background: var(--text-white);
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: #0a0a0c;
+            cursor: pointer;
+            padding: 0;
+        }
+        #reproductor-musica-perfil .rmp-btn-play:hover { transform: scale(1.06); }
+
+        #reproductor-musica-perfil .rmp-barra-fila {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+        #reproductor-musica-perfil .rmp-tiempo {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            min-width: 32px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        #reproductor-musica-perfil .rmp-progreso {
+            flex: 1;
+            appearance: none;
+            -webkit-appearance: none;
+            height: 4px;
+            border-radius: 2px;
+            background: #4d4d4d;
+            cursor: pointer;
+            accent-color: var(--text-white);
+        }
+
+        /* --- Volumen (derecha) --- */
+        #reproductor-musica-perfil .rmp-volumen-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            width: 150px;
+            justify-content: flex-end;
+            flex-shrink: 0;
+        }
+        #reproductor-musica-perfil .rmp-volumen {
+            width: 90px;
+            appearance: none;
+            -webkit-appearance: none;
+            height: 4px;
+            border-radius: 2px;
+            background: #4d4d4d;
+            cursor: pointer;
+            accent-color: var(--text-white);
+        }
+
+        #reproductor-musica-perfil button.rmp-icono {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #reproductor-musica-perfil button.rmp-icono:hover { color: var(--text-white); }
+
+        @media (max-width: 700px) {
+            #reproductor-musica-perfil .rmp-track { width: 120px; }
+            #reproductor-musica-perfil .rmp-artista { display: none; }
+            #reproductor-musica-perfil .rmp-volumen-wrap { width: 34px; }
+            #reproductor-musica-perfil .rmp-volumen { display: none; }
+        }
+    </style>
+</head>
+<body>
+ 
+<div class="app-window">
+    <div class="window-header">
+        <a href="/" class="window-home-btn" aria-label="Volver al inicio" title="Volver al inicio">
+            <img src="/lol.png" alt="Inicio">
+        </a>
+        <div class="window-title">Perfil</div>
+    </div>
+ 
+    <div class="window-content" id="contenido-perfil">
+        <div class="cargando">Cargando perfil...</div>
+    </div>
+</div>
+ 
+<script type="module">
+    import {
+        auth,
+        onAuthStateChanged,
+        obtenerPerfilPorUsername,
+        obtenerPerfilPorUid,
+        obtenerTopPetocoins,
+        actualizarPerfil,
+        actualizarColorPerfil,
+        actualizarBannerColorPerfil,
+        actualizarBannerImagenPerfil,
+        actualizarMarcoPerfil,
+        actualizarMusicaPerfil,
+        actualizarRedesPerfil,
+        otorgarAdmin,
+        banearUsuario,
+        esAdmin,
+        donarCoins,
+        regalarProducto,
+        fijarMisCoins,
+        RESERVED_USERNAMES
+    } from '/reztored-auth.js';
+    import { PRODUCTOS } from '/tienda/productos.js';
+ 
+    const contenedor = document.getElementById('contenido-perfil');
+    const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
+
+    // ============================================================
+    // 🏷️ INSIGNIAS DE PERFIL (los "tags" al lado del nombre de usuario)
+    // ------------------------------------------------------------
+    // Para agregar una insignia nueva NO hace falta tocar nada más
+    // que esta lista (y, si querés que sea comprable, sumar el
+    // producto correspondiente en tienda/productos.js):
+    //
+    //   1. (Opcional) Agregá el producto en tienda/productos.js con
+    //      un "id" único, por ejemplo 'titulo_leyenda'.
+    //   2. Sumá acá abajo un objeto nuevo:
+    //        { id: 'titulo_leyenda', texto: '🔥 Leyenda', clase: 'tag-titulo' }
+    //      - id    -> tiene que ser EXACTAMENTE el mismo "id" del
+    //                 producto de la tienda (así sabe cuándo mostrarla:
+    //                 se muestra sola si el usuario lo tiene en el
+    //                 inventario). También podés usar cualquier otra
+    //                 clave del inventario que ya exista.
+    //      - texto -> lo que se lee dentro de la insignia.
+    //      - clase -> el estilo visual. Reusá "tag-vip" (insignia
+    //                 dorada rellena) o "tag-titulo" (insignia con
+    //                 borde dorado), o creá una clase CSS nueva en el
+    //                 bloque "Insignias junto al nombre de usuario"
+    //                 (buscá ese comentario más arriba, cerca de
+    //                 ".tag-vip" / ".tag-titulo").
+    //
+    //   Listo: la insignia va a aparecer sola en cualquier perfil que
+    //   tenga ese item, en el mismo orden en que esté en esta lista.
+    //   No hace falta tocar renderPerfil() ni ningún otro lado.
+    // ============================================================
+    const INSIGNIAS_PERFIL = [
+        { id: 'membresia_vip', texto: 'VIP', clase: 'tag-vip' },
+        { id: 'titulo_vip', texto: '👑 VIP', clase: 'tag-titulo' }
+    ];
+
+    // Redes sociales que se pueden mostrar/editar en el perfil, debajo
+    // del cuadro de "Top Petocoins".
+    const REDES_CONFIG = [
+        { id: 'instagram', emoji: '📸', label: 'Instagram', placeholder: 'https://instagram.com/tu_usuario' },
+        { id: 'twitter', emoji: '🐦', label: 'X / Twitter', placeholder: 'https://x.com/tu_usuario' },
+        { id: 'tiktok', emoji: '🎵', label: 'TikTok', placeholder: 'https://tiktok.com/@tu_usuario' },
+        { id: 'youtube', emoji: '▶️', label: 'YouTube', placeholder: 'https://youtube.com/@tu_canal' },
+        { id: 'twitch', emoji: '🎮', label: 'Twitch', placeholder: 'https://twitch.tv/tu_usuario' },
+        { id: 'discord', emoji: '💬', label: 'Discord', placeholder: 'https://discord.gg/tu_invitacion' },
+        { id: 'kick', emoji: '🥊', label: 'Kick', placeholder: 'https://kick.com/tu_usuario' },
+        { id: 'otro', emoji: '🔗', label: 'Otro link', placeholder: 'https://...' }
+    ];
+
+    // --- Banner de colores "al azar" por defecto (gratis, sin comprar nada) ---
+    // No es random de verdad en cada carga (se vería feo/inconsistente):
+    // se genera siempre el mismo par de colores a partir del uid, así
+    // cada usuario tiene "su" degradé aleatorio pero estable.
+    function hashDeString(str) {
+        let h = 0;
+        for (let i = 0; i < str.length; i++) {
+            h = (h << 5) - h + str.charCodeAt(i);
+            h |= 0;
+        }
+        return Math.abs(h);
+    }
+
+    function hslAHex(h, s, l) {
+        s /= 100; l /= 100;
+        const k = n => (n + h / 30) % 12;
+        const a = s * Math.min(l, 1 - l);
+        const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+        const aHex = x => Math.round(255 * x).toString(16).padStart(2, '0');
+        return `#${aHex(f(0))}${aHex(f(8))}${aHex(f(4))}`;
+    }
+
+    function colorAleatorioDeUid(uid) {
+        const h = hashDeString(uid || 'reztored');
+        const hue1 = h % 360;
+        const hue2 = (hue1 + 55) % 360;
+        return [hslAHex(hue1, 65, 45), hslAHex(hue2, 65, 45)];
+    }
+
+    function esUrlDeImagenValida(url) {
+        if (typeof url !== 'string' || !url.trim()) return false;
+        try {
+            const u = new URL(url.trim());
+            return u.protocol === 'https:' || u.protocol === 'http:';
+        } catch {
+            return false;
+        }
+    }
+
+    // Devuelve siempre una URL de imagen usable para el avatar.
+    // Antes, cuando perfil.photoURL estaba vacío se usaba src="" en el
+    // <img>, y los navegadores interpretan un src vacío como "pedí de
+    // nuevo la URL de la página actual", lo que rompía la imagen (y
+    // generaba una descarga extra innecesaria). Acá generamos un
+    // avatar de respaldo determinístico (siempre el mismo para el
+    // mismo usuario) en vez de dejar el src vacío.
+    function avatarSeguro(perfil) {
+        if (esUrlDeImagenValida(perfil.photoURL)) return perfil.photoURL.trim();
+        const seed = encodeURIComponent(perfil.username || perfil.uid || 'reztored');
+        return `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
+    }
+
+    // --- 🎵 Música de fondo del perfil ---
+    // Saca el ID de video si el link es de YouTube (watch?v=, youtu.be/,
+    // /embed/, /shorts/). Si no es de YouTube, devuelve null y se trata
+    // como link directo a un archivo de audio (.mp3/.ogg/.wav/etc).
+    function extraerIdYoutube(url) {
+        try {
+            const u = new URL(url);
+            if (u.hostname === 'youtu.be') return u.pathname.slice(1).split('/')[0] || null;
+            if (u.hostname.includes('youtube.com')) {
+                if (u.searchParams.get('v')) return u.searchParams.get('v');
+                const partes = u.pathname.split('/').filter(Boolean);
+                const idx = partes.findIndex(p => p === 'embed' || p === 'shorts');
+                if (idx !== -1 && partes[idx + 1]) return partes[idx + 1];
+            }
+        } catch {
+            return null;
+        }
+        return null;
+    }
+
+    function formatearTiempo(segundos) {
+        if (!isFinite(segundos) || segundos < 0) segundos = 0;
+        const m = Math.floor(segundos / 60);
+        const s = Math.floor(segundos % 60);
+        return `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    // Trae título, artista y carátula de la canción a partir del link
+    // guardado en el perfil. No existe forma de consultar Spotify desde
+    // acá sin un backend (su API necesita un client_secret que nunca
+    // debería quedar expuesto en el código del sitio), así que para
+    // links de YouTube usamos su oEmbed público —no necesita API key ni
+    // login, y devuelve título, canal y miniatura—, y esa miniatura es
+    // la que se muestra en forma de círculo. Para un link directo a un
+    // archivo de audio (mp3, etc) no hay metadata disponible desde el
+    // navegador, así que el título se arma a partir del nombre del
+    // archivo en la URL.
+    async function obtenerMetadataCancion(urlLimpia, ytId) {
+        if (ytId) {
+            try {
+                const resp = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent('https://www.youtube.com/watch?v=' + ytId)}&format=json`);
+                if (resp.ok) {
+                    const data = await resp.json();
+                    return {
+                        titulo: data.title || 'Música del perfil',
+                        artista: data.author_name || '',
+                        caratula: data.thumbnail_url || `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`
+                    };
+                }
+            } catch {
+                // Si falla el oEmbed (sin conexión, bloqueado, etc), seguimos con la miniatura directa.
+            }
+            return { titulo: 'Música del perfil', artista: '', caratula: `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` };
+        }
+
+        let titulo = 'Música del perfil';
+        try {
+            const u = new URL(urlLimpia);
+            const nombreArchivo = decodeURIComponent(u.pathname.split('/').pop() || '');
+            const sinExtension = nombreArchivo.replace(/\.[a-zA-Z0-9]+$/, '');
+            if (sinExtension) titulo = sinExtension.replace(/[_-]+/g, ' ').trim();
+        } catch {
+            // link raro, nos quedamos con el título genérico
+        }
+        return { titulo, artista: '', caratula: null };
+    }
+
+    // Carga (una sola vez) la API oficial de YouTube para poder manejar
+    // play/pause/volumen/progreso igual que con un <audio> normal.
+    let promesaYoutubeAPI = null;
+    function cargarYoutubeAPI() {
+        if (window.YT && window.YT.Player) return Promise.resolve();
+        if (promesaYoutubeAPI) return promesaYoutubeAPI;
+        promesaYoutubeAPI = new Promise((resolve) => {
+            const previo = window.onYouTubeIframeAPIReady;
+            window.onYouTubeIframeAPIReady = () => {
+                if (typeof previo === 'function') previo();
+                resolve();
+            };
+            const script = document.createElement('script');
+            script.src = 'https://www.youtube.com/iframe_api';
+            document.head.appendChild(script);
+        });
+        return promesaYoutubeAPI;
+    }
+
+    // Arranca (una sola vez por carga de página) la música de fondo del
+    // perfil que se está viendo, con un reproductor fijo abajo para que
+    // cualquiera que entre la pueda pausar, bajar el volumen o
+    // silenciarla. Los navegadores modernos bloquean el autoplay con
+    // sonido hasta que la persona interactúa con la página, así que si
+    // el play() inicial falla, queda esperando el primer click/touch
+    // para arrancar sola.
+    async function iniciarMusicaDeFondo(url) {
+        const urlLimpia = (url || '').trim();
+        if (!urlLimpia || !esUrlDeImagenValida(urlLimpia)) return;
+        if (document.getElementById('reproductor-musica-perfil')) return; // ya está andando
+
+        const ytId = extraerIdYoutube(urlLimpia);
+        const esYoutube = !!ytId;
+
+        let sonando = true;
+        let muteado = false;
+        // Volumen recordado entre perfiles (0-100).
+        let volumen = parseInt(localStorage.getItem('reztored_volumen_perfil'), 10);
+        if (isNaN(volumen) || volumen < 0 || volumen > 100) volumen = 70;
+
+        const meta = await obtenerMetadataCancion(urlLimpia, ytId);
+
+        // --- Armado del reproductor (barra fija abajo, estilo Spotify) ---
+        const reproductor = document.createElement('div');
+        reproductor.id = 'reproductor-musica-perfil';
+        const estiloCaratula = meta.caratula
+            ? `background-image:url('${meta.caratula.replace(/'/g, '%27')}'); background-size:cover; background-position:center;`
+            : 'display:flex; align-items:center; justify-content:center; font-size:1.1rem;';
+        reproductor.innerHTML = `
+            <div class="rmp-track">
+                <div class="rmp-caratula" id="rmp-caratula" style="${estiloCaratula}">${meta.caratula ? '' : '🎵'}</div>
+                <div class="rmp-textos">
+                    <div class="rmp-nombre" title="${escapeAttr(meta.titulo)}">${escapeHTML(meta.titulo)}</div>
+                    <div class="rmp-artista">${escapeHTML(meta.artista || 'Música del perfil')}</div>
+                </div>
+            </div>
+            <div class="rmp-centro">
+                <button type="button" class="rmp-btn-play" id="rmp-btn-play" title="Pausar">⏸</button>
+                <div class="rmp-barra-fila">
+                    <span class="rmp-tiempo" id="rmp-tiempo-actual">0:00</span>
+                    <input type="range" class="rmp-progreso" id="rmp-progreso" min="0" max="100" value="0">
+                    <span class="rmp-tiempo" id="rmp-tiempo-total">0:00</span>
+                </div>
+            </div>
+            <div class="rmp-volumen-wrap">
+                <button type="button" class="rmp-icono" id="rmp-btn-mute" title="Silenciar">🔊</button>
+                <input type="range" class="rmp-volumen" id="rmp-volumen" min="0" max="100" value="${volumen}" title="Volumen">
+            </div>
+        `;
+        document.body.appendChild(reproductor);
+        document.body.classList.add('rmp-activo');
+
+        const btnPlay = reproductor.querySelector('#rmp-btn-play');
+        const btnMute = reproductor.querySelector('#rmp-btn-mute');
+        const inputVolumen = reproductor.querySelector('#rmp-volumen');
+        const inputProgreso = reproductor.querySelector('#rmp-progreso');
+        const spanActual = reproductor.querySelector('#rmp-tiempo-actual');
+        const spanTotal = reproductor.querySelector('#rmp-tiempo-total');
+
+        let arrastrandoProgreso = false;
+        let media = null; // <audio> o instancia de YT.Player, según el link
+
+        function iconoVolumen() {
+            if (muteado || volumen === 0) return '🔇';
+            if (volumen < 50) return '🔉';
+            return '🔊';
+        }
+
+        function actualizarUIBase() {
+            reproductor.classList.toggle('rmp-sonando', sonando);
+            btnPlay.textContent = sonando ? '⏸' : '▶';
+            btnPlay.title = sonando ? 'Pausar' : 'Reproducir';
+            btnMute.textContent = iconoVolumen();
+            btnMute.title = muteado ? 'Reactivar sonido' : 'Silenciar';
+        }
+
+        function aplicarVolumenReal() {
+            const volumenEfectivo = muteado ? 0 : volumen;
+            if (esYoutube) {
+                if (media && media.setVolume) media.setVolume(volumenEfectivo);
+            } else if (media) {
+                media.volume = volumenEfectivo / 100;
+            }
+        }
+
+        function actualizarProgreso(actual, duracion) {
+            if (!isFinite(duracion) || duracion <= 0) return;
+            if (!arrastrandoProgreso) {
+                inputProgreso.max = String(Math.floor(duracion));
+                inputProgreso.value = String(Math.floor(actual));
+                spanActual.textContent = formatearTiempo(actual);
+            }
+            spanTotal.textContent = formatearTiempo(duracion);
+        }
+
+        // ⏯️ Play / pausa
+        btnPlay.addEventListener('click', () => {
+            sonando = !sonando;
+            if (esYoutube) {
+                if (media) sonando ? media.playVideo() : media.pauseVideo();
+            } else if (media) {
+                if (sonando) media.play().catch(() => {}); else media.pause();
+            }
+            actualizarUIBase();
+        });
+
+        // 🔇 Mute directo
+        btnMute.addEventListener('click', () => {
+            muteado = !muteado;
+            aplicarVolumenReal();
+            actualizarUIBase();
+        });
+
+        // 🔊 Slider de volumen (subir / bajar)
+        inputVolumen.addEventListener('input', () => {
+            volumen = parseInt(inputVolumen.value, 10) || 0;
+            localStorage.setItem('reztored_volumen_perfil', String(volumen));
+            if (muteado && volumen > 0) muteado = false; // mover el slider desmutea
+            aplicarVolumenReal();
+            actualizarUIBase();
+        });
+
+        // Barra de progreso: mientras se arrastra solo se actualiza el
+        // tiempo mostrado; recién al soltar (change) se hace el seek de
+        // verdad, para no pelearse con la actualización automática.
+        inputProgreso.addEventListener('input', () => {
+            arrastrandoProgreso = true;
+            spanActual.textContent = formatearTiempo(parseFloat(inputProgreso.value));
+        });
+        inputProgreso.addEventListener('change', () => {
+            const destino = parseFloat(inputProgreso.value);
+            if (esYoutube) {
+                if (media && media.seekTo) media.seekTo(destino, true);
+            } else if (media) {
+                media.currentTime = destino;
+            }
+            arrastrandoProgreso = false;
+        });
+
+        if (esYoutube) {
+            const contenedorYT = document.createElement('div');
+            contenedorYT.id = 'musica-perfil-media';
+            contenedorYT.style.cssText = 'position:fixed; width:1px; height:1px; opacity:0; pointer-events:none; bottom:0; right:0;';
+            document.body.appendChild(contenedorYT);
+
+            await cargarYoutubeAPI();
+
+            media = new YT.Player('musica-perfil-media', {
+                videoId: ytId,
+                playerVars: { autoplay: 1, controls: 0, loop: 1, playlist: ytId, playsinline: 1 },
+                events: {
+                    onReady: (e) => {
+                        aplicarVolumenReal();
+                        try { e.target.playVideo(); } catch {}
+                    },
+                    onStateChange: (e) => {
+                        if (e.data === YT.PlayerState.PLAYING) { sonando = true; actualizarUIBase(); }
+                        else if (e.data === YT.PlayerState.PAUSED) { sonando = false; actualizarUIBase(); }
+                    }
+                }
+            });
+
+            setInterval(() => {
+                if (!media || !media.getCurrentTime) return;
+                try { actualizarProgreso(media.getCurrentTime(), media.getDuration()); } catch {}
+            }, 500);
+        } else {
+            media = document.createElement('audio');
+            media.id = 'musica-perfil-media';
+            media.src = urlLimpia;
+            media.loop = true;
+            media.autoplay = true;
+            media.volume = (muteado ? 0 : volumen) / 100;
+            document.body.appendChild(media);
+
+            media.addEventListener('play', () => { sonando = true; actualizarUIBase(); });
+            media.addEventListener('pause', () => { sonando = false; actualizarUIBase(); });
+            media.addEventListener('timeupdate', () => actualizarProgreso(media.currentTime, media.duration));
+            media.addEventListener('loadedmetadata', () => actualizarProgreso(media.currentTime, media.duration));
+
+            media.play().catch(() => {
+                sonando = false;
+                actualizarUIBase();
+                const activarConGesto = () => {
+                    media.play().then(() => { sonando = true; actualizarUIBase(); }).catch(() => {});
+                };
+                document.addEventListener('click', activarConGesto, { once: true });
+                document.addEventListener('touchstart', activarConGesto, { once: true });
+            });
+        }
+
+        actualizarUIBase();
+    }
+
+    // --- "Theming" de toda la página con el color elegido del dueño ---
+    // (como en Discord: el perfil de alguien tiñe la vista con SU color,
+    // lo vea quien lo vea).
+    function oscurecerColor(hex, factor) {
+        const num = parseInt(hex.slice(1), 16);
+        const r = Math.round(((num >> 16) & 255) * factor);
+        const g = Math.round(((num >> 8) & 255) * factor);
+        const b = Math.round((num & 255) * factor);
+        return `#${[r, g, b].map(x => x.toString(16).padStart(2, '0')).join('')}`;
+    }
+
+    function hexConAlpha(hex, alpha) {
+        const num = parseInt(hex.slice(1), 16);
+        const r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255;
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    function aplicarTemaDePagina(colorHex) {
+        const raiz = document.documentElement;
+        const header = document.querySelector('.window-header');
+        if (!colorHex) {
+            raiz.style.removeProperty('--primary');
+            raiz.style.removeProperty('--primary-hover');
+            if (header) header.style.borderBottomColor = '';
+            return;
+        }
+        raiz.style.setProperty('--primary', colorHex);
+        raiz.style.setProperty('--primary-hover', oscurecerColor(colorHex, 0.82));
+        if (header) header.style.borderBottomColor = colorHex;
+    }
+ 
+    // Saca el nombre de usuario de la URL, ej: reztored.online/juan -> "juan"
+    function obtenerUsernameDeURL() {
+        const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
+        return path.split('/')[0].toLowerCase();
+    }
+ 
+    function renderNoEncontrado() {
+        contenedor.innerHTML = `
+            <div class="no-encontrado">
+                <p>No encontramos ningún perfil con ese nombre de usuario.</p>
+                <a class="btn-link" href="/">Volver al inicio</a>
+            </div>
+        `;
+    }
+ 
+    function formatearFecha(timestamp) {
+        if (!timestamp || !timestamp.toDate) return 'Fecha desconocida';
+        return timestamp.toDate().toLocaleDateString('es-AR', { year: 'numeric', month: 'long', day: 'numeric' });
+    }
+ 
+    async function iniciar() {
+        const username = obtenerUsernameDeURL();
+ 
+        if (!username || RESERVED_USERNAMES.includes(username)) {
+            renderNoEncontrado();
+            return;
+        }
+ 
+        // El perfil y el top de petocoins se piden en paralelo; si el
+        // ranking falla por algún motivo, obtenerTopPetocoins ya
+        // devuelve un array vacío en vez de tirar error, así que no
+        // hace falta un try/catch extra acá.
+        const [perfil, topPetocoins] = await Promise.all([
+            obtenerPerfilPorUsername(username),
+            obtenerTopPetocoins(5)
+        ]);
+ 
+        if (!perfil) {
+            renderNoEncontrado();
+            return;
+        }
+
+        // La música de fondo depende solo del perfil (no de quién está
+        // mirando), así que se arranca una sola vez acá, ANTES del
+        // onAuthStateChanged (que puede disparar renderPerfil más de
+        // una vez y no queremos reiniciar/duplicar el audio).
+        iniciarMusicaDeFondo(perfil.musicaURL);
+ 
+        // Esperamos a saber si hay sesión iniciada, para saber si mostramos
+        // "Editar perfil", la tag ADMIN, el botón de banear, etc.
+        onAuthStateChanged(auth, async (user) => {
+            const esDueno = user && user.uid === perfil.uid;
+
+            // Perfil del que está MIRANDO (para saber si es admin).
+            // Si está mirando su propio perfil, ya lo tenemos (perfil).
+            let perfilViewer = null;
+            if (user) {
+                perfilViewer = esDueno ? perfil : await obtenerPerfilPorUid(user.uid);
+            }
+            const viewerEsAdmin = esAdmin(perfilViewer) || esAdmin(user ? user.uid : null);
+
+            renderPerfil(perfil, esDueno, viewerEsAdmin, user, topPetocoins);
+        });
+    }
+ 
+    function renderPerfil(perfil, esDueno, viewerEsAdmin, viewerUser, topPetocoins = []) {
+        const bioHTML = perfil.bio
+            ? `<div class="perfil-bio">${escapeHTML(perfil.bio)}</div>`
+            : `<div class="perfil-bio vacia">Este usuario todavía no escribió una bio.</div>`;
+
+        const tagAdminHTML = perfil.isAdmin ? `<span class="tag-admin">ADMIN</span>` : '';
+        const avisoBaneadoHTML = perfil.banned ? `<div class="aviso-baneado">🚫 Este usuario está baneado.</div>` : '';
+
+        // --- Cosméticos comprados en la tienda (users/{uid}.inventario) ---
+        const inventario = perfil.inventario || {};
+        const tieneColorPerso = !!inventario['color_personalizado'];
+        const tieneBannerPerso = !!inventario['banner_personalizado'];
+        const tieneMusica = !!inventario['musica_perfil'];
+        const cantStickers = inventario['sticker_sorpresa'] || 0;
+        const colorElegido = (tieneColorPerso && HEX_COLOR_REGEX.test(perfil.colorPerfil || '')) ? perfil.colorPerfil : null;
+
+        // --- Marco de perfil (categoria:'marco' en tienda/productos.js) ---
+        // La persona puede tener comprados varios marcos, pero solo uno
+        // puesto a la vez (perfil.marcoActivo). Si nunca eligió ninguno
+        // pero ya tenía comprado el marco dorado de antes de que
+        // existiera este selector, se lo dejamos puesto por defecto.
+        const marcosCatalogo = PRODUCTOS.filter(p => p.categoria === 'marco');
+        const marcosPoseidos = marcosCatalogo.filter(p => !!inventario[p.id]);
+
+        let marcoActivoId = null;
+        if (perfil.marcoActivo && perfil.marcoActivo !== 'ninguno' && inventario[perfil.marcoActivo]) {
+            marcoActivoId = perfil.marcoActivo;
+        } else if (perfil.marcoActivo === undefined && inventario['marco_perfil_dorado']) {
+            marcoActivoId = 'marco_perfil_dorado';
+        }
+        const marcoActivoProducto = marcoActivoId ? marcosCatalogo.find(p => p.id === marcoActivoId) : null;
+
+        // El marco puesto pisa al color personalizado (así siempre se ve
+        // el cosmético "más caro" en la foto de perfil).
+        let avatarClass = 'perfil-avatar';
+        let avatarStyle = '';
+        if (marcoActivoProducto) {
+            avatarClass += ` avatar-${marcoActivoProducto.clase}`;
+        } else if (colorElegido) {
+            avatarStyle = `border-color:${escapeAttr(colorElegido)}; box-shadow:0 0 15px ${escapeAttr(colorElegido)}66;`;
+        }
+
+        const usernameStyle = (colorElegido && !marcoActivoProducto)
+            ? ` style="color:${escapeAttr(colorElegido)};"`
+            : '';
+
+        // Las insignias son solo etiquetas al lado del nombre, no
+        // ponen marco en la foto (el marco se elige aparte). Se arman
+        // solas a partir de INSIGNIAS_PERFIL: para agregar una nueva
+        // no hace falta tocar esta línea, solo la lista de ahí arriba.
+        const tagsInsigniasHTML = INSIGNIAS_PERFIL
+            .filter(insignia => !!inventario[insignia.id])
+            .map(insignia => `<span class="${insignia.clase}">${insignia.texto}</span>`)
+            .join('');
+        const stickersHTML = cantStickers > 0
+            ? `<div class="stickers-line">🎁 Tiene ${cantStickers} sticker${cantStickers !== 1 ? 's' : ''} sorpresa</div>`
+            : '';
+
+        // --- 🎒 Mochila: todos los items comprados (visible para cualquiera) ---
+        const itemsMochila = PRODUCTOS.filter(p => !!inventario[p.id]);
+        const mochilaGridHTML = itemsMochila.length > 0
+            ? `<div class="mochila-grid">${itemsMochila.map(p => `
+                <div class="mochila-item">
+                    <div class="mochila-emoji">${p.emoji}</div>
+                    <div class="mochila-nombre">${escapeHTML(p.nombre)}</div>
+                    ${p.tipo === 'multiple' ? `<div class="mochila-cant">x${inventario[p.id]}</div>` : ''}
+                </div>
+            `).join('')}</div>`
+            : `<p class="mochila-vacia">${esDueno ? 'Todavía no compraste nada. Visitá la <a href="/tienda" style="color:var(--primary);">tienda</a>.' : 'Este usuario todavía no tiene ningún item.'}</p>`;
+        const mochilaPanelHTML = `
+            <div class="panel-colapsable" id="panel-mochila">
+                <div class="mochila-box">
+                    ${mochilaGridHTML}
+                </div>
+            </div>
+        `;
+
+        // --- Selector de marco (solo se arma si es el dueño mirando su perfil) ---
+        function opcionMarcoHTML(id, emoji, nombre, seleccionada) {
+            const preview = marcosCatalogo.find(p => p.id === id);
+            const claseAvatar = preview ? `avatar-${preview.clase}` : '';
+            return `
+                <button type="button" class="marco-opcion ${seleccionada ? 'seleccionado' : ''}" data-marco-id="${id}">
+                    <img class="${claseAvatar}" src="${avatarSeguro(perfil)}" alt="${escapeAttr(nombre)}" loading="lazy">
+                    <span>${nombre}</span>
+                </button>
+            `;
+        }
+        const marcosOpcionesHTML = [
+            `<button type="button" class="marco-opcion ${!marcoActivoProducto ? 'seleccionado' : ''}" data-marco-id="ninguno">
+                <span class="marco-vacio">✕</span>
+                <span>Ninguno</span>
+            </button>`,
+            ...marcosPoseidos.map(p => opcionMarcoHTML(p.id, p.emoji, p.nombre, marcoActivoId === p.id))
+        ].join('');
+
+        // Tiñe toda la página con el color que eligió el DUEÑO del
+        // perfil, lo vea quien lo vea (como el perfil de Discord).
+        aplicarTemaDePagina(colorElegido);
+
+        // --- Banner: imagen/GIF > colores elegidos > colores al azar por defecto ---
+        const [randomC1, randomC2] = colorAleatorioDeUid(perfil.uid);
+        const bannerTypeActual = (tieneBannerPerso && perfil.bannerType === 'imagen') ? 'imagen' : 'color';
+        let bannerStyle;
+        if (tieneBannerPerso && perfil.bannerType === 'imagen' && esUrlDeImagenValida(perfil.bannerImageURL)) {
+            bannerStyle = `background-image:url('${escapeAttr(perfil.bannerImageURL.trim())}'); background-size:cover; background-position:center;`;
+        } else if (tieneBannerPerso && perfil.bannerType === 'color' && HEX_COLOR_REGEX.test(perfil.bannerColor1 || '') && HEX_COLOR_REGEX.test(perfil.bannerColor2 || '')) {
+            bannerStyle = `background:linear-gradient(135deg, ${perfil.bannerColor1}, ${perfil.bannerColor2});`;
+        } else {
+            bannerStyle = `background:linear-gradient(135deg, ${randomC1}, ${randomC2});`;
+        }
+        const bannerHTML = `<div class="perfil-banner" style="${bannerStyle}"></div>`;
+
+        // Botón de banear: lo ve un admin mirando el perfil de OTRA persona
+        // (nunca el propio, para no poder auto-banearse por accidente).
+        const accionesAdminHTML = (viewerEsAdmin && !esDueno) ? `
+            <div class="acciones-perfil" style="margin-top:8px;">
+                <button id="btn-banear" class="${perfil.banned ? '' : 'btn-danger'}">
+                    ${perfil.banned ? 'Desbanear usuario' : 'Banear usuario'}
+                </button>
+            </div>
+        ` : '';
+
+        // Donar petoCoins / regalar un producto: lo ve cualquiera
+        // logueado mirando el perfil de OTRA persona.
+        const opcionesRegaloHTML = PRODUCTOS.map(p =>
+            `<option value="${p.id}">${p.emoji} ${escapeHTML(p.nombre)} — ${p.precio.toLocaleString('es-AR')} petoCoins</option>`
+        ).join('');
+        const donarHTML = (viewerUser && !esDueno) ? `
+            <div class="donar-box">
+                <p class="ayuda">Donale petoCoins a ${escapeHTML(perfil.username)}.</p>
+                <form id="form-donar">
+                    <div class="fila">
+                        <input type="number" id="input-monto-donar" min="1" step="1" placeholder="Cantidad" required>
+                        <button type="submit" class="btn-primary">Donar</button>
+                    </div>
+                    <div class="form-msg" id="msg-donar"></div>
+                </form>
+            </div>
+            <div class="donar-box" style="margin-top:10px;">
+                <p class="ayuda">🎁 Regalale un producto de la tienda a ${escapeHTML(perfil.username)} (se paga con tus petoCoins).</p>
+                <form id="form-regalar">
+                    <div class="fila">
+                        <select id="input-producto-regalar">${opcionesRegaloHTML}</select>
+                        <button type="submit" class="btn-primary">Regalar</button>
+                    </div>
+                    <input type="text" id="input-mensaje-regalar" maxlength="200" placeholder="Mensaje para acompañar el regalo (opcional)" style="margin-top:8px;">
+                    <div class="form-msg" id="msg-regalar"></div>
+                </form>
+            </div>
+        ` : '';
+
+        // Pestaña "Administrador": solo la ve el dueño del perfil, si es admin.
+        const mostrarPestanas = esDueno && viewerEsAdmin;
+
+        // --- 🏆 Sidebar: Top Petocoins ---
+        const leaderboardHTML = topPetocoins.length > 0
+            ? `<ul class="leaderboard-list">${topPetocoins.map((u, i) => `
+                <li class="leaderboard-item ${u.uid === perfil.uid ? 'leaderboard-item-actual' : ''}">
+                    <span class="leaderboard-rank">#${i + 1}</span>
+                    <a class="leaderboard-name" href="/${encodeURIComponent(u.username || '')}">${escapeHTML(u.username || 'Usuario')}</a>
+                    <span class="leaderboard-coins">${(u.coins ?? 0).toLocaleString('es-AR')}</span>
+                </li>
+            `).join('')}</ul>`
+            : `<p class="redes-vacio">Todavía no hay suficientes datos para el ranking.</p>`;
+
+        // --- 🔗 Sidebar: Redes sociales ---
+        const redes = perfil.redes || {};
+        const redesConValor = REDES_CONFIG.filter(r => redes[r.id]);
+        const redesListaHTML = redesConValor.length > 0
+            ? `<div class="redes-grid">${redesConValor.map(r => `
+                <a class="red-link" href="${escapeAttr(redes[r.id])}" target="_blank" rel="noopener noreferrer nofollow">
+                    <span class="red-emoji">${r.emoji}</span> ${r.label}
+                </a>
+            `).join('')}</div>`
+            : `<p class="redes-vacio">${esDueno ? 'Todavía no cargaste tus redes.' : 'Este usuario todavía no cargó sus redes.'}</p>`;
+
+        const redesEditFormHTML = esDueno ? `
+            <button type="button" id="btn-editar-redes" style="width:100%; margin-top:10px;">✏️ Editar mis redes</button>
+            <form class="edit-form" id="form-editar-redes">
+                <div class="redes-grid-inputs">
+                    ${REDES_CONFIG.map(r => `
+                        <div>
+                            <label for="input-red-${r.id}">${r.emoji} ${r.label}</label>
+                            <input type="url" id="input-red-${r.id}" placeholder="${r.placeholder}" value="${redes[r.id] ? escapeAttr(redes[r.id]) : ''}">
+                        </div>
+                    `).join('')}
+                </div>
+                <button type="submit" class="btn-primary" style="width:100%;">Guardar redes</button>
+                <div class="form-msg" id="msg-editar-redes"></div>
+            </form>
+        ` : '';
+
+        const sidebarHTML = `
+            <div class="perfil-sidebar">
+                <div class="sidebar-box">
+                    <h3>🏆 Top Petocoins</h3>
+                    ${leaderboardHTML}
+                </div>
+                <div class="sidebar-box">
+                    <h3>🔗 Redes Sociales</h3>
+                    ${redesListaHTML}
+                    ${redesEditFormHTML}
+                </div>
+            </div>
+        `;
+
+        contenedor.innerHTML = `
+            ${bannerHTML}
+            <div class="perfil-header">
+                <img class="${avatarClass}" style="${avatarStyle}" src="${avatarSeguro(perfil)}" alt="Avatar de ${escapeHTML(perfil.username)}" loading="lazy" onerror="this.onerror=null; this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(perfil.username || perfil.uid || 'reztored')}';">
+                <div class="perfil-identidad">
+                    <div class="perfil-username"${usernameStyle}>${escapeHTML(perfil.username)}${tagAdminHTML}${tagsInsigniasHTML}</div>
+                    <div class="perfil-fecha">Miembro desde ${formatearFecha(perfil.createdAt)}</div>
+                </div>
+            </div>
+
+            <div class="perfil-inner">
+            ${stickersHTML}
+
+            <div class="perfil-coins">
+                <img src="/petocoin.png" alt="petoCoins">
+                <span class="monto">${(perfil.coins ?? 0).toLocaleString('es-AR')}</span>
+                <span class="etiqueta">petoCoins</span>
+            </div>
+
+            <div class="acciones-perfil" style="margin-top:0;">
+                <button id="btn-mochila">🎒 Mochila</button>
+            </div>
+            ${mochilaPanelHTML}
+
+            ${avisoBaneadoHTML}
+
+            <div class="perfil-grid">
+            <div class="perfil-main">
+            ${mostrarPestanas ? `
+                <div class="tabs-perfil">
+                    <button class="tab-btn activa" data-tab="tab-perfil">Perfil</button>
+                    <button class="tab-btn" data-tab="tab-admin">Administrador</button>
+                </div>
+            ` : ''}
+
+            <div class="tab-panel activa" id="tab-perfil">
+                ${bioHTML}
+                ${esDueno ? `
+                    <div class="acciones-perfil">
+                        <button id="btn-editar-perfil">Editar perfil</button>
+                        <button id="btn-personalizar">🎨 Personalizar</button>
+                    </div>
+                    <form class="edit-form" id="form-editar-perfil">
+                        <label for="input-bio">Bio (máx 280 caracteres)</label>
+                        <textarea id="input-bio" maxlength="280">${escapeHTML(perfil.bio || '')}</textarea>
+                        <label for="input-foto">URL de tu foto de perfil</label>
+                        <input type="url" id="input-foto" placeholder="https://..." value="${perfil.photoURL ? escapeAttr(perfil.photoURL) : ''}">
+                        <button type="submit" class="btn-primary">Guardar cambios</button>
+                        <div class="form-msg" id="msg-editar-perfil"></div>
+                    </form>
+                    <div class="edit-form" id="panel-personalizar">
+                        <div class="personalizar-box">
+                            ${tieneColorPerso ? `
+                                <label for="input-color-perfil">Color personalizado</label>
+                                <div class="fila-color">
+                                    <input type="color" id="input-color-perfil" value="${colorElegido || '#4f46e5'}">
+                                    <button type="button" id="btn-guardar-color" class="btn-primary">Guardar color</button>
+                                </div>
+                            ` : `
+                                <p class="bloqueado-nota">🔒 Comprá <strong>"Color personalizado"</strong> en la <a href="/tienda">tienda</a> para elegir el color de tu perfil.</p>
+                            `}
+                            <label>Marco de perfil</label>
+                            <div class="marcos-grid">
+                                ${marcosOpcionesHTML}
+                            </div>
+                            ${marcosPoseidos.length === 0 ? `
+                                <p class="bloqueado-nota">🔒 Todavía no tenés ningún marco. Comprá marcos en la <a href="/tienda">tienda</a> para ponerle un borde a tu foto.</p>
+                            ` : `
+                                <p class="bloqueado-nota">Tocá un marco para ponértelo. Podés comprar más en la <a href="/tienda">tienda</a>.</p>
+                            `}
+                            ${tieneBannerPerso ? `
+                                <label>Banner (colores o imagen/GIF por link)</label>
+                                <div class="banner-tabs">
+                                    <button type="button" class="banner-tab-btn ${bannerTypeActual !== 'imagen' ? 'activa' : ''}" data-tipo-banner="color">🎨 Colores</button>
+                                    <button type="button" class="banner-tab-btn ${bannerTypeActual === 'imagen' ? 'activa' : ''}" data-tipo-banner="imagen">🖼️ Imagen / GIF</button>
+                                </div>
+                                <div class="banner-tab-panel ${bannerTypeActual !== 'imagen' ? 'activa' : ''}" id="banner-panel-color">
+                                    <div class="fila-color">
+                                        <input type="color" id="input-banner-1" value="${(perfil.bannerColor1 && HEX_COLOR_REGEX.test(perfil.bannerColor1)) ? perfil.bannerColor1 : randomC1}">
+                                        <input type="color" id="input-banner-2" value="${(perfil.bannerColor2 && HEX_COLOR_REGEX.test(perfil.bannerColor2)) ? perfil.bannerColor2 : randomC2}">
+                                        <button type="button" id="btn-guardar-banner-color" class="btn-primary">Guardar</button>
+                                    </div>
+                                </div>
+                                <div class="banner-tab-panel ${bannerTypeActual === 'imagen' ? 'activa' : ''}" id="banner-panel-imagen">
+                                    <input type="url" id="input-banner-imagen" placeholder="https://ejemplo.com/imagen.gif" value="${(perfil.bannerImageURL && esUrlDeImagenValida(perfil.bannerImageURL)) ? escapeAttr(perfil.bannerImageURL) : ''}">
+                                    <button type="button" id="btn-guardar-banner-imagen" class="btn-primary" style="width:100%;">Guardar imagen/GIF</button>
+                                </div>
+                            ` : `
+                                <p class="bloqueado-nota">🔒 Comprá <strong>"Banner personalizado"</strong> en la <a href="/tienda">tienda</a> para poner tus propios colores o una imagen/GIF en tu banner (por ahora tenés uno de colores al azar).</p>
+                            `}
+                            ${tieneMusica ? `
+                                <label for="input-musica-perfil">🎵 Música de fondo (link de YouTube o de un .mp3/.ogg/.wav)</label>
+                                <input type="url" id="input-musica-perfil" placeholder="https://www.youtube.com/watch?v=..." value="${perfil.musicaURL ? escapeAttr(perfil.musicaURL) : ''}">
+                                <div style="display:flex; gap:8px;">
+                                    <button type="button" id="btn-guardar-musica" class="btn-primary" style="flex:1;">Guardar música</button>
+                                    <button type="button" id="btn-quitar-musica" style="flex:1;">Quitar música</button>
+                                </div>
+                                <p class="bloqueado-nota" style="margin-top:8px;">Suena automáticamente para quien entre a tu perfil (los navegadores a veces bloquean el sonido hasta que la persona toca la página una vez). Cualquiera puede pausarla con el botón 🎵 flotante.</p>
+                            ` : `
+                                <p class="bloqueado-nota">🔒 Comprá <strong>"Música de perfil"</strong> en la <a href="/tienda">tienda</a> para poner una canción de fondo cuando alguien entre a tu perfil.</p>
+                            `}
+                            <div class="form-msg" id="msg-personalizar"></div>
+                        </div>
+                    </div>
+                ` : ''}
+                ${accionesAdminHTML}
+                ${donarHTML}
+            </div>
+
+            ${mostrarPestanas ? `
+                <div class="tab-panel" id="tab-admin">
+                    <div class="admin-panel-box">
+                        <p class="ayuda">Escribí el nombre de usuario (sin @, tal cual aparece en su URL) al que querés darle o sacarle admin.</p>
+                        <form id="form-admin">
+                            <label for="input-username-admin">Nombre de usuario</label>
+                            <input type="text" id="input-username-admin" placeholder="ej: juan_perez">
+                            <div style="display:flex; gap:8px; margin-top:10px;">
+                                <button type="submit" data-valor="true" class="btn-primary" style="flex:1;">Dar admin</button>
+                                <button type="submit" data-valor="false" style="flex:1;">Quitar admin</button>
+                            </div>
+                            <div class="form-msg" id="msg-admin"></div>
+                        </form>
+                    </div>
+
+                    <div class="admin-panel-box" style="margin-top:12px;">
+                        <p class="ayuda">Fijá tu propio saldo de petoCoins (solo vos, solo admin). Esto PISA el saldo actual, no lo suma.</p>
+                        <form id="form-fijar-coins">
+                            <label for="input-monto-fijar">Nuevo saldo</label>
+                            <div style="display:flex; gap:8px;">
+                                <input type="number" id="input-monto-fijar" min="0" step="1" placeholder="ej: 5000" value="${perfil.coins ?? 0}" style="flex:1; background:var(--bg-card); border:1px solid var(--border-color); border-radius:6px; padding:10px; color:var(--text-white); font-family:'Rajdhani', sans-serif; font-size:0.95rem;">
+                                <button type="submit" class="btn-primary">Fijar</button>
+                            </div>
+                            <div class="form-msg" id="msg-fijar-coins"></div>
+                        </form>
+                    </div>
+                </div>
+            ` : ''}
+            </div>
+            ${sidebarHTML}
+            </div>
+            </div>
+        `;
+
+        const btnMochila = document.getElementById('btn-mochila');
+        const panelMochila = document.getElementById('panel-mochila');
+        btnMochila.addEventListener('click', () => {
+            panelMochila.classList.toggle('activo');
+        });
+
+        if (mostrarPestanas) {
+            const tabBtns = contenedor.querySelectorAll('.tab-btn');
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    tabBtns.forEach(b => b.classList.remove('activa'));
+                    btn.classList.add('activa');
+                    contenedor.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('activa'));
+                    document.getElementById(btn.dataset.tab).classList.add('activa');
+                });
+            });
+
+            const formAdmin = document.getElementById('form-admin');
+            const msgAdmin = document.getElementById('msg-admin');
+            formAdmin.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitter = e.submitter;
+                const valor = submitter ? submitter.dataset.valor === 'true' : true;
+                const username = document.getElementById('input-username-admin').value;
+
+                msgAdmin.textContent = 'Procesando...';
+                msgAdmin.className = 'form-msg';
+                try {
+                    await otorgarAdmin(username, valor);
+                    msgAdmin.textContent = valor ? '¡Listo, ahora es admin!' : 'Listo, ya no es admin.';
+                    msgAdmin.className = 'form-msg text-green-400';
+                } catch (error) {
+                    console.error(error);
+                    msgAdmin.textContent = 'No se pudo: ' + error.message;
+                    msgAdmin.className = 'form-msg text-red-400';
+                }
+            });
+
+            const formFijarCoins = document.getElementById('form-fijar-coins');
+            const msgFijarCoins = document.getElementById('msg-fijar-coins');
+            formFijarCoins.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const monto = document.getElementById('input-monto-fijar').value;
+
+                msgFijarCoins.textContent = 'Guardando...';
+                msgFijarCoins.className = 'form-msg';
+                try {
+                    await fijarMisCoins(monto);
+                    msgFijarCoins.textContent = '¡Listo! Recargando...';
+                    msgFijarCoins.className = 'form-msg text-green-400';
+                    setTimeout(() => window.location.reload(), 1000);
+                } catch (error) {
+                    console.error(error);
+                    msgFijarCoins.textContent = 'No se pudo: ' + error.message;
+                    msgFijarCoins.className = 'form-msg text-red-400';
+                }
+            });
+        }
+
+        if (viewerEsAdmin && !esDueno) {
+            const btnBanear = document.getElementById('btn-banear');
+            btnBanear.addEventListener('click', async () => {
+                const nuevoValor = !perfil.banned;
+                const confirmMsg = nuevoValor
+                    ? `¿Banear a ${perfil.username}? No va a poder publicar en el foro.`
+                    : `¿Desbanear a ${perfil.username}?`;
+                if (!confirm(confirmMsg)) return;
+                try {
+                    await banearUsuario(perfil.uid, nuevoValor);
+                    window.location.reload();
+                } catch (error) {
+                    console.error(error);
+                    alert('No se pudo: ' + error.message);
+                }
+            });
+        }
+
+        if (viewerUser && !esDueno) {
+            const formDonar = document.getElementById('form-donar');
+            const msgDonar = document.getElementById('msg-donar');
+            if (formDonar) {
+                formDonar.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const monto = document.getElementById('input-monto-donar').value;
+
+                    msgDonar.textContent = 'Procesando...';
+                    msgDonar.className = 'form-msg';
+                    try {
+                        await donarCoins(perfil.uid, monto);
+                        msgDonar.textContent = `¡Le donaste ${monto} petoCoins a ${perfil.username}!`;
+                        msgDonar.className = 'form-msg text-green-400';
+                        formDonar.reset();
+                    } catch (error) {
+                        console.error(error);
+                        msgDonar.textContent = 'No se pudo donar: ' + error.message;
+                        msgDonar.className = 'form-msg text-red-400';
+                    }
+                });
+            }
+
+            const formRegalar = document.getElementById('form-regalar');
+            const msgRegalar = document.getElementById('msg-regalar');
+            if (formRegalar) {
+                formRegalar.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const productoId = document.getElementById('input-producto-regalar').value;
+                    const producto = PRODUCTOS.find(p => p.id === productoId);
+                    if (!producto) return;
+                    const inputMensaje = document.getElementById('input-mensaje-regalar');
+                    const mensaje = inputMensaje ? inputMensaje.value.trim() : '';
+
+                    msgRegalar.textContent = 'Procesando...';
+                    msgRegalar.className = 'form-msg';
+                    try {
+                        await regalarProducto(perfil.uid, producto, mensaje);
+                        msgRegalar.textContent = `¡Le regalaste "${producto.nombre}" a ${perfil.username}!`;
+                        msgRegalar.className = 'form-msg text-green-400';
+                        if (inputMensaje) inputMensaje.value = '';
+                    } catch (error) {
+                        console.error(error);
+                        msgRegalar.textContent = 'No se pudo regalar: ' + error.message;
+                        msgRegalar.className = 'form-msg text-red-400';
+                    }
+                });
+            }
+        }
+
+        if (esDueno) {
+            const btnEditar = document.getElementById('btn-editar-perfil');
+            const formEditar = document.getElementById('form-editar-perfil');
+            const msg = document.getElementById('msg-editar-perfil');
+
+            btnEditar.addEventListener('click', () => {
+                formEditar.classList.toggle('activo');
+            });
+
+            formEditar.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const bio = document.getElementById('input-bio').value;
+                const photoURL = document.getElementById('input-foto').value;
+
+                msg.textContent = 'Guardando...';
+                msg.className = 'form-msg';
+
+                try {
+                    await actualizarPerfil(perfil.uid, { bio, photoURL });
+                    msg.textContent = '¡Perfil actualizado! Recargando...';
+                    msg.className = 'form-msg text-green-400';
+                    setTimeout(() => window.location.reload(), 1000);
+                } catch (error) {
+                    console.error(error);
+                    msg.textContent = 'No se pudo guardar: ' + error.message;
+                    msg.className = 'form-msg text-red-400';
+                }
+            });
+
+            // Panel "🎨 Personalizar" (color y banner comprados en la tienda)
+            const btnPersonalizar = document.getElementById('btn-personalizar');
+            const panelPersonalizar = document.getElementById('panel-personalizar');
+            const msgPersonalizar = document.getElementById('msg-personalizar');
+
+            btnPersonalizar.addEventListener('click', () => {
+                panelPersonalizar.classList.toggle('activo');
+            });
+
+            const btnGuardarColor = document.getElementById('btn-guardar-color');
+            if (btnGuardarColor) {
+                btnGuardarColor.addEventListener('click', async () => {
+                    const color = document.getElementById('input-color-perfil').value;
+                    msgPersonalizar.textContent = 'Guardando...';
+                    msgPersonalizar.className = 'form-msg';
+                    try {
+                        await actualizarColorPerfil(perfil.uid, color);
+                        msgPersonalizar.textContent = '¡Listo! Recargando...';
+                        msgPersonalizar.className = 'form-msg text-green-400';
+                        setTimeout(() => window.location.reload(), 800);
+                    } catch (error) {
+                        console.error(error);
+                        msgPersonalizar.textContent = 'No se pudo: ' + error.message;
+                        msgPersonalizar.className = 'form-msg text-red-400';
+                    }
+                });
+            }
+
+            const marcoOpciones = document.querySelectorAll('.marco-opcion');
+            marcoOpciones.forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const marcoId = btn.dataset.marcoId;
+                    msgPersonalizar.textContent = 'Guardando...';
+                    msgPersonalizar.className = 'form-msg';
+                    try {
+                        await actualizarMarcoPerfil(perfil.uid, marcoId);
+                        msgPersonalizar.textContent = '¡Listo! Recargando...';
+                        msgPersonalizar.className = 'form-msg text-green-400';
+                        setTimeout(() => window.location.reload(), 500);
+                    } catch (error) {
+                        console.error(error);
+                        msgPersonalizar.textContent = 'No se pudo: ' + error.message;
+                        msgPersonalizar.className = 'form-msg text-red-400';
+                    }
+                });
+            });
+
+            const btnGuardarBannerColor = document.getElementById('btn-guardar-banner-color');
+            if (btnGuardarBannerColor) {
+                btnGuardarBannerColor.addEventListener('click', async () => {
+                    const c1 = document.getElementById('input-banner-1').value;
+                    const c2 = document.getElementById('input-banner-2').value;
+                    msgPersonalizar.textContent = 'Guardando...';
+                    msgPersonalizar.className = 'form-msg';
+                    try {
+                        await actualizarBannerColorPerfil(perfil.uid, c1, c2);
+                        msgPersonalizar.textContent = '¡Listo! Recargando...';
+                        msgPersonalizar.className = 'form-msg text-green-400';
+                        setTimeout(() => window.location.reload(), 800);
+                    } catch (error) {
+                        console.error(error);
+                        msgPersonalizar.textContent = 'No se pudo: ' + error.message;
+                        msgPersonalizar.className = 'form-msg text-red-400';
+                    }
+                });
+            }
+
+            const btnGuardarBannerImagen = document.getElementById('btn-guardar-banner-imagen');
+            if (btnGuardarBannerImagen) {
+                btnGuardarBannerImagen.addEventListener('click', async () => {
+                    const url = document.getElementById('input-banner-imagen').value;
+                    msgPersonalizar.textContent = 'Guardando...';
+                    msgPersonalizar.className = 'form-msg';
+                    try {
+                        await actualizarBannerImagenPerfil(perfil.uid, url);
+                        msgPersonalizar.textContent = '¡Listo! Recargando...';
+                        msgPersonalizar.className = 'form-msg text-green-400';
+                        setTimeout(() => window.location.reload(), 800);
+                    } catch (error) {
+                        console.error(error);
+                        msgPersonalizar.textContent = 'No se pudo: ' + error.message;
+                        msgPersonalizar.className = 'form-msg text-red-400';
+                    }
+                });
+            }
+
+            const btnGuardarMusica = document.getElementById('btn-guardar-musica');
+            if (btnGuardarMusica) {
+                btnGuardarMusica.addEventListener('click', async () => {
+                    const url = document.getElementById('input-musica-perfil').value;
+                    msgPersonalizar.textContent = 'Guardando...';
+                    msgPersonalizar.className = 'form-msg';
+                    try {
+                        await actualizarMusicaPerfil(perfil.uid, url);
+                        msgPersonalizar.textContent = '¡Listo! Recargando...';
+                        msgPersonalizar.className = 'form-msg text-green-400';
+                        setTimeout(() => window.location.reload(), 800);
+                    } catch (error) {
+                        console.error(error);
+                        msgPersonalizar.textContent = 'No se pudo: ' + error.message;
+                        msgPersonalizar.className = 'form-msg text-red-400';
+                    }
+                });
+            }
+
+            const btnQuitarMusica = document.getElementById('btn-quitar-musica');
+            if (btnQuitarMusica) {
+                btnQuitarMusica.addEventListener('click', async () => {
+                    msgPersonalizar.textContent = 'Guardando...';
+                    msgPersonalizar.className = 'form-msg';
+                    try {
+                        await actualizarMusicaPerfil(perfil.uid, '');
+                        msgPersonalizar.textContent = 'Listo, sacamos la música. Recargando...';
+                        msgPersonalizar.className = 'form-msg text-green-400';
+                        setTimeout(() => window.location.reload(), 800);
+                    } catch (error) {
+                        console.error(error);
+                        msgPersonalizar.textContent = 'No se pudo: ' + error.message;
+                        msgPersonalizar.className = 'form-msg text-red-400';
+                    }
+                });
+            }
+
+            // Tabs "🎨 Colores" / "🖼️ Imagen o GIF" (solo cambian qué se ve,
+            // no guardan nada hasta que se aprieta el botón correspondiente)
+            const bannerTabBtns = document.querySelectorAll('.banner-tab-btn');
+            bannerTabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    bannerTabBtns.forEach(b => b.classList.remove('activa'));
+                    btn.classList.add('activa');
+                    const panelColor = document.getElementById('banner-panel-color');
+                    const panelImagen = document.getElementById('banner-panel-imagen');
+                    if (btn.dataset.tipoBanner === 'imagen') {
+                        panelColor.classList.remove('activa');
+                        panelImagen.classList.add('activa');
+                    } else {
+                        panelImagen.classList.remove('activa');
+                        panelColor.classList.add('activa');
+                    }
+                });
+            });
+
+            // Botón "✏️ Editar mis redes" (sidebar, debajo del Top Petocoins)
+            const btnEditarRedes = document.getElementById('btn-editar-redes');
+            const formEditarRedes = document.getElementById('form-editar-redes');
+            if (btnEditarRedes && formEditarRedes) {
+                btnEditarRedes.addEventListener('click', () => {
+                    formEditarRedes.classList.toggle('activo');
+                });
+
+                formEditarRedes.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const msgRedes = document.getElementById('msg-editar-redes');
+                    const nuevasRedes = {};
+                    REDES_CONFIG.forEach(r => {
+                        const input = document.getElementById(`input-red-${r.id}`);
+                        if (input) nuevasRedes[r.id] = input.value;
+                    });
+
+                    msgRedes.textContent = 'Guardando...';
+                    msgRedes.className = 'form-msg';
+                    try {
+                        await actualizarRedesPerfil(perfil.uid, nuevasRedes);
+                        msgRedes.textContent = '¡Listo! Recargando...';
+                        msgRedes.className = 'form-msg text-green-400';
+                        setTimeout(() => window.location.reload(), 800);
+                    } catch (error) {
+                        console.error(error);
+                        msgRedes.textContent = 'No se pudo: ' + error.message;
+                        msgRedes.className = 'form-msg text-red-400';
+                    }
+                });
+            }
+        }
+    }
+ 
+    function escapeHTML(str) {
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
+        return String(str).replace(/[&<>'"]/g, tag => map[tag] || tag);
+    }
+ 
+    function escapeAttr(str) {
+        return String(str).replace(/"/g, '&quot;');
+    }
+ 
+    iniciar();
+</script>
+ 
+</body>
+</html>

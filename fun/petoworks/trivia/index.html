@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trivia — Petoworks</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Rajdhani', sans-serif; }
+  .titulo { font-family: 'Orbitron', sans-serif; }
+  .barra-fondo { background: #111827; }
+  .barra-relleno { background: linear-gradient(90deg, #22c55e, #16a34a); transition: width .4s ease; }
+  .opcion { transition: background-color .15s ease, border-color .15s ease; }
+  .opcion:disabled { cursor: not-allowed; }
+  .opcion.correcta { background-color: #14532d !important; border-color: #22c55e !important; }
+  .opcion.incorrecta { background-color: #450a0a !important; border-color: #ef4444 !important; }
+</style>
+</head>
+<body class="bg-gray-950 text-white min-h-screen flex flex-col items-center px-6 py-10">
+
+  <div class="w-full max-w-md flex items-center justify-between mb-6">
+    <a href="/fun/petoworks" class="text-sm text-gray-400 hover:text-gray-200 transition">⬅️ Petoworks</a>
+    <span class="flex items-center gap-1.5 bg-gray-900 border border-gray-800 rounded-full pl-1 pr-3 py-1">
+      <img src="/petocoin.png" class="h-5 w-5" alt="Petocoin">
+      <span class="text-sm font-bold" id="saldo">0</span>
+    </span>
+  </div>
+
+  <h1 class="titulo text-2xl md:text-3xl font-black mb-1 text-center">❓ Trivia</h1>
+  <p class="text-gray-400 mb-6 text-center max-w-sm text-sm">Respondé una ronda de 5 preguntas. Cada acierto paga 25 petoCoins; al terminar la ronda cobrás todo junto.</p>
+
+  <div class="w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl p-4 mb-6">
+    <div class="flex justify-between items-center mb-2 text-xs">
+      <span class="text-gray-400">Progreso diario de Petoworks</span>
+      <span class="font-bold" id="progreso-texto">0 / 2000</span>
+    </div>
+    <div class="w-full h-2.5 rounded-full overflow-hidden barra-fondo">
+      <div class="h-full barra-relleno" id="progreso-barra" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div class="w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl p-5 mb-6 flex justify-between text-center">
+    <div>
+      <span class="text-gray-400 text-xs block">Pregunta</span>
+      <span class="text-xl font-bold" id="contador">0 / 5</span>
+    </div>
+    <div>
+      <span class="text-gray-400 text-xs block">Ganado esta ronda</span>
+      <span class="text-xl font-bold" id="ganado-ronda">0</span>
+    </div>
+  </div>
+
+  <div class="w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-4">
+    <p id="pregunta" class="font-bold text-lg mb-5 text-center">Iniciá sesión para trabajar</p>
+    <div class="grid gap-3" id="opciones"></div>
+  </div>
+
+  <p id="mensaje" class="text-sm text-gray-300 mb-4 text-center max-w-sm"></p>
+
+  <button id="btn-empezar" class="px-6 py-3 rounded-xl bg-green-600 hover:bg-green-500 font-bold transition" disabled>Empezar ronda</button>
+
+  <script type="module">
+    import { auth, ganarPetoworks, suscribirProgresoPetoworks, suscribirCoins, PETOWORKS_LIMITE_DIARIO } from '../../../reztored-auth.js';
+
+    const COINS_POR_ACIERTO = 25;
+    const PREGUNTAS_POR_RONDA = 5;
+
+    const BANCO_PREGUNTAS = [
+      { p: '¿Cuál es el río más largo del mundo?', o: ['Nilo', 'Amazonas', 'Yangtsé', 'Misisipi'], r: 1 },
+      { p: '¿Quién fue el primer hombre en la Luna?', o: ['Un estadounidense', 'petope', 'Rez', 'Un ruso'], r: 0 },
+      { p: '¿Cuál es el planeta más grande del sistema solar?', o: ['Saturno', 'Tierra', 'Júpiter', 'Neptuno'], r: 2 },
+      { p: '¿Quién es petope?', o: ['Who is petope?', 'the ruined king', 'un fracasado', 'una deidad'], r: 1 },
+      { p: '¿Quién es RezTored?', o: ['Un pro', 'Un fracasado', 'Una deidad', 'Un dios'], r: 1 },
+      { p: '¿Cuántos huesos tiene un petope bebe?', o: ['186', '206', '226', '0'], r: 3 },
+      { p: '¿Te gusto la pagina?', o: ['No', 'no', 'si', 'me encantanla pija'], r: 3 },
+      { p: '¿Que va segundo?', o: ['Estados Unidos', '2', 'Francia', 'Dos'], r: 2 },
+      { p: '¿Cuál es el metal más abundante en la corteza terrestre?', o: ['PetoGold', 'Aluminio', 'Cobre', 'Zinc'], r: 1 },
+      { p: '¿Ppr cuanto le ganamos a Egipto?', o: ['67 goles', '1 gol', '2 goles', '3 goles'], r: 2 },
+      { p: '¿Qué vale más?', o: ['Petocoin', 'Peso Argentino', 'Rupia', 'Bitcoin'], r: 3 },
+      { p: '¿Qué gas respiramos principalmente del aire?', o: ['Oxígeno', 'Nitrógeno', 'Dióxido de carbono', 'Hidrógeno'], r: 1 },
+      { p: '¿Quién es el hombre mas lindo del Huergo"?', o: ['RezTored', 'Tetex', 'Waa', 'Ninguna de las anteriores'], r: 3 },
+      { p: '¿Cuánto vale una Petocoin en Dolares?', o: ['100$', '0,01$', '1$', '0,5$'], r: 2 },
+      { p: '¿Cuál es el animal terrestre más grande del mundo?', o: ['Rinoceronte', 'Hipopótamo', 'Elefante africano', 'Jirafa'], r: 2 },
+      { p: '¿En qué año se creo la página?', o: ['2026', '2016', '2067', '6767'], r: 0 },
+      { p: '¿Cuál es el elemento químico con símbolo "Au"?', o: ['Plata', 'Aluminio', 'Oro', 'Argón'], r: 2 },
+      { p: '¿Cuál es la montaña más alta del mundo?', o: ['K2', 'Everest', 'Aconcagua', 'Kilimanjaro'], r: 1 },
+      { p: '¿Con que medimos la temperatura?', o: ['Celcius', 'Farenheirt', 'Kelvin', 'Kilometro'], r: 0 },
+      { p: '¿Quién es la persona mas fracasada del huergo?', o: ['rueini', 'rueini2', 'reztored', 'Todas son correctas'], r: 0 }
+    ];
+
+    const preguntaEl = document.getElementById('pregunta');
+    const opcionesEl = document.getElementById('opciones');
+    const mensajeEl = document.getElementById('mensaje');
+    const saldoEl = document.getElementById('saldo');
+    const progresoTexto = document.getElementById('progreso-texto');
+    const progresoBarra = document.getElementById('progreso-barra');
+    const contadorEl = document.getElementById('contador');
+    const ganadoRondaEl = document.getElementById('ganado-ronda');
+    const btnEmpezar = document.getElementById('btn-empezar');
+
+    let restanteHoy = PETOWORKS_LIMITE_DIARIO;
+    let rondaPreguntas = [];
+    let indiceActual = 0;
+    let ganadoEnRonda = 0;
+    let rondaActiva = false;
+
+    function elegirRonda() {
+      const copia = [...BANCO_PREGUNTAS];
+      for (let i = copia.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copia[i], copia[j]] = [copia[j], copia[i]];
+      }
+      return copia.slice(0, PREGUNTAS_POR_RONDA);
+    }
+
+    function mostrarPregunta() {
+      const actual = rondaPreguntas[indiceActual];
+      contadorEl.textContent = `${indiceActual + 1} / ${PREGUNTAS_POR_RONDA}`;
+      preguntaEl.textContent = actual.p;
+      opcionesEl.innerHTML = '';
+      actual.o.forEach((texto, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'opcion text-left px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 hover:border-green-500 transition';
+        btn.textContent = texto;
+        btn.addEventListener('click', () => responder(idx));
+        opcionesEl.appendChild(btn);
+      });
+      mensajeEl.textContent = '';
+    }
+
+    function responder(idxElegido) {
+      const actual = rondaPreguntas[indiceActual];
+      const botones = Array.from(opcionesEl.children);
+      botones.forEach(b => { b.disabled = true; });
+
+      if (!botones[actual.r]) {
+        console.error('Pregunta mal cargada (índice de respuesta fuera de rango):', actual);
+        mensajeEl.textContent = '⚠️ Esta pregunta tenía un error, pasamos a la siguiente.';
+        setTimeout(() => {
+          indiceActual++;
+          if (indiceActual < rondaPreguntas.length) {
+            mostrarPregunta();
+          } else {
+            terminarRonda();
+          }
+        }, 900);
+        return;
+      }
+
+      botones[actual.r].classList.add('correcta');
+
+      if (idxElegido === actual.r) {
+        ganadoEnRonda += COINS_POR_ACIERTO;
+        ganadoRondaEl.textContent = ganadoEnRonda;
+        mensajeEl.textContent = '✅ ¡Correcto!';
+      } else {
+        botones[idxElegido].classList.add('incorrecta');
+        mensajeEl.textContent = '❌ Incorrecto.';
+      }
+
+      setTimeout(() => {
+        indiceActual++;
+        if (indiceActual < rondaPreguntas.length) {
+          mostrarPregunta();
+        } else {
+          terminarRonda();
+        }
+      }, 900);
+    }
+
+    async function terminarRonda() {
+      rondaActiva = false;
+      preguntaEl.textContent = 'Ronda terminada';
+      opcionesEl.innerHTML = '';
+      contadorEl.textContent = `${PREGUNTAS_POR_RONDA} / ${PREGUNTAS_POR_RONDA}`;
+      btnEmpezar.disabled = false;
+      btnEmpezar.textContent = 'Jugar otra ronda';
+
+      if (ganadoEnRonda <= 0) {
+        mensajeEl.textContent = 'No acertaste ninguna esta vez. ¡Probá de nuevo!';
+        return;
+      }
+
+      try {
+        const { acreditado, limiteAlcanzado } = await ganarPetoworks(ganadoEnRonda);
+        mensajeEl.textContent = `💰 Cobraste ${acreditado} petoCoins.${limiteAlcanzado ? ' Llegaste al tope diario.' : ''}`;
+        if (limiteAlcanzado) btnEmpezar.disabled = true;
+      } catch (error) {
+        mensajeEl.textContent = `⚠️ ${error.message}`;
+        btnEmpezar.disabled = true;
+      }
+    }
+
+    function empezarRonda() {
+      if (restanteHoy <= 0) {
+        mensajeEl.textContent = 'Ya llegaste al tope diario de Petoworks. Volvé mañana 💤';
+        return;
+      }
+      rondaPreguntas = elegirRonda();
+      indiceActual = 0;
+      ganadoEnRonda = 0;
+      ganadoRondaEl.textContent = '0';
+      rondaActiva = true;
+      btnEmpezar.disabled = true;
+      mostrarPregunta();
+    }
+
+    btnEmpezar.addEventListener('click', empezarRonda);
+
+    let dejarDeEscucharProgreso = () => {};
+    let dejarDeEscucharCoins = () => {};
+
+    auth.onAuthStateChanged((user) => {
+      dejarDeEscucharProgreso();
+      dejarDeEscucharCoins();
+      if (!user) {
+        rondaActiva = false;
+        btnEmpezar.disabled = true;
+        saldoEl.textContent = '0';
+        progresoTexto.textContent = `0 / ${PETOWORKS_LIMITE_DIARIO}`;
+        progresoBarra.style.width = '0%';
+        preguntaEl.textContent = 'Iniciá sesión para trabajar';
+        opcionesEl.innerHTML = '';
+        return;
+      }
+      dejarDeEscucharCoins = suscribirCoins(user.uid, (coins) => {
+        saldoEl.textContent = coins;
+      });
+      dejarDeEscucharProgreso = suscribirProgresoPetoworks(user.uid, ({ ganado, restante }) => {
+        restanteHoy = restante;
+        progresoTexto.textContent = `${ganado} / ${PETOWORKS_LIMITE_DIARIO}`;
+        progresoBarra.style.width = Math.min(100, (ganado / PETOWORKS_LIMITE_DIARIO) * 100) + '%';
+      });
+      btnEmpezar.disabled = false;
+      preguntaEl.textContent = 'Apretá "Empezar ronda" cuando quieras';
+    });
+  </script>
+
+</body>
+</html>

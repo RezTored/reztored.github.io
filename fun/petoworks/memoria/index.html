@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memoria — Petoworks</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Rajdhani', sans-serif; }
+  .titulo { font-family: 'Orbitron', sans-serif; }
+  .barra-fondo { background: #111827; }
+  .barra-relleno { background: linear-gradient(90deg, #22c55e, #16a34a); transition: width .4s ease; }
+  .boton-color {
+    transition: filter .1s ease, transform .1s ease;
+    opacity: .55;
+  }
+  .boton-color.activo {
+    opacity: 1;
+    filter: brightness(1.6);
+    transform: scale(0.97);
+  }
+  .boton-color:disabled { cursor: not-allowed; }
+</style>
+</head>
+<body class="bg-gray-950 text-white min-h-screen flex flex-col items-center px-6 py-10">
+
+  <div class="w-full max-w-md flex items-center justify-between mb-6">
+    <a href="/fun/petoworks" class="text-sm text-gray-400 hover:text-gray-200 transition">⬅ Petoworks</a>
+    <span class="flex items-center gap-1.5 bg-gray-900 border border-gray-800 rounded-full pl-1 pr-3 py-1">
+      <img src="/petocoin.png" class="h-5 w-5" alt="Petocoin">
+      <span class="text-sm font-bold" id="saldo">0</span>
+    </span>
+  </div>
+
+  <h1 class="titulo text-2xl md:text-3xl font-black mb-1 text-center">🧠 Memoria</h1>
+  <p class="text-gray-400 mb-6 text-center max-w-sm text-sm">Repetí la secuencia de colores. Cada nivel que superás suma petoCoins a tu pago pendiente: cobralo cuando quieras con "Retirar", o seguí arriesgando el nivel para ganar más (si te equivocás, no perdés lo ya ganado).</p>
+
+  <div class="w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl p-4 mb-6">
+    <div class="flex justify-between items-center mb-2 text-xs">
+      <span class="text-gray-400">Progreso diario de Petoworks</span>
+      <span class="font-bold" id="progreso-texto">0 / 2000</span>
+    </div>
+    <div class="w-full h-2.5 rounded-full overflow-hidden barra-fondo">
+      <div class="h-full barra-relleno" id="progreso-barra" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div class="w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl p-5 mb-6 flex justify-between text-center">
+    <div>
+      <span class="text-gray-400 text-xs block">Nivel</span>
+      <span class="text-xl font-bold" id="nivel">0</span>
+    </div>
+    <div>
+      <span class="text-gray-400 text-xs block">Pendiente de cobrar</span>
+      <span class="text-xl font-bold" id="pendiente">0</span>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 gap-3 w-full max-w-sm mb-6">
+    <button class="boton-color h-28 rounded-xl bg-red-600" data-color="rojo" disabled></button>
+    <button class="boton-color h-28 rounded-xl bg-blue-600" data-color="azul" disabled></button>
+    <button class="boton-color h-28 rounded-xl bg-yellow-500" data-color="amarillo" disabled></button>
+    <button class="boton-color h-28 rounded-xl bg-green-600" data-color="verde" disabled></button>
+  </div>
+
+  <p id="mensaje" class="text-sm text-gray-300 mb-4 text-center max-w-sm">Iniciá sesión para trabajar</p>
+
+  <div class="flex gap-3">
+    <button id="btn-jugar" class="px-6 py-3 rounded-xl bg-green-600 hover:bg-green-500 font-bold transition" disabled>Empezar</button>
+    <button id="btn-retirar" class="px-6 py-3 rounded-xl bg-gray-800 hover:bg-gray-700 font-bold transition" disabled>Retirar</button>
+  </div>
+
+  <script type="module">
+    import { auth, ganarPetoworks, suscribirProgresoPetoworks, suscribirCoins, PETOWORKS_LIMITE_DIARIO } from '../../../reztored-auth.js';
+
+    const COINS_POR_NIVEL = 15;
+    const colores = ['rojo', 'azul', 'amarillo', 'verde'];
+    const botones = Array.from(document.querySelectorAll('.boton-color'));
+    const saldoEl = document.getElementById('saldo');
+    const progresoTexto = document.getElementById('progreso-texto');
+    const progresoBarra = document.getElementById('progreso-barra');
+    const nivelEl = document.getElementById('nivel');
+    const pendienteEl = document.getElementById('pendiente');
+    const mensajeEl = document.getElementById('mensaje');
+    const btnJugar = document.getElementById('btn-jugar');
+    const btnRetirar = document.getElementById('btn-retirar');
+
+    let logueado = false;
+    let restanteHoy = PETOWORKS_LIMITE_DIARIO;
+    let secuencia = [];
+    let entradaUsuario = [];
+    let nivel = 0;
+    let pendiente = 0;
+    let mostrandoSecuencia = false;
+    let juegoActivo = false;
+
+    function flashBoton(color, ms = 500) {
+      return new Promise((resolve) => {
+        const btn = botones.find(b => b.dataset.color === color);
+        btn.classList.add('activo');
+        setTimeout(() => {
+          btn.classList.remove('activo');
+          setTimeout(resolve, 180);
+        }, ms);
+      });
+    }
+
+    function setBotonesHabilitados(habilitado) {
+      botones.forEach(b => { b.disabled = !habilitado; });
+    }
+
+    async function reproducirSecuencia() {
+      mostrandoSecuencia = true;
+      setBotonesHabilitados(false);
+      mensajeEl.textContent = 'Mirá bien...';
+      await new Promise(r => setTimeout(r, 400));
+      for (const color of secuencia) {
+        await flashBoton(color);
+      }
+      mostrandoSecuencia = false;
+      setBotonesHabilitados(true);
+      mensajeEl.textContent = 'Tu turno: repetí la secuencia';
+    }
+
+    function nuevoNivel() {
+      secuencia.push(colores[Math.floor(Math.random() * colores.length)]);
+      entradaUsuario = [];
+      nivel = secuencia.length;
+      nivelEl.textContent = nivel;
+      reproducirSecuencia();
+    }
+
+    function empezarJuego() {
+      if (restanteHoy <= 0) {
+        mensajeEl.textContent = 'Ya llegaste al tope diario de Petoworks. Volvé mañana 💤';
+        return;
+      }
+      secuencia = [];
+      entradaUsuario = [];
+      nivel = 0;
+      pendiente = 0;
+      pendienteEl.textContent = '0';
+      juegoActivo = true;
+      btnJugar.disabled = true;
+      btnRetirar.disabled = true;
+      nuevoNivel();
+    }
+
+    async function manejarClickColor(color) {
+      if (!juegoActivo || mostrandoSecuencia) return;
+      entradaUsuario.push(color);
+      const idx = entradaUsuario.length - 1;
+
+      if (entradaUsuario[idx] !== secuencia[idx]) {
+        // Falló: termina la ronda, pero conserva lo ya ganado (es un trabajo, no una apuesta).
+        juegoActivo = false;
+        setBotonesHabilitados(false);
+        mensajeEl.textContent = `❌ Te equivocaste en el nivel ${nivel}. Cobrá lo pendiente o empezá de nuevo.`;
+        btnJugar.disabled = false;
+        btnRetirar.disabled = pendiente <= 0;
+        return;
+      }
+
+      if (entradaUsuario.length === secuencia.length) {
+        // Completó el nivel: suma a lo pendiente.
+        pendiente += COINS_POR_NIVEL;
+        pendienteEl.textContent = pendiente;
+        setBotonesHabilitados(false);
+        mensajeEl.textContent = `✅ ¡Nivel ${nivel} superado! Preparando el siguiente...`;
+        btnRetirar.disabled = false;
+        await new Promise(r => setTimeout(r, 700));
+        if (juegoActivo) nuevoNivel();
+      }
+    }
+
+    botones.forEach(b => b.addEventListener('click', () => manejarClickColor(b.dataset.color)));
+    btnJugar.addEventListener('click', empezarJuego);
+
+    btnRetirar.addEventListener('click', async () => {
+      if (pendiente <= 0) return;
+      juegoActivo = false;
+      setBotonesHabilitados(false);
+      btnRetirar.disabled = true;
+      const aCobrar = pendiente;
+      try {
+        const { acreditado, limiteAlcanzado } = await ganarPetoworks(aCobrar);
+        pendiente = 0;
+        pendienteEl.textContent = '0';
+        mensajeEl.textContent = `💰 Cobraste ${acreditado} petoCoins.${limiteAlcanzado ? ' Llegaste al tope diario.' : ''}`;
+      } catch (error) {
+        mensajeEl.textContent = `⚠️ ${error.message}`;
+        btnRetirar.disabled = false;
+      }
+      btnJugar.disabled = false;
+    });
+
+    let dejarDeEscucharProgreso = () => {};
+    let dejarDeEscucharCoins = () => {};
+
+    auth.onAuthStateChanged((user) => {
+      dejarDeEscucharProgreso();
+      dejarDeEscucharCoins();
+      if (!user) {
+        logueado = false;
+        juegoActivo = false;
+        setBotonesHabilitados(false);
+        btnJugar.disabled = true;
+        btnRetirar.disabled = true;
+        saldoEl.textContent = '0';
+        progresoTexto.textContent = `0 / ${PETOWORKS_LIMITE_DIARIO}`;
+        progresoBarra.style.width = '0%';
+        mensajeEl.textContent = 'Iniciá sesión para trabajar';
+        return;
+      }
+      logueado = true;
+      dejarDeEscucharCoins = suscribirCoins(user.uid, (coins) => {
+        saldoEl.textContent = coins;
+      });
+      dejarDeEscucharProgreso = suscribirProgresoPetoworks(user.uid, ({ ganado, restante }) => {
+        restanteHoy = restante;
+        progresoTexto.textContent = `${ganado} / ${PETOWORKS_LIMITE_DIARIO}`;
+        progresoBarra.style.width = Math.min(100, (ganado / PETOWORKS_LIMITE_DIARIO) * 100) + '%';
+      });
+      btnJugar.disabled = false;
+      mensajeEl.textContent = 'Apretá "Empezar" cuando quieras';
+    });
+  </script>
+
+</body>
+</html>
