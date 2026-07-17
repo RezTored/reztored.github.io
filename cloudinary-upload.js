@@ -43,12 +43,12 @@
 // nombre del preset.
 // ============================================================
 
-const CLOUD_NAME = 'TU_CLOUD_NAME';        // <-- reemplazar
-const AVATAR_PRESET = 'reztored_avatares'; // <-- reemplazar si le pusiste otro nombre
-const BANNER_PRESET = 'reztored_banners';  // <-- reemplazar si le pusiste otro nombre
+const CLOUD_NAME = 'qec4f34v';        // <-- reemplazar
+const AVATAR_PRESET = 'profilepicture'; // <-- reemplazar si le pusiste otro nombre
+const BANNER_PRESET = 'banners';  // <-- reemplazar si le pusiste otro nombre
 
 async function subirACloudinary(blob, preset, publicId) {
-    if (CLOUD_NAME === 'TU_CLOUD_NAME') {
+    if (CLOUD_NAME === 'qec4f34v') {
         throw new Error("Falta configurar Cloudinary: completá CLOUD_NAME y los presets en cloudinary-upload.js.");
     }
 
