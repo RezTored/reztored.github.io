@@ -5,7 +5,7 @@
 // y las apuestas exteriores rojo/negro, par/impar, 1-18/19-36 (1 a 1).
 // La rueda se dibuja y gira con SVG puro, sin librerías externas.
 
-import { db, auth } from '../../reztored-auth.js';
+import { db, auth, xpPorGananciaApuesta, calcularActualizacionXP } from '../../reztored-auth.js';
 import { doc, runTransaction, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // --- Orden real de los números en una rueda de ruleta europea ---
@@ -373,7 +373,7 @@ async function cobrarApuestaFirebase(monto) {
     });
 }
 
-async function pagarPremioFirebase(cantidad) {
+async function pagarPremioFirebase(cantidad, apostado = 0) {
     const user = auth.currentUser;
     if (!user) throw new Error('Debes iniciar sesión.');
     const userRef = doc(db, 'users', user.uid);
@@ -382,9 +382,17 @@ async function pagarPremioFirebase(cantidad) {
         const userSnap = await tx.get(userRef);
         if (!userSnap.exists()) throw new Error('Perfil no encontrado.');
 
-        const saldoActual = userSnap.data().coins || 0;
+        const datos = userSnap.data();
+        const saldoActual = datos.coins || 0;
         const nuevoSaldo = saldoActual + cantidad;
-        tx.update(userRef, { coins: nuevoSaldo });
+
+        // XP solo si la jugada dio ganancia neta (premio > lo apostado).
+        const xpGanada = xpPorGananciaApuesta(cantidad - apostado);
+
+        tx.update(userRef, {
+            coins: nuevoSaldo,
+            ...(xpGanada > 0 ? calcularActualizacionXP(datos, xpGanada) : {})
+        });
         return nuevoSaldo;
     });
 }
@@ -436,7 +444,7 @@ async function girar() {
 
     if (premio > 0) {
         try {
-            saldo = await pagarPremioFirebase(premio);
+            saldo = await pagarPremioFirebase(premio, total);
             actualizarBalanceUI();
             mensajeEl.innerHTML = `${badge} ¡Ganaste ${premio} petoCoins! 🎉`;
         } catch (error) {

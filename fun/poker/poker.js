@@ -7,7 +7,7 @@
 // sus propias cartas de mano.
 // ============================================================
 
-import { db, auth } from '../../reztored-auth.js';
+import { db, auth, xpPorGananciaApuesta, calcularActualizacionXP } from '../../reztored-auth.js';
 import {
     doc, collection, setDoc, getDoc, getDocs, deleteDoc,
     onSnapshot, runTransaction, serverTimestamp, increment
@@ -78,6 +78,7 @@ export async function crearSala({ smallBlind = 10, bigBlind = 20, buyIn = 500 })
                 username: userSnap.data()?.username || user.displayName || 'jugador',
                 photoURL: userSnap.data()?.photoURL || user.photoURL || '',
                 tableChips: buyIn,
+                buyInTotal: buyIn,
                 status: 'sitout',
                 currentBet: 0,
                 totalBetHand: 0,
@@ -125,6 +126,7 @@ export async function unirseSala(code, buyIn = 500) {
             username: userSnap.data()?.username || user.displayName || 'jugador',
             photoURL: userSnap.data()?.photoURL || user.photoURL || '',
             tableChips: buyIn,
+            buyInTotal: buyIn,
             status: 'sitout',
             currentBet: 0,
             totalBetHand: 0,
@@ -156,7 +158,18 @@ export async function salirDeMesa(code) {
         if (!jugador) return;
 
         const userRef = doc(db, 'users', user.uid);
-        tx.update(userRef, { coins: increment(jugador.tableChips) });
+        const userSnap = await tx.get(userRef);
+        const datos = userSnap.exists() ? userSnap.data() : {};
+
+        // Ganancia neta: fichas con las que se va menos todo lo que puso
+        // (buyInTotal). Solo suma XP si se va con más de lo que puso.
+        const gananciaNeta = jugador.tableChips - (jugador.buyInTotal || 0);
+        const xpGanada = xpPorGananciaApuesta(gananciaNeta);
+
+        tx.update(userRef, {
+            coins: increment(jugador.tableChips),
+            ...(xpGanada > 0 ? calcularActualizacionXP(datos, xpGanada) : {})
+        });
 
         const restantes = sala.players.filter(p => p.uid !== user.uid);
         if (restantes.length === 0) {

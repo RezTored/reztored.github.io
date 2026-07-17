@@ -1,4 +1,4 @@
-import { db, auth } from '../../reztored-auth.js';
+import { db, auth, xpPorGananciaApuesta, calcularActualizacionXP } from '../../reztored-auth.js';
 import { doc, getDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // =========================================================================
@@ -229,14 +229,22 @@ export async function girarRuleta(apuesta) {
 
     await runTransaction(db, async (tx) => {
         const userSnap = await tx.get(userRef);
-        const saldo = userSnap.data().coins || 0;
+        const datos = userSnap.data();
+        const saldo = datos.coins || 0;
 
         // 2. Validar saldo suficiente
         if (saldo < apuestaValida) {
             throw new Error("Saldo insuficiente");
         }
 
-        tx.update(userRef, { coins: saldo - apuestaValida + ganancia });
+        // Solo se gana XP si la ganancia neta fue positiva (apostar y
+        // perder no otorga experiencia, solo ganar de verdad).
+        const xpGanada = xpPorGananciaApuesta(ganancia - apuestaValida);
+
+        tx.update(userRef, {
+            coins: saldo - apuestaValida + ganancia,
+            ...(xpGanada > 0 ? calcularActualizacionXP(datos, xpGanada) : {})
+        });
     });
 
     // Sonido de resultado

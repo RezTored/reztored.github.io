@@ -836,7 +836,10 @@
         suscribirCoins,
         toggleLikeOpinion,
         toggleDislikeOpinion,
-        darPetope
+        darPetope,
+        otorgarXP,
+        XP_MENSAJE_FORO,
+        XP_COMENTARIO_FORO
     } from '../reztored-auth.js';
 
     // Firestore (solo lo que esta página usa además del módulo compartido)
@@ -1352,6 +1355,8 @@
                         timestamp: new Date()
                     });
                     textarea.value = '';
+                    // Comentar también da XP para el sistema de niveles (no rompe el flujo si falla).
+                    otorgarXP(XP_COMENTARIO_FORO).catch((e) => console.error('No se pudo otorgar XP por comentario:', e));
                 } catch (error) {
                     console.error('Error al publicar comentario:', error);
                     alert('No se pudo publicar el comentario: ' + error.message);
@@ -1433,6 +1438,8 @@
             });
             console.log("5. ¡Éxito! Doc creado con ID:", docRef.id);
             textInput.value = '';
+            // Publicar una opinión también da XP para el sistema de niveles.
+            otorgarXP(XP_MENSAJE_FORO).catch((e) => console.error('No se pudo otorgar XP por publicación:', e));
         } catch (error) {
             console.error("5. ERROR al escribir en Firestore:", error.code, error.message);
             alert("No se pudo publicar: " + error.message + " (si estás baneado, no podés publicar)");
@@ -1453,5 +1460,6 @@
 
 </script>
 
+<script type="module" src="/nivel-widget.js"></script>
 </body>
 </html>

@@ -98,6 +98,106 @@ export const SUPER_ADMIN_UIDS = ['iBvT6PulDBNJ48EuquY5wKNestg2'];
 export const COINS_REGISTRO = 1000; // con cuántas coins arranca una cuenta nueva
 export const COINS_POR_LIKE = 10;   // cuántas coins gana el AUTOR cuando le likean un post
 
+// --- SISTEMA DE NIVELES (XP) ---
+// Progresión pensada para ser LENTA: cada nivel pide más experiencia
+// que el anterior (curva exponencial suave). Se gana XP publicando y
+// comentando en el foro, ganando apuestas en los juegos de /fun, y
+// completando trabajos en Petoworks.
+//
+// XP necesaria para pasar del nivel "nivel" al siguiente.
+export function xpParaNivel(nivel) {
+    return Math.round(100 * Math.pow(Math.max(1, nivel), 1.6));
+}
+
+/**
+ * A partir de la XP TOTAL acumulada de una cuenta, calcula en qué
+ * nivel está, cuánta XP lleva acumulada dentro de ese nivel, y cuánta
+ * le falta para subir al siguiente.
+ */
+export function calcularNivel(xpTotalCruda) {
+    let nivel = 1;
+    let xpRestante = Math.max(0, Math.floor(Number(xpTotalCruda) || 0));
+    const xpTotal = xpRestante;
+
+    while (xpRestante >= xpParaNivel(nivel)) {
+        xpRestante -= xpParaNivel(nivel);
+        nivel++;
+    }
+
+    return {
+        nivel,
+        xpEnNivel: xpRestante,
+        xpNecesaria: xpParaNivel(nivel),
+        xpTotal
+    };
+}
+
+// Cuánta XP otorga cada acción "fija" (foro). Las apuestas y Petoworks
+// usan una fórmula proporcional a lo ganado (ver xpPorGananciaApuesta
+// y el descuento de PETOWORKS_XP_POR_COIN dentro de ganarPetoworks).
+export const XP_MENSAJE_FORO = 15;      // publicar una opinión nueva
+export const XP_COMENTARIO_FORO = 5;    // comentar una opinión existente
+export const PETOWORKS_XP_POR_COIN = 1 / 10; // xp por cada petoCoin ganado en un trabajo
+
+/** Cuánta XP corresponde por ganar "gananciaNeta" petoCoins en una apuesta (roulette, blackjack, truco, poker, minas). */
+export function xpPorGananciaApuesta(gananciaNeta) {
+    const neta = Math.floor(Number(gananciaNeta) || 0);
+    if (neta <= 0) return 0;
+    return Math.max(1, Math.round(neta / 20));
+}
+
+/**
+ * Dado el documento actual del usuario ("datos", tal cual viene de un
+ * snap de Firestore) y una cantidad de XP a sumarle, devuelve el
+ * objeto { xp, nivel } listo para pisar con tx.update/setDoc dentro de
+ * la MISMA transacción que ya está acreditando coins (así xp, nivel y
+ * coins quedan siempre sincronizados en una sola escritura atómica).
+ */
+export function calcularActualizacionXP(datos, xpASumar) {
+    const xpActual = Number(datos && datos.xp) || 0;
+    const suma = Math.max(0, Math.floor(Number(xpASumar) || 0));
+    const nuevoXP = xpActual + suma;
+    const { nivel } = calcularNivel(nuevoXP);
+    return { xp: nuevoXP, nivel };
+}
+
+/**
+ * Suma XP a la cuenta logueada actual fuera de cualquier otra
+ * transacción (se usa para el foro: publicar y comentar no tocan
+ * coins, así que no hace falta compartir transacción con nada más).
+ * Si no hay sesión, no hace nada (no debería llamarse sin login, pero
+ * por las dudas no rompemos el flujo del que la llama).
+ */
+export async function otorgarXP(cantidadCruda) {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const cantidad = Math.floor(Number(cantidadCruda));
+    if (!Number.isFinite(cantidad) || cantidad <= 0) return;
+
+    const userRef = doc(db, 'users', user.uid);
+    await runTransaction(db, async (tx) => {
+        const snap = await tx.get(userRef);
+        if (!snap.exists()) return;
+        tx.update(userRef, calcularActualizacionXP(snap.data(), cantidad));
+    });
+}
+
+/**
+ * Escucha en tiempo real el nivel/XP de un usuario. callback recibe
+ * { nivel, xpEnNivel, xpNecesaria, xpTotal } y se llama de nuevo cada
+ * vez que cambia. Devuelve una función para dejar de escuchar.
+ */
+export function suscribirNivel(uid, callback) {
+    if (!uid) {
+        callback(calcularNivel(0));
+        return () => {};
+    }
+    return onSnapshot(doc(db, 'users', uid), (snap) => {
+        callback(calcularNivel(snap.exists() ? snap.data().xp : 0));
+    });
+}
+
 // --- PETOWORKS ---
 // "Trabajos" (minijuegos de habilidad, no de apuesta) donde se pueden
 // ganar petoCoins de verdad sin arriesgar el saldo. Tienen un tope
@@ -473,10 +573,12 @@ export async function ganarPetoworks(cantidadCruda) {
         const acreditado = Math.min(monto, restante);
         const nuevoSaldo = (datos.coins || 0) + acreditado;
         const nuevoGanadoHoy = ganadoHoy + acreditado;
+        const xpGanada = Math.max(1, Math.round(acreditado * PETOWORKS_XP_POR_COIN));
 
         tx.update(userRef, {
             coins: nuevoSaldo,
-            petoworksHoy: { fecha: hoy, ganado: nuevoGanadoHoy }
+            petoworksHoy: { fecha: hoy, ganado: nuevoGanadoHoy },
+            ...calcularActualizacionXP(datos, xpGanada)
         });
 
         return {
@@ -713,6 +815,62 @@ export async function actualizarColorPerfil(uid, color) {
     }
 
     await setDoc(doc(db, 'users', uid), { colorPerfil: colorLimpio }, { merge: true });
+}
+
+/**
+ * Guarda en Firestore la URL de la foto de perfil del usuario
+ * logueado, DESPUÉS de que el archivo ya se subió a Cloudinary
+ * (ver cloudinary-upload.js: la subida en sí pasa directo desde el
+ * navegador a Cloudinary, esta función solo guarda el link
+ * resultante en el documento del usuario).
+ */
+export async function guardarFotoPerfil(uid, url) {
+    const user = auth.currentUser;
+    if (!user || user.uid !== uid) {
+        throw new Error("Solo podés cambiar tu propia foto de perfil.");
+    }
+    if (!url) {
+        throw new Error("Falta la URL de la foto subida.");
+    }
+
+    await setDoc(doc(db, 'users', uid), { photoURL: url }, { merge: true });
+}
+
+// Tamaño máximo que aceptamos para el banner YA preparado (bytes).
+// Los GIFs no se recomprimen (para no perder la animación), por eso
+// el límite es más alto que el del avatar. El recorte/compresión de
+// imágenes estáticas pasa antes en el navegador (ver
+// image-utils.js); esto es un límite de seguridad extra, reforzado
+// también en storage.rules.
+const MAX_BYTES_BANNER = 8 * 1024 * 1024; // 8 MB
+
+/**
+ * Guarda en Firestore el banner de tipo "imagen o GIF" del usuario
+ * logueado, DESPUÉS de que el archivo ya se subió a Cloudinary (ver
+ * cloudinary-upload.js). Solo funciona si ya compró
+ * 'banner_personalizado'. Marca bannerType: 'imagen' para que se use
+ * esta imagen en vez de un banner de colores (si había alguno
+ * guardado antes).
+ */
+export async function guardarBannerPerfil(uid, url) {
+    const user = auth.currentUser;
+    if (!user || user.uid !== uid) {
+        throw new Error("Solo podés personalizar tu propio perfil.");
+    }
+    if (!url) {
+        throw new Error("Falta la URL del banner subido.");
+    }
+
+    const snap = await getDoc(doc(db, 'users', uid));
+    const inventario = snap.exists() ? (snap.data().inventario || {}) : {};
+    if (!inventario['banner_personalizado']) {
+        throw new Error("Necesitás comprar 'Banner personalizado' en la tienda primero.");
+    }
+
+    await setDoc(doc(db, 'users', uid), {
+        bannerType: 'imagen',
+        bannerImageURL: url
+    }, { merge: true });
 }
 
 /**

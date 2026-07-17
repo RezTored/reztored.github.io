@@ -10,7 +10,7 @@
 // falta envido) y escalada de truco → retruco → vale cuatro.
 // ============================================================
 
-import { db, auth } from '../../reztored-auth.js';
+import { db, auth, xpPorGananciaApuesta, calcularActualizacionXP } from '../../reztored-auth.js';
 import {
     doc, getDoc, setDoc, runTransaction, onSnapshot, serverTimestamp, increment
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -632,7 +632,17 @@ async function pagarSiTerminoJuego(code) {
             if (sala2.status === 'closed') return; // ya se pagó
 
             const userRef = doc(db, 'users', user.uid);
-            tx.update(userRef, { coins: increment(sala2.apuesta * 2) });
+            const userSnap = await tx.get(userRef);
+            const datos = userSnap.exists() ? userSnap.data() : {};
+
+            // Ganancia neta: cobra el doble de la apuesta, pero ya había
+            // puesto esa apuesta al entrar, así que lo neto es sala2.apuesta.
+            const xpGanada = xpPorGananciaApuesta(sala2.apuesta);
+
+            tx.update(userRef, {
+                coins: increment(sala2.apuesta * 2),
+                ...(xpGanada > 0 ? calcularActualizacionXP(datos, xpGanada) : {})
+            });
             tx.update(salaRef, { status: 'closed' });
         });
     } catch { /* concurrencia: si ya se pagó, no pasa nada */ }

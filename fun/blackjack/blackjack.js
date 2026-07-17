@@ -1,6 +1,6 @@
 // Proyecto/fun/blackjack/blackjack.js
 
-import { db, auth } from '../../reztored-auth.js';
+import { db, auth, xpPorGananciaApuesta, calcularActualizacionXP } from '../../reztored-auth.js';
 import { doc, runTransaction, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const suits = ["♠", "♥", "♦", "♣"];
@@ -107,12 +107,18 @@ async function pagarPremioFirebase(apuesta, multiplicador) {
         const userSnap = await tx.get(userRef);
         if (!userSnap.exists()) throw new Error("Perfil no encontrado.");
         
-        const saldoActual = userSnap.data().coins || 0;
+        const datos = userSnap.data();
+        const saldoActual = datos.coins || 0;
         const ganancia = Math.floor(apuesta * multiplicador);
 
         // Sumamos la ganancia (la apuesta inicial ya se había descontado)
         const nuevoSaldo = saldoActual + ganancia;
-        tx.update(userRef, { coins: nuevoSaldo });
+        const xpGanada = xpPorGananciaApuesta(ganancia - apuesta);
+
+        tx.update(userRef, {
+            coins: nuevoSaldo,
+            ...(xpGanada > 0 ? calcularActualizacionXP(datos, xpGanada) : {})
+        });
         return nuevoSaldo;
     });
 }

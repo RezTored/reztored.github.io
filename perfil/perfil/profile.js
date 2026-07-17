@@ -6,11 +6,10 @@ import {
     esAdmin, 
     actualizarColorPerfil, 
     actualizarMarcoPerfil,
-    guardarFotoPerfil,
-    guardarBannerPerfil
+    subirFotoPerfil,
+    subirBannerPerfil
 } from './reztored-auth.js';
 import { comprimirImagenCuadrada, prepararImagenBanner } from '../image-utils.js';
-import { subirAvatarACloudinary, subirBannerACloudinary } from '../cloudinary-upload.js';
 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { doc, updateDoc, onSnapshot, collection, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -163,8 +162,7 @@ function escucharSubidaAvatar() {
             // Vista previa inmediata con el archivo ya comprimido.
             preview.src = URL.createObjectURL(blobComprimido);
 
-            const nuevaURL = await subirAvatarACloudinary(profileId, blobComprimido);
-            await guardarFotoPerfil(profileId, nuevaURL);
+            const nuevaURL = await subirFotoPerfil(profileId, blobComprimido);
 
             // Actualizamos también el avatar grande del perfil, sin
             // esperar a que se recargue la página.
@@ -210,8 +208,7 @@ function escucharSubidaBanner() {
 
             preview.style.backgroundImage = `url('${URL.createObjectURL(blobListo)}')`;
 
-            const nuevaURL = await subirBannerACloudinary(profileId, blobListo);
-            await guardarBannerPerfil(profileId, nuevaURL);
+            const nuevaURL = await subirBannerPerfil(profileId, blobListo);
 
             document.getElementById('userBanner').style.backgroundImage = `url('${nuevaURL}')`;
 
